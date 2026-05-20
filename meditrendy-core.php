@@ -7,6 +7,12 @@ Version: 1.0
 
 if (!defined('ABSPATH')) exit;
 
+define('MEDITRENDY_CORE_FILE', __FILE__);
+define('MEDITRENDY_CORE_DIR', plugin_dir_path(__FILE__));
+define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
+
+require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
+
 /* ======================================================
    REMOVE GALLERY ZOOM & SLIDER
 ====================================================== */
