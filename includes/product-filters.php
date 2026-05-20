@@ -282,16 +282,6 @@ function meditrendy_native_filters_option_counts($source) {
     return $counts;
 }
 
-function meditrendy_native_filters_active_count() {
-    $count = 0;
-
-    foreach (meditrendy_native_filter_config() as $filter) {
-        $count += count(meditrendy_native_filter_values($filter['param']));
-    }
-
-    return $count;
-}
-
 function meditrendy_native_filter_reset_url() {
     $url = meditrendy_native_filter_base_url();
     $remove = ['paged', 'product-page'];
@@ -414,7 +404,6 @@ function meditrendy_get_native_product_filters_html() {
 
     $rendered = true;
 
-    $active_count = meditrendy_native_filters_active_count();
     ob_start();
     ?>
     <?php $context = meditrendy_native_filter_context(); ?>
@@ -431,9 +420,6 @@ function meditrendy_get_native_product_filters_html() {
         <button type="button" class="mt-native-filters-trigger" aria-expanded="false">
             <span class="mt-native-filters-trigger-icon" aria-hidden="true"></span>
             <span>Filtrai</span>
-            <?php if ($active_count) : ?>
-                <span class="mt-native-filters-count"><?php echo esc_html($active_count); ?></span>
-            <?php endif; ?>
         </button>
 
         <div class="mt-native-filters-panel">

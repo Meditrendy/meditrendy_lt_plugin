@@ -1141,35 +1141,20 @@
   }
 
   function updateSubmitCount(form, count) {
-    var text = count === null
-      ? (labels().submit || 'Rodyti rezultatus')
-      : (labels().count || 'Rodyti %d rezultatus').replace('%d', count);
+    const text = labels().submit || 'Rodyti rezultatus';
 
-    var panel = form.querySelector('.mt-native-filters-panel') || form._mtPanel;
-    var submit = panel && panel.querySelector('.mt-native-filters-submit');
+    const panel = form.querySelector('.mt-native-filters-panel') || form._mtPanel;
+    const submit = panel && panel.querySelector('.mt-native-filters-submit');
 
     if (submit) {
       submit.textContent = text;
     }
 
-    var badge = form.querySelector('.mt-native-filters-count');
+    const badge = form.querySelector('.mt-native-filters-count');
 
-    if (count === null) {
-      if (badge && !badge.textContent.trim()) {
-        badge.remove();
-      }
-
-      return;
+    if (badge) {
+      badge.remove();
     }
-
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'mt-native-filters-count';
-      form.querySelector('.mt-native-filters-trigger').appendChild(badge);
-    }
-
-    badge.dataset.resultCount = String(count);
-    badge.textContent = String(count);
   }
 
   function selectedPayload(form) {

@@ -1,12 +1,11 @@
 .mt-native-filters {
   width: 100%;
-  margin: 0 0 24px;
+  margin: 0;
   font-family: inherit;
   position: relative;
   z-index: 2147483000;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
 }
 
 .mt-native-filters.is-layered,
@@ -50,12 +49,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
   height: 46px;
   margin: 0;
-  padding: 0 12px 0 18px;
-  border: 1px solid #dedede;
-  border-radius: 999px;
+  border: none;
   background: #ffffff;
   color: #111111;
   box-shadow: none;
@@ -366,7 +362,6 @@
 }
 
 .mt-native-filters-reset {
-  border: 1px solid #d9d9d9;
   background: #ffffff;
   color: #111111;
 }
@@ -386,8 +381,6 @@
   align-items: center;
   gap: 8px;
   width: 100%;
-  margin: -12px 0 24px;
-  padding: 8px 0;
   background: #ffffff;
   overflow-x: auto;
   overflow-y: hidden;
@@ -460,6 +453,11 @@
   background: #111111;
   color: #ffffff;
   box-shadow: -12px 0 18px #ffffff;
+  display: none;
+
+  @media (max-width: 980px) {
+    display: inline-flex;
+  }
 }
 
 .mt-native-filters.is-loading {
@@ -561,7 +559,6 @@
     gap: 10px;
     width: 100%;
     min-height: 50px;
-    padding: 0 18px;
     background: #ffffff;
     color: #111111;
     box-shadow: none;
@@ -591,7 +588,6 @@
 
   .mt-native-filters {
     display: block;
-    margin-bottom: 10px;
   }
 
   .mt-native-filters-reset-desktop {
@@ -743,7 +739,7 @@
     display: block;
     width: 100%;
     height: auto;
-    padding: 0;
+    padding: 0 1.5rem;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
