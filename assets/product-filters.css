@@ -262,18 +262,6 @@
   font-size: 11px;
 }
 
-.mt-native-filter[data-filter="size"] .mt-native-filter-body li.is-active,
-.mt-native-filter[data-filter="length"] .mt-native-filter-body li.is-active {
-  border-color: #111111;
-  background: #111111;
-}
-
-.mt-native-filter-body[data-filter="size"] li.is-active,
-.mt-native-filter-body[data-filter="length"] li.is-active {
-  border-color: #111111;
-  background: #111111;
-}
-
 .mt-native-filter[data-filter="color"] .mt-native-filter-body,
 .mt-native-filter[data-filter="brand"] .mt-native-filter-body,
 .mt-native-filter-body[data-filter="color"],

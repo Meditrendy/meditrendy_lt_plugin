@@ -168,7 +168,7 @@ height: 18px;
 padding: 0 5px;
 border: 2px solid #ffffff;
 border-radius: 999px;
-background: #111111;
+background: red;
 color: #ffffff;
 font-size: 10px;
 font-weight: 700;
