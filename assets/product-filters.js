@@ -1005,7 +1005,7 @@
         if (options.closeMobilePanel) {
           closeMobilePanel(form);
         }
-        updateSubmitCount(form, null);
+        resetSubmitText(form);
         debugLog('products replaced', {
           count: response.data.count,
           nextProductsClass: nextProducts.className,
@@ -1051,14 +1051,14 @@
       }
 
       count = parseInt(count, 10) || 0;
-      row.dataset.filterCount = String(count);
+      row.dataset.filterCount = `(${String(count)})`;
       row.classList.toggle('is-unavailable', !selected && count < 1);
       input.disabled = !selected && count < 1;
 
       var countElement = row.querySelector('.mt-native-filter-option-count');
 
       if (countElement) {
-        countElement.textContent = String(count);
+        countElement.textContent = `(${String(count)})`;
       }
     });
   }
@@ -1140,20 +1140,12 @@
     updateActiveChips(form);
   }
 
-  function updateSubmitCount(form, count) {
-    const text = labels().submit || 'Rodyti rezultatus';
-
-    const panel = form.querySelector('.mt-native-filters-panel') || form._mtPanel;
-    const submit = panel && panel.querySelector('.mt-native-filters-submit');
+  function resetSubmitText(form) {
+    var panel = form.querySelector('.mt-native-filters-panel') || form._mtPanel;
+    var submit = panel && panel.querySelector('.mt-native-filters-submit');
 
     if (submit) {
-      submit.textContent = text;
-    }
-
-    const badge = form.querySelector('.mt-native-filters-count');
-
-    if (badge) {
-      badge.remove();
+      submit.textContent = labels().submit || 'Rodyti rezultatus';
     }
   }
 
@@ -1234,11 +1226,11 @@
 
         if (!response || !response.success || !response.data) return;
 
-        updateSubmitCount(form, response.data.count);
+        resetSubmitText(form);
         updateFilterOptionCounts(form, response.data.optionCounts);
       })
       .catch(function () {
-        updateSubmitCount(form, null);
+        resetSubmitText(form);
       });
   }
 

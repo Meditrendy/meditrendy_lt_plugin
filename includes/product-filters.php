@@ -461,7 +461,7 @@ function meditrendy_get_native_product_filters_html() {
                                                 ></span>
                                             <?php endif; ?>
                                             <span><?php echo esc_html($term->name); ?></span>
-                                            <span class="mt-native-filter-option-count"><?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?></span>
+                                            <span class="mt-native-filter-option-count">(<?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>)</span>
                                         </label>
                                     </li>
                                 <?php endforeach; ?>
@@ -472,12 +472,12 @@ function meditrendy_get_native_product_filters_html() {
             </div>
 
             <div class="mt-native-filters-footer">
-                <a class="mt-native-filters-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Reset</a>
+                <a class="mt-native-filters-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Išvalyti</a>
                 <button type="submit" class="mt-native-filters-submit">Rodyti rezultatus</button>
             </div>
         </div>
 
-        <a class="mt-native-filters-reset mt-native-filters-reset-desktop" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Reset</a>
+        <a class="mt-native-filters-reset mt-native-filters-reset-desktop" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Išvalyti</a>
     </form>
     <?php echo meditrendy_native_active_filters_html($visible_filters); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     <?php
@@ -651,7 +651,6 @@ function meditrendy_native_filters_enqueue_assets() {
                 'labels'  => [
                     'submit'  => 'Rodyti rezultatus',
                     'loading' => 'Skaičiuojama...',
-                    'count'   => 'Rodyti %d rezultatus',
                 ],
             ]
         );
