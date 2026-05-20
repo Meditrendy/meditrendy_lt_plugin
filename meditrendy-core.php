@@ -49,34 +49,134 @@ $count=(function_exists('WC') && WC()->cart)
 
 <script>
 
-document.addEventListener("DOMContentLoaded",function(){
+var meditrendyInitialCartCount=<?php echo (int) $count;?>;
 
-var cartToggles=document.querySelectorAll(
-'.x-anchor-toggle[aria-label="Toggle Off Canvas Content"]'
-);
+function meditrendyReadCartCount(source){
+var selectors='.xoo-wsc-sc-count,.xoo-wsc-items-count,.xoo-wsch-items-count,.xoo-wscb-count,.meditrendy-cart-count';
+var counts=[];
 
-if(!cartToggles.length) return;
+if(source&&source.fragments){
+Object.keys(source.fragments).forEach(function(key){
+var wrap=document.createElement('div');
+wrap.innerHTML=source.fragments[key];
+wrap.querySelectorAll(selectors).forEach(function(el){
+var value=parseInt((el.textContent||'').replace(/[^0-9]/g,''),10);
+if(!isNaN(value)) counts.push(value);
+});
+});
+}
 
-var count=<?php echo $count;?>;
+document.querySelectorAll(selectors).forEach(function(el){
+if(el.className&&(' '+el.className+' ').indexOf(' meditrendy-cart-count ')!==-1) return;
+var value=parseInt((el.textContent||'').replace(/[^0-9]/g,''),10);
+if(!isNaN(value)) counts.push(value);
+});
 
-cartToggles.forEach(function(wrapper){
+return counts.length?Math.max.apply(Math,counts):meditrendyInitialCartCount;
+}
 
-if(wrapper.querySelector('.x-graphic-toggle')) return;
+function meditrendyAddCartBadge(nextCount){
 
-if(count>0 && !wrapper.querySelector('.meditrendy-cart-count')){
+var count=typeof nextCount==='number'?nextCount:meditrendyReadCartCount();
+var addClass=function(element,className){
+if(!element) return;
+if((' '+element.className+' ').indexOf(' '+className+' ')===-1){
+element.className=(element.className+' '+className).trim();
+}
+};
+var removeClass=function(element,className){
+if(!element) return;
+element.className=(' '+element.className+' ').replace(' '+className+' ',' ').trim();
+};
 
-wrapper.insertAdjacentHTML(
+document.querySelectorAll('.meditrendy-cart-count').forEach(function(badge){
+badge.remove();
+});
+
+document.querySelectorAll('.meditrendy-cart-toggle').forEach(function(toggle){
+removeClass(toggle,'meditrendy-cart-toggle');
+});
+
+var cartButtons=Array.prototype.slice.call(document.querySelectorAll('.x-anchor.xoo-wsc-cart-trigger')).filter(function(button){
+var rect=button.getBoundingClientRect();
+return rect.width>0&&rect.height>0&&rect.top>=0&&rect.top<window.innerHeight;
+});
+
+if(!cartButtons.length) return;
+
+var cartButton=cartButtons.pop();
+var badgeTarget=cartButton.querySelector('.x-graphic')||cartButton;
+
+addClass(badgeTarget,'meditrendy-cart-toggle');
+
+if(count>0){
+
+if(badgeTarget.querySelector('.meditrendy-cart-count')){
+badgeTarget.querySelector('.meditrendy-cart-count').textContent=count;
+}else{
+badgeTarget.insertAdjacentHTML(
 'beforeend',
 '<span class="meditrendy-cart-count">'+count+'</span>'
 );
+}
 
 }
 
-});
+}
 
+function meditrendyScheduleCartBadgeUpdate(source){
+var count=meditrendyReadCartCount(source);
+meditrendyAddCartBadge(count);
+window.setTimeout(function(){
+meditrendyAddCartBadge(meditrendyReadCartCount(source));
+},80);
+window.setTimeout(function(){
+meditrendyAddCartBadge(meditrendyReadCartCount());
+},350);
+}
+
+document.addEventListener("DOMContentLoaded",function(){
+meditrendyAddCartBadge();
+window.setTimeout(meditrendyAddCartBadge,250);
+window.setTimeout(meditrendyAddCartBadge,900);
+
+if(window.jQuery){
+jQuery(document.body).on('added_to_cart wc_fragments_refreshed wc_fragments_loaded removed_from_cart updated_cart_totals xoo_wsc_cart_updated xoo_wsc_quantity_updated',function(event,response){
+meditrendyScheduleCartBadgeUpdate(response);
+});
+}
 });
 
 </script>
+
+<style>
+.meditrendy-cart-toggle {
+position: relative;
+display: inline-flex;
+}
+
+.meditrendy-cart-count {
+position: absolute;
+top: -8px;
+right: -10px;
+z-index: 5;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-width: 18px;
+height: 18px;
+padding: 0 5px;
+border: 2px solid #ffffff;
+border-radius: 999px;
+background: #111111;
+color: #ffffff;
+font-size: 10px;
+font-weight: 700;
+line-height: 1;
+letter-spacing: 0;
+pointer-events: none;
+}
+</style>
 
 <?php
 
