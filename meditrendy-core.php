@@ -51,7 +51,7 @@ $count=(function_exists('WC') && WC()->cart)
 
 var meditrendyInitialCartCount=<?php echo (int) $count;?>;
 
-function meditrendyReadCartCount(source){
+function meditrendyReadCartCount(source,allowDomFallback){
 var selectors='.xoo-wsc-sc-count,.xoo-wsc-items-count,.xoo-wsch-items-count,.xoo-wscb-count,.meditrendy-cart-count';
 var counts=[];
 
@@ -66,6 +66,10 @@ if(!isNaN(value)) counts.push(value);
 });
 }
 
+if(counts.length) return Math.max.apply(Math,counts);
+
+if(!allowDomFallback) return meditrendyInitialCartCount;
+
 document.querySelectorAll(selectors).forEach(function(el){
 if(el.className&&(' '+el.className+' ').indexOf(' meditrendy-cart-count ')!==-1) return;
 var value=parseInt((el.textContent||'').replace(/[^0-9]/g,''),10);
@@ -77,7 +81,7 @@ return counts.length?Math.max.apply(Math,counts):meditrendyInitialCartCount;
 
 function meditrendyAddCartBadge(nextCount){
 
-var count=typeof nextCount==='number'?nextCount:meditrendyReadCartCount();
+var count=typeof nextCount==='number'?nextCount:meditrendyReadCartCount(null,false);
 var addClass=function(element,className){
 if(!element) return;
 if((' '+element.className+' ').indexOf(' '+className+' ')===-1){
@@ -124,25 +128,26 @@ badgeTarget.insertAdjacentHTML(
 
 }
 
-function meditrendyScheduleCartBadgeUpdate(source){
-var count=meditrendyReadCartCount(source);
+function meditrendyScheduleCartBadgeUpdate(source,allowDomFallback){
+var count=meditrendyReadCartCount(source,allowDomFallback);
 meditrendyAddCartBadge(count);
 window.setTimeout(function(){
-meditrendyAddCartBadge(meditrendyReadCartCount(source));
+meditrendyAddCartBadge(meditrendyReadCartCount(source,allowDomFallback));
 },80);
 window.setTimeout(function(){
-meditrendyAddCartBadge(meditrendyReadCartCount());
+meditrendyAddCartBadge(meditrendyReadCartCount(null,allowDomFallback));
 },350);
 }
 
 document.addEventListener("DOMContentLoaded",function(){
-meditrendyAddCartBadge();
-window.setTimeout(meditrendyAddCartBadge,250);
-window.setTimeout(meditrendyAddCartBadge,900);
+meditrendyAddCartBadge(meditrendyInitialCartCount);
+window.setTimeout(function(){meditrendyAddCartBadge(meditrendyInitialCartCount);},250);
+window.setTimeout(function(){meditrendyAddCartBadge(meditrendyInitialCartCount);},900);
 
 if(window.jQuery){
 jQuery(document.body).on('added_to_cart wc_fragments_refreshed wc_fragments_loaded removed_from_cart updated_cart_totals xoo_wsc_cart_updated xoo_wsc_quantity_updated',function(event,response){
-meditrendyScheduleCartBadgeUpdate(response);
+var allowDomFallback=['added_to_cart','removed_from_cart','updated_cart_totals','xoo_wsc_cart_updated','xoo_wsc_quantity_updated'].indexOf(event.type)!==-1;
+meditrendyScheduleCartBadgeUpdate(response,allowDomFallback);
 });
 }
 });
