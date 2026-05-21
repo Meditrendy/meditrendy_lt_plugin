@@ -52,7 +52,7 @@ $count=(function_exists('WC') && WC()->cart)
 <script>
 
 (function(){
-const cartEndpoint='<?php echo esc_url_raw(rest_url('wc/store/v1/cart'));?>';
+const cartEndpoint=<?php echo wp_json_encode(rest_url('wc/store/v1/cart'));?>;
 let cartCount=<?php echo (int) $count;?>;
 let refreshTimer=0;
 
