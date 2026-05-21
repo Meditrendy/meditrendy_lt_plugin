@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_native_filter_config() {
-    return [
+    $config = [
         'color' => [
             'label'    => 'SPALVA',
             'taxonomy' => 'pa_color-group',
@@ -28,6 +28,33 @@ function meditrendy_native_filter_config() {
             'type'     => 'checkbox',
         ],
     ];
+
+    if (!function_exists('meditrendy_filter_settings')) {
+        return $config;
+    }
+
+    $settings = meditrendy_filter_settings();
+
+    foreach ($config as $key => $filter) {
+        $filter_settings = $settings['filters'][$key] ?? [];
+
+        if (empty($filter_settings['enabled'])) {
+            unset($config[$key]);
+            continue;
+        }
+
+        if (!empty($filter_settings['label'])) {
+            $config[$key]['label'] = $filter_settings['label'];
+        }
+
+        $config[$key]['order'] = absint($filter_settings['order'] ?? 0);
+    }
+
+    uasort($config, function ($a, $b) {
+        return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
+    });
+
+    return $config;
 }
 
 function meditrendy_native_filter_taxonomy($filter) {
@@ -399,7 +426,7 @@ function meditrendy_native_active_filters_html($visible_filters) {
                 <span class="mt-native-active-filter-remove" aria-hidden="true"></span>
             </a>
         <?php endforeach; ?>
-        <a class="mt-native-active-filter mt-native-active-filter-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Reset</a>
+        <a class="mt-native-active-filter mt-native-active-filter-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>"><?php echo esc_html(meditrendy_filter_setting_label('active_reset')); ?></a>
     </div>
     <?php
 
@@ -420,6 +447,12 @@ function meditrendy_get_native_product_filters_html() {
     $filters = meditrendy_native_filter_config();
     $visible_filters = [];
     $context = meditrendy_native_filter_context();
+    $settings = function_exists('meditrendy_filter_settings') ? meditrendy_filter_settings() : [
+        'show_counts'        => 1,
+        'hide_empty_initial' => 1,
+    ];
+    $show_counts = !empty($settings['show_counts']);
+    $hide_empty_initial = !empty($settings['hide_empty_initial']);
 
     foreach ($filters as $key => $filter) {
         $taxonomy = meditrendy_native_filter_taxonomy($filter);
@@ -430,11 +463,11 @@ function meditrendy_get_native_product_filters_html() {
         }
 
         $term_counts = [];
-        $terms = array_values(array_filter($terms, function ($term) use ($filter, $context, &$term_counts) {
+        $terms = array_values(array_filter($terms, function ($term) use ($filter, $context, &$term_counts, $hide_empty_initial) {
             $count = meditrendy_native_filter_term_product_count($filter, $term, $context);
             $term_counts[$term->term_id] = $count;
 
-            return $count > 0;
+            return !$hide_empty_initial || $count > 0;
         }));
 
         if (!$terms) {
@@ -470,12 +503,12 @@ function meditrendy_get_native_product_filters_html() {
     >
         <button type="button" class="mt-native-filters-trigger" aria-expanded="false">
             <span class="mt-native-filters-trigger-icon" aria-hidden="true"></span>
-            <span>Filtrai</span>
+            <span><?php echo esc_html(meditrendy_filter_setting_label('trigger')); ?></span>
         </button>
 
         <div class="mt-native-filters-panel">
             <div class="mt-native-filters-header">
-                <span>Filtrai</span>
+                <span><?php echo esc_html(meditrendy_filter_setting_label('panel')); ?></span>
                 <button type="button" class="mt-native-filters-close" aria-label="Uzdaryti filtrus"></button>
             </div>
 
@@ -512,7 +545,9 @@ function meditrendy_get_native_product_filters_html() {
                                                 ></span>
                                             <?php endif; ?>
                                             <span><?php echo esc_html($term->name); ?></span>
-                                            <span class="mt-native-filter-option-count">(<?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>)</span>
+                                            <?php if ($show_counts) : ?>
+                                                <span class="mt-native-filter-option-count">(<?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>)</span>
+                                            <?php endif; ?>
                                         </label>
                                     </li>
                                 <?php endforeach; ?>
@@ -523,12 +558,12 @@ function meditrendy_get_native_product_filters_html() {
             </div>
 
             <div class="mt-native-filters-footer">
-                <a class="mt-native-filters-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Išvalyti</a>
-                <button type="submit" class="mt-native-filters-submit">Rodyti rezultatus</button>
+                <a class="mt-native-filters-reset" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>"><?php echo esc_html(meditrendy_filter_setting_label('reset')); ?></a>
+                <button type="submit" class="mt-native-filters-submit"><?php echo esc_html(meditrendy_filter_setting_label('submit')); ?></button>
             </div>
         </div>
 
-        <a class="mt-native-filters-reset mt-native-filters-reset-desktop" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>">Išvalyti</a>
+        <a class="mt-native-filters-reset mt-native-filters-reset-desktop" href="<?php echo esc_url(meditrendy_native_filter_reset_url()); ?>"><?php echo esc_html(meditrendy_filter_setting_label('reset')); ?></a>
     </form>
     <?php echo meditrendy_native_active_filters_html($visible_filters); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     <?php
@@ -711,6 +746,27 @@ function meditrendy_native_filters_enqueue_assets() {
                 ],
             ]
         );
+
+        wp_scripts()->add_data('meditrendy-native-filters', 'data', '');
+
+        wp_localize_script(
+            'meditrendy-native-filters',
+            'MeditrendyNativeFilters',
+            [
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'nonce'   => wp_create_nonce('meditrendy_native_filters'),
+                'labels'  => [
+                    'submit'     => meditrendy_filter_setting_label('submit'),
+                    'loading'    => meditrendy_filter_setting_label('loading'),
+                    'reset'      => meditrendy_filter_setting_label('active_reset'),
+                    'noProducts' => meditrendy_filter_setting_label('no_products'),
+                ],
+                'settings' => [
+                    'showCounts'         => !empty(meditrendy_filter_settings()['show_counts']),
+                    'disableUnavailable' => !empty(meditrendy_filter_settings()['disable_unavailable']),
+                ],
+            ]
+        );
     }
 }
 
@@ -750,7 +806,7 @@ function meditrendy_native_filters_render_products($query) {
         woocommerce_product_loop_end();
     } else {
         woocommerce_product_loop_start();
-        echo '<li class="product mt-native-no-products">' . esc_html__('No products were found matching your selection.', 'woocommerce') . '</li>';
+        echo '<li class="product mt-native-no-products">' . esc_html(meditrendy_filter_setting_label('no_products')) . '</li>';
         woocommerce_product_loop_end();
     }
 

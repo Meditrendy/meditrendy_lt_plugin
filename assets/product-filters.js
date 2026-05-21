@@ -370,6 +370,10 @@
     return (window.MeditrendyNativeFilters && window.MeditrendyNativeFilters.labels) || {};
   }
 
+  function settings() {
+    return (window.MeditrendyNativeFilters && window.MeditrendyNativeFilters.settings) || {};
+  }
+
   function isMobile() {
     return window.matchMedia('(max-width: 980px)').matches;
   }
@@ -880,7 +884,9 @@
     if (!products.length) {
       var empty = document.createElement('div');
       empty.className = 'x-col product-loop mt-native-no-products';
+      empty.dataset.defaultText = labels().noProducts || 'Produktų nerasta';
       empty.textContent = 'Produktų nerasta';
+      empty.textContent = empty.dataset.defaultText;
       inner.appendChild(empty);
       return true;
     }
@@ -1052,12 +1058,12 @@
 
       count = parseInt(count, 10) || 0;
       row.dataset.filterCount = `(${String(count)})`;
-      row.classList.toggle('is-unavailable', !selected && count < 1);
-      input.disabled = !selected && count < 1;
+      row.classList.toggle('is-unavailable', !!settings().disableUnavailable && !selected && count < 1);
+      input.disabled = !!settings().disableUnavailable && !selected && count < 1;
 
       var countElement = row.querySelector('.mt-native-filter-option-count');
 
-      if (countElement) {
+      if (countElement && settings().showCounts !== false) {
         countElement.textContent = `(${String(count)})`;
       }
     });
@@ -1129,7 +1135,7 @@
     reset.href = '#';
     reset.className = 'mt-native-active-filter mt-native-active-filter-reset';
     reset.dataset.filtersReset = '1';
-    reset.textContent = 'Reset';
+    reset.textContent = labels().reset || 'Reset';
     container.appendChild(reset);
   }
 

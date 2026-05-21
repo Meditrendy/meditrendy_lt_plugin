@@ -12,6 +12,7 @@ define('MEDITRENDY_CORE_DIR', plugin_dir_path(__FILE__));
 define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
 
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 
 /* ======================================================
@@ -50,108 +51,95 @@ $count=(function_exists('WC') && WC()->cart)
 
 <script>
 
-var meditrendyInitialCartCount=<?php echo (int) $count;?>;
+(function(){
+const cartEndpoint='<?php echo esc_url_raw(rest_url('wc/store/v1/cart'));?>';
+let cartCount=<?php echo (int) $count;?>;
+let refreshTimer=0;
 
-function meditrendyReadCartCount(source,allowDomFallback){
-var selectors='.xoo-wsc-sc-count,.xoo-wsc-items-count,.xoo-wsch-items-count,.xoo-wscb-count,.meditrendy-cart-count';
-var counts=[];
+function getVisibleCartButton(){
+const buttons=Array.from(document.querySelectorAll('.x-anchor.xoo-wsc-cart-trigger'));
 
-if(source&&source.fragments){
-Object.keys(source.fragments).forEach(function(key){
-var wrap=document.createElement('div');
-wrap.innerHTML=source.fragments[key];
-wrap.querySelectorAll(selectors).forEach(function(el){
-var value=parseInt((el.textContent||'').replace(/[^0-9]/g,''),10);
-if(!isNaN(value)) counts.push(value);
-});
-});
+return buttons.filter(function(button){
+const rect=button.getBoundingClientRect();
+return rect.width>0&&rect.height>0&&rect.top>=0&&rect.top<window.innerHeight;
+}).pop();
 }
 
-if(counts.length) return Math.max.apply(Math,counts);
-
-if(!allowDomFallback) return meditrendyInitialCartCount;
-
-document.querySelectorAll(selectors).forEach(function(el){
-if(el.className&&(' '+el.className+' ').indexOf(' meditrendy-cart-count ')!==-1) return;
-var value=parseInt((el.textContent||'').replace(/[^0-9]/g,''),10);
-if(!isNaN(value)) counts.push(value);
-});
-
-return counts.length?Math.max.apply(Math,counts):meditrendyInitialCartCount;
-}
-
-function meditrendyAddCartBadge(nextCount){
-
-var count=typeof nextCount==='number'?nextCount:meditrendyReadCartCount(null,false);
-var addClass=function(element,className){
-if(!element) return;
-if((' '+element.className+' ').indexOf(' '+className+' ')===-1){
-element.className=(element.className+' '+className).trim();
-}
-};
-var removeClass=function(element,className){
-if(!element) return;
-element.className=(' '+element.className+' ').replace(' '+className+' ',' ').trim();
-};
+function renderCartBadge(nextCount){
+cartCount=Number.isFinite(nextCount)?nextCount:cartCount;
 
 document.querySelectorAll('.meditrendy-cart-count').forEach(function(badge){
 badge.remove();
 });
 
 document.querySelectorAll('.meditrendy-cart-toggle').forEach(function(toggle){
-removeClass(toggle,'meditrendy-cart-toggle');
+toggle.classList.remove('meditrendy-cart-toggle');
 });
 
-var cartButtons=Array.prototype.slice.call(document.querySelectorAll('.x-anchor.xoo-wsc-cart-trigger')).filter(function(button){
-var rect=button.getBoundingClientRect();
-return rect.width>0&&rect.height>0&&rect.top>=0&&rect.top<window.innerHeight;
+const cartButton=getVisibleCartButton();
+
+if(!cartButton){
+return;
+}
+
+const badgeTarget=cartButton.querySelector('.x-graphic')||cartButton;
+badgeTarget.classList.add('meditrendy-cart-toggle');
+
+if(cartCount>0){
+const badge=document.createElement('span');
+badge.className='meditrendy-cart-count';
+badge.textContent=cartCount;
+badgeTarget.appendChild(badge);
+}
+}
+
+function readStoreCartCount(data){
+if(data&&typeof data.items_count==='number'){
+return data.items_count;
+}
+
+if(data&&Array.isArray(data.items)){
+return data.items.reduce(function(total,item){
+return total+(Number(item.quantity)||0);
+},0);
+}
+
+return cartCount;
+}
+
+function refreshCartBadge(){
+if(!window.fetch){
+renderCartBadge(cartCount);
+return;
+}
+
+window.fetch(cartEndpoint,{credentials:'include'})
+.then(function(response){
+return response.ok?response.json():null;
+})
+.then(function(data){
+renderCartBadge(readStoreCartCount(data));
+})
+.catch(function(){
+renderCartBadge(cartCount);
 });
-
-if(!cartButtons.length) return;
-
-var cartButton=cartButtons.pop();
-var badgeTarget=cartButton.querySelector('.x-graphic')||cartButton;
-
-addClass(badgeTarget,'meditrendy-cart-toggle');
-
-if(count>0){
-
-if(badgeTarget.querySelector('.meditrendy-cart-count')){
-badgeTarget.querySelector('.meditrendy-cart-count').textContent=count;
-}else{
-badgeTarget.insertAdjacentHTML(
-'beforeend',
-'<span class="meditrendy-cart-count">'+count+'</span>'
-);
 }
 
+function scheduleCartBadgeRefresh(){
+window.clearTimeout(refreshTimer);
+refreshTimer=window.setTimeout(refreshCartBadge,250);
 }
 
-}
-
-function meditrendyScheduleCartBadgeUpdate(source,allowDomFallback){
-var count=meditrendyReadCartCount(source,allowDomFallback);
-meditrendyAddCartBadge(count);
-window.setTimeout(function(){
-meditrendyAddCartBadge(meditrendyReadCartCount(source,allowDomFallback));
-},80);
-window.setTimeout(function(){
-meditrendyAddCartBadge(meditrendyReadCartCount(null,allowDomFallback));
-},350);
-}
-
-document.addEventListener("DOMContentLoaded",function(){
-meditrendyAddCartBadge(meditrendyInitialCartCount);
-window.setTimeout(function(){meditrendyAddCartBadge(meditrendyInitialCartCount);},250);
-window.setTimeout(function(){meditrendyAddCartBadge(meditrendyInitialCartCount);},900);
+document.addEventListener('DOMContentLoaded',function(){
+renderCartBadge(cartCount);
+window.setTimeout(function(){renderCartBadge(cartCount);},250);
+window.setTimeout(refreshCartBadge,900);
 
 if(window.jQuery){
-jQuery(document.body).on('added_to_cart wc_fragments_refreshed wc_fragments_loaded removed_from_cart updated_cart_totals xoo_wsc_cart_updated xoo_wsc_quantity_updated',function(event,response){
-var allowDomFallback=['added_to_cart','removed_from_cart','updated_cart_totals','xoo_wsc_cart_updated','xoo_wsc_quantity_updated'].indexOf(event.type)!==-1;
-meditrendyScheduleCartBadgeUpdate(response,allowDomFallback);
-});
+jQuery(document.body).on('added_to_cart removed_from_cart updated_cart_totals xoo_wsc_cart_updated xoo_wsc_quantity_updated',scheduleCartBadgeRefresh);
 }
 });
+}());
 
 </script>
 
@@ -366,27 +354,17 @@ add_filter('acf/settings/load_json', function($paths) {
 
 
 /* ======================================================
-  BOOST SETTINGS
-====================================================== */
-/* ======================================================
-   mini - cart header only after add-on
+   avoid global cart fragments
 ====================================================== */
 
 add_action('wp_enqueue_scripts', function() {
-
     if (is_admin()) return;
 
+    if (function_exists('is_cart') && is_cart()) return;
+    if (function_exists('is_checkout') && is_checkout()) return;
+
     wp_dequeue_script('wc-cart-fragments');
-
-    wp_enqueue_script(
-        'wc-cart-fragments',
-        WC()->plugin_url() . '/assets/js/frontend/cart-fragments.min.js',
-        ['jquery'],
-        WC_VERSION,
-        true
-    );
-
-}, 20);
+}, 100);
 
 /* ======================================================
    remove emoji
