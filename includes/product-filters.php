@@ -125,6 +125,57 @@ function meditrendy_native_filter_terms($taxonomy) {
     return is_wp_error($terms) ? [] : $terms;
 }
 
+function meditrendy_native_filters_in_stock_tax_clause() {
+    if (!taxonomy_exists('product_visibility')) {
+        return [];
+    }
+
+    if (function_exists('wc_get_product_visibility_term_ids')) {
+        $visibility_terms = wc_get_product_visibility_term_ids();
+
+        if (!empty($visibility_terms['outofstock'])) {
+            return [
+                'taxonomy' => 'product_visibility',
+                'field'    => 'term_taxonomy_id',
+                'terms'    => [(int) $visibility_terms['outofstock']],
+                'operator' => 'NOT IN',
+            ];
+        }
+    }
+
+    $term = get_term_by('name', 'outofstock', 'product_visibility');
+
+    if (!$term) {
+        $term = get_term_by('slug', 'outofstock', 'product_visibility');
+    }
+
+    return $term ? [
+        'taxonomy' => 'product_visibility',
+        'field'    => 'term_taxonomy_id',
+        'terms'    => [(int) $term->term_taxonomy_id],
+        'operator' => 'NOT IN',
+    ] : [];
+}
+
+function meditrendy_native_filters_apply_stock_visibility_to_args($args) {
+    $stock_clause = meditrendy_native_filters_in_stock_tax_clause();
+
+    if (!$stock_clause) {
+        return $args;
+    }
+
+    $tax_query = !empty($args['tax_query']) ? (array) $args['tax_query'] : [];
+
+    if (empty($tax_query['relation'])) {
+        $tax_query['relation'] = 'AND';
+    }
+
+    $tax_query[] = $stock_clause;
+    $args['tax_query'] = $tax_query;
+
+    return $args;
+}
+
 function meditrendy_native_filter_context() {
     $context = [
         'taxonomy' => '',
@@ -172,7 +223,7 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
         ];
     }
 
-    $query = new WP_Query([
+    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args([
         'post_type'              => 'product',
         'post_status'            => 'publish',
         'posts_per_page'         => 1,
@@ -181,7 +232,7 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
         'update_post_meta_cache' => false,
         'update_post_term_cache' => false,
         'tax_query'              => $tax_query,
-    ]);
+    ]));
 
     return (int) $query->found_posts;
 }
@@ -243,7 +294,7 @@ function meditrendy_native_filters_count_products($source) {
         $args['tax_query'] = $tax_query;
     }
 
-    $query = new WP_Query($args);
+    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
 
     return (int) $query->found_posts;
 }
@@ -593,6 +644,12 @@ function meditrendy_apply_native_product_filters_to_query($query) {
         $tax_query[] = $clause;
     }
 
+    $stock_clause = meditrendy_native_filters_in_stock_tax_clause();
+
+    if ($stock_clause) {
+        $tax_query[] = $stock_clause;
+    }
+
     $query->set('tax_query', $tax_query);
     $query->set('_meditrendy_native_filters_applied', true);
 }
@@ -769,7 +826,7 @@ function meditrendy_native_filters_ajax_products() {
         $args['tax_query'] = $tax_query;
     }
 
-    $query = new WP_Query($args);
+    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
 
     if (function_exists('wc_set_loop_prop')) {
         wc_set_loop_prop('total', (int) $query->found_posts);
