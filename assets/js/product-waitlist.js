@@ -1,13 +1,14 @@
 (function () {
-    var config = window.MeditrendyProductWaitlist || {};
-    var labels = config.labels || {};
-    var product = config.product || {};
-    var selectedProductId = 0;
-    var waitlistLink;
-    var modal;
-    var emailInput;
-    var notice;
-    var submitButton;
+    const config = window.MeditrendyProductWaitlist || {};
+    const labels = config.labels || {};
+    const product = config.product || {};
+    let selectedProductId = 0;
+    let selectedSetId = 0;
+    let waitlistLink;
+    let modal;
+    let emailInput;
+    let notice;
+    let submitButton;
 
     function text(key, fallback) {
         return labels[key] || fallback;
@@ -40,7 +41,7 @@
         waitlistLink.hidden = true;
         waitlistLink.addEventListener('click', openModal);
 
-        var target = findInsertTarget();
+        const target = findInsertTarget();
         if (target && target.parentNode) {
             target.parentNode.insertBefore(waitlistLink, target.nextSibling);
         }
@@ -48,13 +49,15 @@
         return waitlistLink;
     }
 
-    function showLink(productId) {
+    function showLink(productId, setId) {
         selectedProductId = parseInt(productId, 10) || 0;
+        selectedSetId = parseInt(setId, 10) || 0;
         ensureLink().hidden = !selectedProductId;
     }
 
     function hideLink() {
         selectedProductId = 0;
+        selectedSetId = 0;
         ensureLink().hidden = true;
     }
 
@@ -159,17 +162,19 @@
     function submitWaitlist(event) {
         event.preventDefault();
 
-        var email = emailInput.value.trim();
+        const email = emailInput.value.trim();
 
         if (!selectedProductId || !isValidEmail(email)) {
             setNotice(text('invalidEmail', 'Įveskite teisingą el. pašto adresą.'), 'error');
             return;
         }
 
-        var formData = new FormData();
+        const formData = new FormData();
         formData.append('action', 'meditrendy_stock_waitlist_subscribe');
         formData.append('nonce', config.nonce || '');
         formData.append('product_id', selectedProductId);
+        formData.append('set_id', selectedSetId);
+        formData.append('set_items', getSetItems(selectedSetId));
         formData.append('email', email);
 
         setLoading(true);
@@ -202,8 +207,8 @@
     }
 
     function readVariationById(variationId) {
-        var form = getVariationForm();
-        var variations = form && window.jQuery ? window.jQuery(form).data('product_variations') : null;
+        const form = getVariationForm();
+        const variations = form && window.jQuery ? window.jQuery(form).data('product_variations') : null;
 
         if (!variations || !variations.length) {
             return null;
@@ -211,7 +216,7 @@
 
         variationId = parseInt(variationId, 10);
 
-        for (var i = 0; i < variations.length; i += 1) {
+        for (let i = 0; i < variations.length; i += 1) {
             if (parseInt(variations[i].variation_id, 10) === variationId) {
                 return variations[i];
             }
@@ -220,12 +225,28 @@
         return null;
     }
 
-    function updateForVariation(variation) {
-        var variationId = variation && variation.variation_id ? parseInt(variation.variation_id, 10) : 0;
-        var isOutOfStock = !!(variationId && variation.is_in_stock === false);
+    function getSetIdFromForm(form) {
+        const wrap = form && form.closest ? form.closest('.woosb-wrap') : null;
+
+        if (wrap && wrap.dataset && wrap.dataset.id) {
+            return parseInt(wrap.dataset.id, 10) || 0;
+        }
+
+        return product.isSet ? parseInt(product.productId, 10) || 0 : 0;
+    }
+
+    function getSetItems(setId) {
+        const field = setId ? document.querySelector('.woosb-ids-' + setId) : null;
+
+        return field ? field.value : '';
+    }
+
+    function updateForVariation(variation, form) {
+        const variationId = variation && variation.variation_id ? parseInt(variation.variation_id, 10) : 0;
+        const isOutOfStock = !!(variationId && variation.is_in_stock === false);
 
         if (isOutOfStock) {
-            showLink(variationId);
+            showLink(variationId, getSetIdFromForm(form));
         } else {
             hideLink();
         }
@@ -236,32 +257,35 @@
             return;
         }
 
-        var $body = window.jQuery(document.body);
+        const $body = window.jQuery(document.body);
 
         $body.on('found_variation', 'form.variations_form', function (event, variation) {
-            updateForVariation(variation);
+            updateForVariation(variation, this);
         });
 
         $body.on('reset_data hide_variation', 'form.variations_form', function () {
             hideLink();
         });
 
-        var variationInput = document.querySelector('form.variations_form input.variation_id');
+        const variationInput = document.querySelector('form.variations_form input.variation_id');
         if (variationInput && variationInput.value) {
-            updateForVariation(readVariationById(variationInput.value));
+            updateForVariation(readVariationById(variationInput.value), variationInput.closest('form.variations_form'));
         }
     }
 
     function init() {
         ensureLink();
 
-        if (product.isVariable) {
+        if (product.isVariable || product.isSet) {
             bindVariableProduct();
+        }
+
+        if (product.isVariable && !product.isSet) {
             return;
         }
 
         if (product.productId && product.isInStock === false) {
-            showLink(product.productId);
+            showLink(product.productId, product.isSet ? product.productId : 0);
         }
     }
 
