@@ -2,6 +2,7 @@
     const config = window.MeditrendyProductWaitlist || {};
     const labels = config.labels || {};
     const product = config.product || {};
+    const unavailableSetSelections = new Map();
     let selectedProductId = 0;
     let selectedSetId = 0;
     let waitlistLink;
@@ -22,7 +23,15 @@
         return document.querySelector('form.variations_form');
     }
 
+    function getSetWrap(setId) {
+        return setId ? document.querySelector('.woosb-wrap[data-id="' + setId + '"]') : document.querySelector('.woosb-wrap');
+    }
+
     function findInsertTarget() {
+        if (product.isSet) {
+            return getSetWrap(product.productId) || document.querySelector('form.cart');
+        }
+
         return getVariationForm() ||
             document.querySelector('form.cart') ||
             document.querySelector('.summary') ||
@@ -42,6 +51,7 @@
         waitlistLink.addEventListener('click', openModal);
 
         const target = findInsertTarget();
+
         if (target && target.parentNode) {
             target.parentNode.insertBefore(waitlistLink, target.nextSibling);
         }
@@ -214,10 +224,10 @@
             return null;
         }
 
-        variationId = parseInt(variationId, 10);
+        const id = parseInt(variationId, 10);
 
         for (let i = 0; i < variations.length; i += 1) {
-            if (parseInt(variations[i].variation_id, 10) === variationId) {
+            if (parseInt(variations[i].variation_id, 10) === id) {
                 return variations[i];
             }
         }
@@ -236,17 +246,68 @@
     }
 
     function getSetItems(setId) {
-        const field = setId ? document.querySelector('.woosb-ids-' + setId) : null;
+        const wrap = getSetWrap(setId);
+        const items = [];
 
-        return field ? field.value : '';
+        if (!wrap) {
+            return '';
+        }
+
+        wrap.querySelectorAll('.woosb-product').forEach(function (setProduct) {
+            const qty = parseFloat(setProduct.dataset.qty || '0');
+            const key = setProduct.dataset.key || '';
+            const form = setProduct.querySelector('form.variations_form');
+            const unavailableSelection = form ? unavailableSetSelections.get(form) : null;
+            const id = unavailableSelection || parseInt(setProduct.dataset.id || '0', 10);
+
+            if (id > 0 && qty > 0 && key) {
+                items.push(id + '/' + key + '/' + qty);
+            }
+        });
+
+        return items.join(',');
     }
 
-    function updateForVariation(variation, form) {
+    function hasSimpleUnavailableSetItem(setId) {
+        const wrap = getSetWrap(setId);
+
+        if (!wrap) {
+            return false;
+        }
+
+        return Array.from(wrap.querySelectorAll('.woosb-product-unpurchasable')).some(function (setProduct) {
+            return !setProduct.querySelector('form.variations_form');
+        });
+    }
+
+    function refreshSetLink(setId) {
+        if (unavailableSetSelections.size || hasSimpleUnavailableSetItem(setId)) {
+            showLink(setId, setId);
+            return;
+        }
+
+        hideLink();
+    }
+
+    function updateForSetVariation(variation, form) {
+        const setId = getSetIdFromForm(form);
+        const variationId = variation && variation.variation_id ? parseInt(variation.variation_id, 10) : 0;
+
+        if (variationId && variation.is_in_stock === false) {
+            unavailableSetSelections.set(form, variationId);
+        } else {
+            unavailableSetSelections.delete(form);
+        }
+
+        refreshSetLink(setId);
+    }
+
+    function updateForVariation(variation) {
         const variationId = variation && variation.variation_id ? parseInt(variation.variation_id, 10) : 0;
         const isOutOfStock = !!(variationId && variation.is_in_stock === false);
 
         if (isOutOfStock) {
-            showLink(variationId, getSetIdFromForm(form));
+            showLink(variationId, 0);
         } else {
             hideLink();
         }
@@ -260,16 +321,29 @@
         const $body = window.jQuery(document.body);
 
         $body.on('found_variation', 'form.variations_form', function (event, variation) {
-            updateForVariation(variation, this);
+            if (product.isSet && this.closest('.woosb-wrap')) {
+                updateForSetVariation(variation, this);
+                return;
+            }
+
+            updateForVariation(variation);
         });
 
         $body.on('reset_data hide_variation', 'form.variations_form', function () {
+            if (product.isSet && this.closest('.woosb-wrap')) {
+                const setId = getSetIdFromForm(this);
+                unavailableSetSelections.delete(this);
+                refreshSetLink(setId);
+                return;
+            }
+
             hideLink();
         });
 
         const variationInput = document.querySelector('form.variations_form input.variation_id');
-        if (variationInput && variationInput.value) {
-            updateForVariation(readVariationById(variationInput.value), variationInput.closest('form.variations_form'));
+
+        if (variationInput && variationInput.value && !product.isSet) {
+            updateForVariation(readVariationById(variationInput.value));
         }
     }
 
@@ -280,12 +354,17 @@
             bindVariableProduct();
         }
 
-        if (product.isVariable && !product.isSet) {
+        if (product.isSet) {
+            refreshSetLink(product.productId);
+            return;
+        }
+
+        if (product.isVariable) {
             return;
         }
 
         if (product.productId && product.isInStock === false) {
-            showLink(product.productId, product.isSet ? product.productId : 0);
+            showLink(product.productId, 0);
         }
     }
 

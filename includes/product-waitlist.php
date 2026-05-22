@@ -409,6 +409,10 @@ function meditrendy_stock_waitlist_send_set_notifications_for_changed_product($p
             continue;
         }
 
+        if (!meditrendy_waitlist_set_available($set_id, $set_items)) {
+            continue;
+        }
+
         $set_lock_key = 'meditrendy_waitlist_set_email_' . $set_id . '_' . md5($set_items);
 
         if (get_transient($set_lock_key)) {
@@ -421,7 +425,9 @@ function meditrendy_stock_waitlist_send_set_notifications_for_changed_product($p
 }
 
 function meditrendy_stock_waitlist_send_notifications_for_set($set_id, $set_items = '') {
-    if (!meditrendy_waitlist_set_available($set_id, $set_items)) {
+    $set = function_exists('wc_get_product') ? wc_get_product($set_id) : null;
+
+    if (!$set || !meditrendy_waitlist_set_available($set_id, $set_items)) {
         return;
     }
 
@@ -430,18 +436,255 @@ function meditrendy_stock_waitlist_send_notifications_for_set($set_id, $set_item
     $table = meditrendy_stock_waitlist_table_name();
     $rows = $wpdb->get_results(
         $wpdb->prepare(
-            "SELECT DISTINCT product_id FROM {$table} WHERE set_id = %d AND set_hash = %s AND notified_at IS NULL",
+            "SELECT id, email FROM {$table} WHERE set_id = %d AND set_hash = %s AND notified_at IS NULL",
             $set_id,
             $set_items ? md5($set_items) : ''
         )
     );
 
+    if (!$rows) {
+        return;
+    }
+
+    $subject = __('PrekÄ— vÄ—l prekyboje', 'meditrendy-core');
+    $headers = ['Content-Type: text/html; charset=UTF-8'];
+
     foreach ($rows as $row) {
-        meditrendy_stock_waitlist_send_notifications(absint($row->product_id));
+        $message = sprintf(
+            '<p>%1$s</p><p>%2$s <strong>%3$s</strong> %4$s</p><p><a href="%5$s">%6$s</a></p>',
+            esc_html__('Sveiki,', 'meditrendy-core'),
+            esc_html__('PrekÄ—', 'meditrendy-core'),
+            esc_html($set->get_name()),
+            esc_html__('vÄ—l yra prekyboje.', 'meditrendy-core'),
+            esc_url($set->get_permalink()),
+            esc_html__('PerĹľiĹ«rÄ—ti prekÄ™', 'meditrendy-core')
+        );
+
+        wp_mail($row->email, $subject, $message, $headers);
+
+        $wpdb->update(
+            $table,
+            ['notified_at' => current_time('mysql')],
+            ['id' => (int) $row->id],
+            ['%s'],
+            ['%d']
+        );
     }
 }
 
+function meditrendy_waitlist_admin_capability() {
+    if (function_exists('meditrendy_filter_settings_capability')) {
+        return meditrendy_filter_settings_capability();
+    }
+
+    return current_user_can('manage_woocommerce') ? 'manage_woocommerce' : 'manage_options';
+}
+
+function meditrendy_waitlist_admin_menu() {
+    add_submenu_page(
+        'meditrendy-settings',
+        __('Waitlist', 'meditrendy-core'),
+        __('Waitlist', 'meditrendy-core'),
+        meditrendy_waitlist_admin_capability(),
+        'meditrendy-waitlist',
+        'meditrendy_render_waitlist_admin_page'
+    );
+}
+
+function meditrendy_waitlist_admin_product_link($product_id) {
+    $product_id = absint($product_id);
+    $product = $product_id && function_exists('wc_get_product') ? wc_get_product($product_id) : null;
+    $label = $product ? $product->get_name() : sprintf(__('Product #%d', 'meditrendy-core'), $product_id);
+    $edit_link = $product_id ? get_edit_post_link($product_id) : '';
+
+    if (!$edit_link) {
+        return esc_html($label);
+    }
+
+    return sprintf(
+        '<a href="%1$s">%2$s</a>',
+        esc_url($edit_link),
+        esc_html($label)
+    );
+}
+
+function meditrendy_waitlist_admin_date($date) {
+    if (!$date) {
+        return '&mdash;';
+    }
+
+    return esc_html(
+        mysql2date(
+            get_option('date_format') . ' ' . get_option('time_format'),
+            $date
+        )
+    );
+}
+
+function meditrendy_waitlist_admin_set_items($set_id, $set_items = '') {
+    $labels = [];
+
+    foreach (meditrendy_waitlist_set_items($set_id, $set_items) as $item) {
+        $item_product = !empty($item['id']) && function_exists('wc_get_product') ? wc_get_product(absint($item['id'])) : null;
+
+        if (!$item_product) {
+            continue;
+        }
+
+        $qty = isset($item['qty']) ? (float) $item['qty'] : 1;
+        $labels[] = $qty > 1 ? sprintf('%s x %s', wc_format_decimal($qty), $item_product->get_name()) : $item_product->get_name();
+    }
+
+    if (!$labels) {
+        return '';
+    }
+
+    return implode(', ', $labels);
+}
+
+function meditrendy_render_waitlist_admin_page() {
+    if (!current_user_can(meditrendy_waitlist_admin_capability())) {
+        wp_die(esc_html__('You do not have permission to view this page.', 'meditrendy-core'));
+    }
+
+    meditrendy_stock_waitlist_install();
+
+    global $wpdb;
+
+    $table = meditrendy_stock_waitlist_table_name();
+    $stats = $wpdb->get_row(
+        "SELECT
+            COUNT(*) AS total_count,
+            SUM(CASE WHEN notified_at IS NULL THEN 1 ELSE 0 END) AS pending_count,
+            COUNT(DISTINCT email) AS email_count
+        FROM {$table}"
+    );
+    $summary_rows = $wpdb->get_results(
+        "SELECT
+            product_id,
+            set_id,
+            set_hash,
+            set_items,
+            COUNT(*) AS total_count,
+            SUM(CASE WHEN notified_at IS NULL THEN 1 ELSE 0 END) AS pending_count,
+            MAX(created_at) AS last_signup
+        FROM {$table}
+        GROUP BY product_id, set_id, set_hash
+        ORDER BY pending_count DESC, last_signup DESC
+        LIMIT 200"
+    );
+    $recent_rows = $wpdb->get_results(
+        "SELECT id, email, product_id, set_id, set_items, created_at, notified_at
+        FROM {$table}
+        ORDER BY created_at DESC
+        LIMIT 100"
+    );
+    ?>
+    <div class="wrap meditrendy-waitlist-admin">
+        <h1><?php esc_html_e('Waitlist', 'meditrendy-core'); ?></h1>
+
+        <div class="meditrendy-waitlist-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0;">
+            <div class="card">
+                <h2><?php echo esc_html((int) ($stats->pending_count ?? 0)); ?></h2>
+                <p><?php esc_html_e('Pending signups', 'meditrendy-core'); ?></p>
+            </div>
+            <div class="card">
+                <h2><?php echo esc_html((int) ($stats->total_count ?? 0)); ?></h2>
+                <p><?php esc_html_e('All signups', 'meditrendy-core'); ?></p>
+            </div>
+            <div class="card">
+                <h2><?php echo esc_html((int) ($stats->email_count ?? 0)); ?></h2>
+                <p><?php esc_html_e('Unique emails', 'meditrendy-core'); ?></p>
+            </div>
+        </div>
+
+        <h2><?php esc_html_e('Products with signups', 'meditrendy-core'); ?></h2>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Product', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Type', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Pending', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Total', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Last signup', 'meditrendy-core'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($summary_rows) : ?>
+                    <?php foreach ($summary_rows as $row) : ?>
+                        <?php
+                        $set_id = absint($row->set_id);
+                        $display_product_id = $set_id ?: absint($row->product_id);
+                        $set_items = $set_id ? meditrendy_waitlist_admin_set_items($set_id, $row->set_items) : '';
+                        ?>
+                        <tr>
+                            <td>
+                                <strong><?php echo meditrendy_waitlist_admin_product_link($display_product_id); ?></strong>
+                                <?php if ($set_items) : ?>
+                                    <br><small><?php echo esc_html($set_items); ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc_html($set_id ? __('Set', 'meditrendy-core') : __('Product', 'meditrendy-core')); ?></td>
+                            <td><?php echo esc_html((int) $row->pending_count); ?></td>
+                            <td><?php echo esc_html((int) $row->total_count); ?></td>
+                            <td><?php echo meditrendy_waitlist_admin_date($row->last_signup); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <tr>
+                        <td colspan="5"><?php esc_html_e('No waitlist signups yet.', 'meditrendy-core'); ?></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <h2 style="margin-top:28px;"><?php esc_html_e('Recent signups', 'meditrendy-core'); ?></h2>
+        <table class="widefat striped">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e('Email', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Product', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Status', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Signup date', 'meditrendy-core'); ?></th>
+                    <th><?php esc_html_e('Notified date', 'meditrendy-core'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($recent_rows) : ?>
+                    <?php foreach ($recent_rows as $row) : ?>
+                        <?php
+                        $set_id = absint($row->set_id);
+                        $display_product_id = $set_id ?: absint($row->product_id);
+                        ?>
+                        <tr>
+                            <td><?php echo esc_html($row->email); ?></td>
+                            <td>
+                                <?php echo meditrendy_waitlist_admin_product_link($display_product_id); ?>
+                                <?php if ($set_id) : ?>
+                                    <?php $set_items = meditrendy_waitlist_admin_set_items($set_id, $row->set_items); ?>
+                                    <?php if ($set_items) : ?>
+                                        <br><small><?php echo esc_html($set_items); ?></small>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc_html($row->notified_at ? __('Notified', 'meditrendy-core') : __('Pending', 'meditrendy-core')); ?></td>
+                            <td><?php echo meditrendy_waitlist_admin_date($row->created_at); ?></td>
+                            <td><?php echo meditrendy_waitlist_admin_date($row->notified_at); ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <tr>
+                        <td colspan="5"><?php esc_html_e('No waitlist signups yet.', 'meditrendy-core'); ?></td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+    <?php
+}
+
 add_action('init', 'meditrendy_stock_waitlist_install', 5);
+add_action('admin_menu', 'meditrendy_waitlist_admin_menu', 30);
 add_action('wp_enqueue_scripts', 'meditrendy_waitlist_enqueue_assets', 30);
 add_action('wp_ajax_meditrendy_stock_waitlist_subscribe', 'meditrendy_stock_waitlist_subscribe');
 add_action('wp_ajax_nopriv_meditrendy_stock_waitlist_subscribe', 'meditrendy_stock_waitlist_subscribe');
