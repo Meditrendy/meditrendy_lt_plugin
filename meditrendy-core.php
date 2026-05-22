@@ -13,6 +13,7 @@ define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
 
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 
 /* ======================================================

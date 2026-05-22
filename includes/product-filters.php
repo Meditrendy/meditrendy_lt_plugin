@@ -892,13 +892,13 @@ function meditrendy_native_filters_enqueue_assets() {
         return;
     }
 
-    $css_path = MEDITRENDY_CORE_DIR . 'assets/product-filters.css';
-    $js_path = MEDITRENDY_CORE_DIR . 'assets/product-filters.js';
+    $css_path = MEDITRENDY_CORE_DIR . 'assets/css/product-filters.css';
+    $js_path = MEDITRENDY_CORE_DIR . 'assets/js/product-filters.js';
 
     if (file_exists($css_path)) {
         wp_enqueue_style(
             'meditrendy-native-filters',
-            MEDITRENDY_CORE_URL . 'assets/product-filters.css',
+            MEDITRENDY_CORE_URL . 'assets/css/product-filters.css',
             [],
             filemtime($css_path)
         );
@@ -907,7 +907,7 @@ function meditrendy_native_filters_enqueue_assets() {
     if (file_exists($js_path)) {
         wp_enqueue_script(
             'meditrendy-native-filters',
-            MEDITRENDY_CORE_URL . 'assets/product-filters.js',
+            MEDITRENDY_CORE_URL . 'assets/js/product-filters.js',
             [],
             filemtime($js_path),
             true

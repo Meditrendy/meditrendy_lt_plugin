@@ -71,12 +71,12 @@ function meditrendy_waitlist_enqueue_assets() {
         return;
     }
 
-    $script_path = MEDITRENDY_CORE_DIR . 'assets/product-waitlist.js';
-    $style_path = MEDITRENDY_CORE_DIR . 'assets/product-waitlist.css';
+    $script_path = MEDITRENDY_CORE_DIR . 'assets/js/product-waitlist.js';
+    $style_path = MEDITRENDY_CORE_DIR . 'assets/css/product-waitlist.css';
 
     wp_enqueue_script(
         'meditrendy-product-waitlist',
-        MEDITRENDY_CORE_URL . 'assets/product-waitlist.js',
+        MEDITRENDY_CORE_URL . 'assets/js/product-waitlist.js',
         ['jquery', 'wc-add-to-cart-variation'],
         file_exists($script_path) ? filemtime($script_path) : '1.0',
         true
@@ -105,7 +105,7 @@ function meditrendy_waitlist_enqueue_assets() {
 
     wp_enqueue_style(
         'meditrendy-product-waitlist',
-        MEDITRENDY_CORE_URL . 'assets/product-waitlist.css',
+        MEDITRENDY_CORE_URL . 'assets/css/product-waitlist.css',
         [],
         file_exists($style_path) ? filemtime($style_path) : '1.0'
     );
