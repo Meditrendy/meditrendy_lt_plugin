@@ -18,6 +18,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Keep changes focused and avoid unrelated refactors.
 - Always consider the user experience when making changes.
 - Always consider website performance when making changes.
+- Changes that apply to products usually apply to product sets as well.
 
 ## File Layout
 
