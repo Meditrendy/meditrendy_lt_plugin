@@ -120,7 +120,7 @@
 
   function isFilterControl(element) {
     return element
-      && element.matches('select, input[type="checkbox"]')
+      && element.matches('select, input[type="checkbox"], input[type="number"]')
       && (element.closest('.mt-native-filters-panel') || element.closest('.mt-native-filter-body'));
   }
 
@@ -171,6 +171,14 @@
     }
   }
 
+  function clearFilterValue(form, name) {
+    name = cleanName(name);
+    if (!name) return;
+
+    var state = getFilterState(form);
+    delete state[name];
+  }
+
   function setControlState(form, control) {
     if (!control || !control.name) return;
 
@@ -184,7 +192,7 @@
       return;
     }
 
-    removeFilterValue(form, control.name);
+    clearFilterValue(form, control.name);
 
     if (control.value) {
       addFilterValue(form, control.name, control.value);
@@ -194,9 +202,10 @@
   function syncStateFromControls(form) {
     filterStates.set(form, {});
 
-    filterControls(form, 'select, input[type="checkbox"]').forEach(function (control) {
+    filterControls(form, 'select, input[type="checkbox"], input[type="number"]').forEach(function (control) {
       if (control.matches('input[type="checkbox"]') && !control.checked) return;
       if (control.matches('select') && !control.value) return;
+      if (control.matches('input[type="number"]') && !control.value) return;
 
       setControlState(form, control);
     });
@@ -208,7 +217,7 @@
 
     Object.keys(state).forEach(function (name) {
       state[name].forEach(function (value) {
-        entries.push([name + '[]', value]);
+        entries.push([name === 'mt_min_price' || name === 'mt_max_price' ? name : name + '[]', value]);
       });
     });
 
@@ -306,7 +315,7 @@
     if (!panel) return;
 
     panel.querySelectorAll('.mt-native-filter').forEach(function (filter) {
-      var hasSelected = !!filter.querySelector('input[type="checkbox"]:checked, select option:checked:not([value=""])');
+      var hasSelected = !!filter.querySelector('input[type="checkbox"]:checked, input[type="number"]:not([value=""]), select option:checked:not([value=""])');
       var heading = filter.querySelector('.mt-native-filter-heading');
 
       filter.classList.toggle('is-open', hasSelected);
@@ -405,6 +414,8 @@
     var paramsToRemove = [
       'paged',
       'product-page',
+      'mt_min_price',
+      'mt_max_price',
       'filter_group_color',
       'filter_color',
       'filter_color-group',
@@ -416,9 +427,24 @@
       'filter_brand'
     ];
 
+    (form.dataset.filterParams || '').split(',').forEach(function (param) {
+      param = param.trim();
+
+      if (param) {
+        paramsToRemove.push(param);
+        paramsToRemove.push(param + '[]');
+      }
+    });
+
     Object.keys(getFilterState(form)).forEach(function (name) {
       paramsToRemove.push(name);
       paramsToRemove.push(name + '[]');
+    });
+
+    Array.from(url.searchParams.keys()).forEach(function (param) {
+      if (param.indexOf('filter_') === 0) {
+        paramsToRemove.push(param);
+      }
     });
 
     paramsToRemove.forEach(function (param) {
@@ -1041,6 +1067,17 @@
         row.classList.toggle('is-active', controlSelected(form, input));
       }
     });
+
+    filterControls(form, 'input[type="number"], select').forEach(function (control) {
+      var values = getFilterState(form)[cleanName(control.name)] || [];
+
+      if (!values.length) {
+        control.value = '';
+        return;
+      }
+
+      control.value = values[0];
+    });
   }
 
   function updateFilterOptionCounts(form, optionCounts) {
@@ -1088,11 +1125,27 @@
       value = name ? name.textContent.trim() : label.textContent.trim();
     }
 
+    if (input.name === 'mt_min_price') {
+      value = 'min: ' + input.value;
+    }
+
+    if (input.name === 'mt_max_price') {
+      value = 'max: ' + input.value;
+    }
+
     return (title ? title.textContent.trim() + ': ' : '') + value;
   }
 
   function updateActiveChips(form) {
-    var checkedInputs = filterControls(form, 'input[type="checkbox"]').filter(function (input) {
+    var checkedInputs = filterControls(form, 'input[type="checkbox"], input[type="number"], select').filter(function (input) {
+      if (input.matches('input[type="checkbox"]')) {
+        return controlSelected(form, input);
+      }
+
+      return !!input.value;
+    });
+
+    checkedInputs = checkedInputs.filter(function (input) {
       return controlSelected(form, input);
     });
     var container = document.querySelector('.mt-native-active-filters');
@@ -1309,7 +1362,7 @@
       });
     });
 
-    panel.querySelectorAll('select, input[type="checkbox"]').forEach(function (control) {
+    panel.querySelectorAll('select, input[type="checkbox"], input[type="number"]').forEach(function (control) {
       control.addEventListener('change', function () {
         setControlState(form, control);
         updateActiveRows(form);

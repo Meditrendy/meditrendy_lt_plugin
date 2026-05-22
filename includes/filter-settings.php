@@ -1,30 +1,97 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-function meditrendy_filter_settings_defaults() {
-    return [
-        'filters' => [
-            'color' => [
-                'enabled' => 1,
-                'label'   => 'SPALVA',
-                'order'   => 10,
-            ],
-            'size' => [
-                'enabled' => 1,
-                'label'   => 'DYDIS',
-                'order'   => 20,
-            ],
-            'length' => [
-                'enabled' => 1,
-                'label'   => 'ILGIS',
-                'order'   => 30,
-            ],
-            'brand' => [
-                'enabled' => 1,
-                'label'   => 'GAMINTOJAS',
-                'order'   => 40,
-            ],
+function meditrendy_filter_settings_available_filters() {
+    $filters = [
+        'color' => [
+            'name'    => 'Color group',
+            'label'   => 'SPALVA',
+            'order'   => 10,
+            'enabled' => 1,
+            'core'    => true,
         ],
+        'size' => [
+            'name'    => 'Size',
+            'label'   => 'DYDIS',
+            'order'   => 20,
+            'enabled' => 1,
+            'core'    => true,
+        ],
+        'length' => [
+            'name'    => 'Length',
+            'label'   => 'ILGIS',
+            'order'   => 30,
+            'enabled' => 1,
+            'core'    => true,
+        ],
+        'brand' => [
+            'name'    => 'Brand',
+            'label'   => 'GAMINTOJAS',
+            'order'   => 40,
+            'enabled' => 1,
+            'core'    => true,
+        ],
+        'price' => [
+            'name'    => 'Price',
+            'label'   => 'KAINA',
+            'order'   => 50,
+            'enabled' => 1,
+            'core'    => true,
+        ],
+    ];
+
+    $core_attribute_names = [
+        'color-group',
+        'size',
+        'length',
+        'ilgis',
+        'kelniu-ilgis',
+        'pants-length',
+        'brand',
+    ];
+
+    if (function_exists('wc_get_attribute_taxonomies')) {
+        foreach ((array) wc_get_attribute_taxonomies() as $attribute) {
+            if (empty($attribute->attribute_name)) {
+                continue;
+            }
+
+            $attribute_name = sanitize_title($attribute->attribute_name);
+
+            if (in_array($attribute_name, $core_attribute_names, true)) {
+                continue;
+            }
+
+            $key = 'attr_' . sanitize_key($attribute_name);
+
+            $filters[$key] = [
+                'name'      => $attribute->attribute_label ?: $attribute_name,
+                'label'     => strtoupper($attribute->attribute_label ?: $attribute_name),
+                'order'     => 100,
+                'enabled'   => 0,
+                'core'      => false,
+                'attribute' => $attribute_name,
+                'taxonomy'  => function_exists('wc_attribute_taxonomy_name') ? wc_attribute_taxonomy_name($attribute_name) : 'pa_' . $attribute_name,
+            ];
+        }
+    }
+
+    return $filters;
+}
+
+function meditrendy_filter_settings_defaults() {
+    $filters = [];
+
+    foreach (meditrendy_filter_settings_available_filters() as $key => $filter) {
+        $filters[$key] = [
+            'enabled' => (int) $filter['enabled'],
+            'label'   => $filter['label'],
+            'order'   => (int) $filter['order'],
+        ];
+    }
+
+    return [
+        'filters' => $filters,
         'labels' => [
             'trigger'      => 'Filtrai',
             'panel'        => 'Filtrai',
@@ -113,8 +180,8 @@ function meditrendy_filter_settings_admin_menu() {
 
     add_submenu_page(
         'meditrendy-settings',
-        'Filtrai',
-        'Filtrai',
+        'Filters',
+        'Filters',
         meditrendy_filter_settings_capability(),
         'meditrendy-settings',
         'meditrendy_render_filter_settings_page'
@@ -128,12 +195,7 @@ function meditrendy_render_filter_settings_page() {
     }
 
     $settings = meditrendy_filter_settings();
-    $filter_names = [
-        'color'  => 'Color',
-        'size'   => 'Size',
-        'length' => 'Length',
-        'brand'  => 'Brand',
-    ];
+    $available_filters = meditrendy_filter_settings_available_filters();
     ?>
     <div class="wrap">
         <h1>Meditrendy filters</h1>
@@ -151,9 +213,14 @@ function meditrendy_render_filter_settings_page() {
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($filter_names as $key => $name) : ?>
+                    <?php foreach ($available_filters as $key => $filter_info) : ?>
                         <tr>
-                            <td><strong><?php echo esc_html($name); ?></strong></td>
+                            <td>
+                                <strong><?php echo esc_html($filter_info['name']); ?></strong>
+                                <?php if (empty($filter_info['core'])) : ?>
+                                    <br><small><?php echo esc_html($filter_info['taxonomy']); ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <label>
                                     <input
@@ -217,7 +284,7 @@ function meditrendy_render_filter_settings_page() {
                 <?php endforeach; ?>
             </table>
 
-            <h2>Elgsena</h2>
+            <h2>Behavior</h2>
             <table class="form-table" role="presentation">
                 <tr>
                     <th scope="row">Numbers next to options</th>
@@ -248,7 +315,7 @@ function meditrendy_render_filter_settings_page() {
                 </tr>
             </table>
 
-            <?php submit_button('Išsaugoti filtrų nustatymus'); ?>
+            <?php submit_button('Save filter settings'); ?>
         </form>
     </div>
     <?php

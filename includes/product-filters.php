@@ -27,6 +27,12 @@ function meditrendy_native_filter_config() {
             'param'    => 'mt_brand',
             'type'     => 'checkbox',
         ],
+        'price' => [
+            'label'    => 'KAINA',
+            'taxonomy' => '',
+            'param'    => 'mt_price',
+            'type'     => 'price',
+        ],
     ];
 
     if (!function_exists('meditrendy_filter_settings')) {
@@ -34,6 +40,21 @@ function meditrendy_native_filter_config() {
     }
 
     $settings = meditrendy_filter_settings();
+
+    if (function_exists('meditrendy_filter_settings_available_filters')) {
+        foreach (meditrendy_filter_settings_available_filters() as $key => $filter) {
+            if (!empty($filter['core']) || empty($filter['taxonomy'])) {
+                continue;
+            }
+
+            $config[$key] = [
+                'label'    => $filter['label'],
+                'taxonomy' => $filter['taxonomy'],
+                'param'    => 'mt_' . sanitize_key(str_replace('attr_', '', $key)),
+                'type'     => 'checkbox',
+            ];
+        }
+    }
 
     foreach ($config as $key => $filter) {
         $filter_settings = $settings['filters'][$key] ?? [];
@@ -86,6 +107,55 @@ function meditrendy_native_filter_values($param, $source = null) {
     $values = array_map('sanitize_title', explode(',', $raw));
 
     return array_values(array_filter(array_unique($values)));
+}
+
+function meditrendy_native_price_value($param, $source = null) {
+    $source = $source === null ? $_GET : $source;
+
+    if (!isset($source[$param])) {
+        return '';
+    }
+
+    $raw = wp_unslash($source[$param]);
+
+    if (is_array($raw)) {
+        $raw = reset($raw);
+    }
+
+    $raw = str_replace(',', '.', (string) $raw);
+
+    return is_numeric($raw) ? wc_format_decimal($raw) : '';
+}
+
+function meditrendy_native_price_meta_query($source = null) {
+    $min = meditrendy_native_price_value('mt_min_price', $source);
+    $max = meditrendy_native_price_value('mt_max_price', $source);
+
+    if ($min === '' && $max === '') {
+        return [];
+    }
+
+    $clause = [
+        'key'  => '_price',
+        'type' => 'DECIMAL(10,2)',
+    ];
+
+    if ($min !== '' && $max !== '') {
+        $clause['value'] = [(float) $min, (float) $max];
+        $clause['compare'] = 'BETWEEN';
+        return [$clause];
+    }
+
+    if ($min !== '') {
+        $clause['value'] = (float) $min;
+        $clause['compare'] = '>=';
+        return [$clause];
+    }
+
+    $clause['value'] = (float) $max;
+    $clause['compare'] = '<=';
+
+    return [$clause];
 }
 
 function meditrendy_native_filter_raw_value($param, $source = null) {
@@ -250,7 +320,7 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
         ];
     }
 
-    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args([
+    $args = [
         'post_type'              => 'product',
         'post_status'            => 'publish',
         'posts_per_page'         => 1,
@@ -259,7 +329,15 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
         'update_post_meta_cache' => false,
         'update_post_term_cache' => false,
         'tax_query'              => $tax_query,
-    ]));
+    ];
+
+    $meta_query = meditrendy_native_price_meta_query();
+
+    if ($meta_query) {
+        $args['meta_query'] = $meta_query;
+    }
+
+    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
 
     return (int) $query->found_posts;
 }
@@ -321,6 +399,12 @@ function meditrendy_native_filters_count_products($source) {
         $args['tax_query'] = $tax_query;
     }
 
+    $meta_query = meditrendy_native_price_meta_query($source);
+
+    if ($meta_query) {
+        $args['meta_query'] = $meta_query;
+    }
+
     $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
 
     return (int) $query->found_posts;
@@ -331,6 +415,10 @@ function meditrendy_native_filters_option_counts($source) {
     $counts = [];
 
     foreach (meditrendy_native_filter_config() as $filter) {
+        if (($filter['type'] ?? '') === 'price') {
+            continue;
+        }
+
         $taxonomy = meditrendy_native_filter_taxonomy($filter);
 
         if (!$taxonomy) {
@@ -362,7 +450,7 @@ function meditrendy_native_filters_option_counts($source) {
 
 function meditrendy_native_filter_reset_url() {
     $url = meditrendy_native_filter_base_url();
-    $remove = ['paged', 'product-page'];
+    $remove = ['paged', 'product-page', 'mt_min_price', 'mt_max_price'];
 
     foreach (meditrendy_native_filter_config() as $filter) {
         $remove[] = $filter['param'];
@@ -398,6 +486,24 @@ function meditrendy_native_active_filters_html($visible_filters) {
 
     foreach ($visible_filters as $filter) {
         if (empty($filter['active'])) {
+            continue;
+        }
+
+        if (($filter['type'] ?? '') === 'price') {
+            if (!empty($filter['min_price'])) {
+                $chips[] = [
+                    'label' => $filter['label'] . ' min: ' . $filter['min_price'],
+                    'url'   => remove_query_arg(['mt_min_price', 'paged', 'product-page']),
+                ];
+            }
+
+            if (!empty($filter['max_price'])) {
+                $chips[] = [
+                    'label' => $filter['label'] . ' max: ' . $filter['max_price'],
+                    'url'   => remove_query_arg(['mt_max_price', 'paged', 'product-page']),
+                ];
+            }
+
             continue;
         }
 
@@ -455,6 +561,29 @@ function meditrendy_get_native_product_filters_html() {
     $hide_empty_initial = !empty($settings['hide_empty_initial']);
 
     foreach ($filters as $key => $filter) {
+        if (($filter['type'] ?? '') === 'price') {
+            $min_price = meditrendy_native_price_value('mt_min_price');
+            $max_price = meditrendy_native_price_value('mt_max_price');
+            $active = [];
+
+            if ($min_price !== '') {
+                $active[] = $min_price;
+            }
+
+            if ($max_price !== '') {
+                $active[] = $max_price;
+            }
+
+            $filter['key'] = $key;
+            $filter['terms'] = [];
+            $filter['term_counts'] = [];
+            $filter['active'] = $active;
+            $filter['min_price'] = $min_price;
+            $filter['max_price'] = $max_price;
+            $visible_filters[] = $filter;
+            continue;
+        }
+
         $taxonomy = meditrendy_native_filter_taxonomy($filter);
         $terms = $taxonomy ? meditrendy_native_filter_terms($taxonomy) : [];
 
@@ -487,6 +616,13 @@ function meditrendy_get_native_product_filters_html() {
     }
 
     $rendered = true;
+    $filter_params = ['mt_min_price', 'mt_max_price'];
+
+    foreach ($visible_filters as $filter) {
+        if (!empty($filter['param']) && ($filter['type'] ?? '') !== 'price') {
+            $filter_params[] = $filter['param'];
+        }
+    }
 
     ob_start();
     ?>
@@ -500,6 +636,7 @@ function meditrendy_get_native_product_filters_html() {
         data-context-term="<?php echo esc_attr($context['term']); ?>"
         data-ajax-url="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
         data-nonce="<?php echo esc_attr(wp_create_nonce('meditrendy_native_filters')); ?>"
+        data-filter-params="<?php echo esc_attr(implode(',', array_unique($filter_params))); ?>"
     >
         <button type="button" class="mt-native-filters-trigger" aria-expanded="false">
             <span class="mt-native-filters-trigger-icon" aria-hidden="true"></span>
@@ -521,37 +658,50 @@ function meditrendy_get_native_product_filters_html() {
                         </button>
 
                         <div class="mt-native-filter-body">
-                            <ul>
-                                <?php foreach ($filter['terms'] as $term) : ?>
-                                    <?php $input_id = 'mt-native-' . $filter['key'] . '-' . $term->term_id; ?>
-                                    <li
-                                        class="<?php echo in_array($term->slug, $filter['active'], true) ? 'is-active' : ''; ?>"
-                                        data-filter-param="<?php echo esc_attr($filter['param']); ?>"
-                                        data-filter-value="<?php echo esc_attr($term->slug); ?>"
-                                        data-filter-count="<?php echo esc_attr((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>"
-                                    >
-                                        <input
-                                            id="<?php echo esc_attr($input_id); ?>"
-                                            type="checkbox"
-                                            name="<?php echo esc_attr($filter['param']); ?>[]"
-                                            value="<?php echo esc_attr($term->slug); ?>"
-                                            <?php checked(in_array($term->slug, $filter['active'], true)); ?>
+                            <?php if (($filter['type'] ?? '') === 'price') : ?>
+                                <div class="mt-native-price-filter">
+                                    <label>
+                                        <span>Min</span>
+                                        <input type="number" min="0" step="0.01" name="mt_min_price" value="<?php echo esc_attr($filter['min_price']); ?>">
+                                    </label>
+                                    <label>
+                                        <span>Max</span>
+                                        <input type="number" min="0" step="0.01" name="mt_max_price" value="<?php echo esc_attr($filter['max_price']); ?>">
+                                    </label>
+                                </div>
+                            <?php else : ?>
+                                <ul>
+                                    <?php foreach ($filter['terms'] as $term) : ?>
+                                        <?php $input_id = 'mt-native-' . $filter['key'] . '-' . $term->term_id; ?>
+                                        <li
+                                            class="<?php echo in_array($term->slug, $filter['active'], true) ? 'is-active' : ''; ?>"
+                                            data-filter-param="<?php echo esc_attr($filter['param']); ?>"
+                                            data-filter-value="<?php echo esc_attr($term->slug); ?>"
+                                            data-filter-count="<?php echo esc_attr((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>"
                                         >
-                                        <label for="<?php echo esc_attr($input_id); ?>">
-                                            <?php if ($filter['key'] === 'color') : ?>
-                                                <span
-                                                    class="mt-native-color-dot<?php echo esc_attr(meditrendy_native_color_group_class($term)); ?>"
-                                                    style="background: <?php echo esc_attr(meditrendy_native_color_group_hex($term)); ?>"
-                                                ></span>
-                                            <?php endif; ?>
-                                            <span><?php echo esc_html($term->name); ?></span>
-                                            <?php if ($show_counts) : ?>
-                                                <span class="mt-native-filter-option-count">(<?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>)</span>
-                                            <?php endif; ?>
-                                        </label>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ul>
+                                            <input
+                                                id="<?php echo esc_attr($input_id); ?>"
+                                                type="checkbox"
+                                                name="<?php echo esc_attr($filter['param']); ?>[]"
+                                                value="<?php echo esc_attr($term->slug); ?>"
+                                                <?php checked(in_array($term->slug, $filter['active'], true)); ?>
+                                            >
+                                            <label for="<?php echo esc_attr($input_id); ?>">
+                                                <?php if ($filter['key'] === 'color') : ?>
+                                                    <span
+                                                        class="mt-native-color-dot<?php echo esc_attr(meditrendy_native_color_group_class($term)); ?>"
+                                                        style="background: <?php echo esc_attr(meditrendy_native_color_group_hex($term)); ?>"
+                                                    ></span>
+                                                <?php endif; ?>
+                                                <span><?php echo esc_html($term->name); ?></span>
+                                                <?php if ($show_counts) : ?>
+                                                    <span class="mt-native-filter-option-count">(<?php echo esc_html((int) ($filter['term_counts'][$term->term_id] ?? 0)); ?>)</span>
+                                                <?php endif; ?>
+                                            </label>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -576,7 +726,15 @@ function meditrendy_render_native_product_filters() {
 }
 
 function meditrendy_native_filters_have_values() {
+    if (meditrendy_native_price_value('mt_min_price') !== '' || meditrendy_native_price_value('mt_max_price') !== '') {
+        return true;
+    }
+
     foreach (meditrendy_native_filter_config() as $filter) {
+        if (($filter['type'] ?? '') === 'price') {
+            continue;
+        }
+
         if (meditrendy_native_filter_values($filter['param'])) {
             return true;
         }
@@ -606,6 +764,10 @@ function meditrendy_native_filters_tax_query($source = null, $include_context = 
     }
 
     foreach (meditrendy_native_filter_config() as $filter) {
+        if (($filter['type'] ?? '') === 'price') {
+            continue;
+        }
+
         $taxonomy = meditrendy_native_filter_taxonomy($filter);
 
         if (!$taxonomy) {
@@ -686,6 +848,23 @@ function meditrendy_apply_native_product_filters_to_query($query) {
     }
 
     $query->set('tax_query', $tax_query);
+
+    $price_meta_query = meditrendy_native_price_meta_query();
+
+    if ($price_meta_query) {
+        $meta_query = (array) $query->get('meta_query');
+
+        if (empty($meta_query['relation'])) {
+            $meta_query['relation'] = 'AND';
+        }
+
+        foreach ($price_meta_query as $clause) {
+            $meta_query[] = $clause;
+        }
+
+        $query->set('meta_query', $meta_query);
+    }
+
     $query->set('_meditrendy_native_filters_applied', true);
 }
 
@@ -880,6 +1059,12 @@ function meditrendy_native_filters_ajax_products() {
 
     if ($tax_query) {
         $args['tax_query'] = $tax_query;
+    }
+
+    $meta_query = meditrendy_native_price_meta_query($source);
+
+    if ($meta_query) {
+        $args['meta_query'] = $meta_query;
     }
 
     $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
