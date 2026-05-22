@@ -45,6 +45,8 @@ function meditrendy_subcategories_shortcode($atts) {
             'show_count' => '0',
             'class'      => '',
             'fallback'   => 'siblings',
+            'show_parent' => '1',
+            'parent_label' => 'Atgal',
         ],
         $atts,
         'meditrendy_subcategories'
@@ -88,6 +90,19 @@ function meditrendy_subcategories_shortcode($atts) {
     ob_start();
     ?>
     <nav class="<?php echo esc_attr($classes); ?>" aria-label="<?php echo esc_attr($parent->name); ?> subcategories">
+        <?php if ($atts['show_parent'] !== '0' && $current && !empty($current->parent)) : ?>
+            <?php
+            $back_parent = get_term((int) $current->parent, 'product_cat');
+            $back_url = ($back_parent && !is_wp_error($back_parent)) ? get_term_link($back_parent) : '';
+            ?>
+            <?php if ($back_url && !is_wp_error($back_url)) : ?>
+                <a class="mt-subcategories-back" href="<?php echo esc_url($back_url); ?>">
+                    <span aria-hidden="true"></span>
+                    <span><?php echo esc_html($atts['parent_label']); ?></span>
+                </a>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <ul class="mt-subcategories-list">
             <?php foreach ($children as $child) : ?>
                 <?php
