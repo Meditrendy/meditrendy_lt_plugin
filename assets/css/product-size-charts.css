@@ -1,0 +1,226 @@
+.mt-product-size-chart {
+    margin: 12px 0 18px;
+}
+
+.mt-product-size-chart-link {
+    display: inline-flex;
+    align-items: center;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: #004f91;
+    font: inherit;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.mt-product-size-chart-link:hover,
+.mt-product-size-chart-link:focus-visible {
+    color: #003b73;
+    text-decoration-thickness: 2px;
+}
+
+.mt-product-size-chart-modal[hidden] {
+    display: none !important;
+}
+
+.mt-product-size-chart-is-open {
+    overflow: hidden;
+}
+
+.mt-product-size-chart-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.mt-product-size-chart-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.42);
+}
+
+.mt-product-size-chart-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 680px);
+    max-height: min(760px, 90vh);
+    overflow: auto;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 0 28px 28px;
+    box-shadow: 0 18px 54px rgba(0, 0, 0, 0.22);
+    overscroll-behavior: contain;
+}
+
+.mt-product-size-chart-dialog:focus {
+    outline: none;
+}
+
+.mt-product-size-chart-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    min-height: 76px;
+    margin: 0 -28px 18px;
+    padding: 18px 64px 18px 28px;
+    background: #ffffff;
+    transition: box-shadow 0.2s ease;
+}
+
+.mt-product-size-chart-can-scroll-up .mt-product-size-chart-header {
+    box-shadow: 0 10px 18px -18px rgba(7, 17, 31, 0.65);
+}
+
+.mt-product-size-chart-header h2 {
+    margin: 0;
+    color: #07111f;
+    font-size: 22px;
+    line-height: 1.2;
+    letter-spacing: 0;
+}
+
+.mt-product-size-chart-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.mt-product-size-chart-close::before,
+.mt-product-size-chart-close::after {
+    content: "";
+    position: absolute;
+    top: 13px;
+    left: 5px;
+    width: 18px;
+    height: 2px;
+    background: #07111f;
+}
+
+.mt-product-size-chart-close::before {
+    transform: rotate(45deg);
+}
+
+.mt-product-size-chart-close::after {
+    transform: rotate(-45deg);
+}
+
+.mt-product-size-chart-content {
+    position: relative;
+    overflow-x: auto;
+    padding-bottom: 18px;
+    scrollbar-gutter: stable;
+}
+
+.mt-product-size-chart-content::after {
+    content: "";
+    position: sticky;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: block;
+    height: 24px;
+    margin-top: -24px;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.mt-product-size-chart-content::before {
+    content: "";
+    position: sticky;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    float: right;
+    display: block;
+    width: 28px;
+    height: 120px;
+    margin-left: -28px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), #ffffff);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.mt-product-size-chart-can-scroll-down .mt-product-size-chart-content::after {
+    opacity: 1;
+}
+
+.mt-product-size-chart-can-scroll-right::before {
+    opacity: 1;
+}
+
+.mt-product-size-chart-scrollable .mt-product-size-chart-content {
+    background:
+        radial-gradient(farthest-side at 50% 0, rgba(7, 17, 31, 0.12), rgba(7, 17, 31, 0)) 0 0 / 100% 14px no-repeat,
+        radial-gradient(farthest-side at 50% 100%, rgba(7, 17, 31, 0.16), rgba(7, 17, 31, 0)) 0 100% / 100% 14px no-repeat,
+        #ffffff;
+}
+
+.mt-product-size-chart-content table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #07111f;
+    font-size: 15px;
+    line-height: 1.45;
+}
+
+.mt-product-size-chart-content th,
+.mt-product-size-chart-content td {
+    border: 1px solid #d7dde4;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.mt-product-size-chart-content th {
+    background: #f5f7f9;
+    font-weight: 700;
+}
+
+@media (max-width: 480px) {
+    .mt-product-size-chart-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .mt-product-size-chart-dialog {
+        width: 100%;
+        max-height: 86vh;
+        border-radius: 8px 8px 0 0;
+        padding: 0 20px 24px;
+    }
+
+    .mt-product-size-chart-header {
+        min-height: 68px;
+        margin: 0 -20px 16px;
+        padding: 16px 56px 16px 20px;
+    }
+
+    .mt-product-size-chart-header h2 {
+        font-size: 20px;
+    }
+
+    .mt-product-size-chart-close {
+        top: 20px;
+        right: 20px;
+    }
+}
