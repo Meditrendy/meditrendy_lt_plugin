@@ -16,6 +16,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
 
 /* ======================================================
    REMOVE GALLERY ZOOM & SLIDER
@@ -45,30 +46,45 @@ add_action('wp_footer',function(){
 
 if(is_admin()) return;
 
-$count=(function_exists('WC') && WC()->cart)
-? WC()->cart->get_cart_contents_count()
-: 0;
+$count=(function_exists('xoo_wsc_cart') && function_exists('WC') && WC()->cart)
+? xoo_wsc_cart()->get_cart_count()
+: ((function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_contents_count() : 0);
 
 ?>
 
 <script>
 
 (function(){
-const cartEndpoint=<?php echo wp_json_encode(rest_url('wc/store/v1/cart'));?>;
 let cartCount=<?php echo (int) $count;?>;
-let refreshTimer=0;
+let renderQueued=false;
+let queuedCount=null;
+const cartTriggerSelector='.x-anchor.xoo-wsc-cart-trigger';
+const sourceCountSelector='.xoo-wsc-items-count,.xoo-wsch-items-count,.xoo-wscb-count,.xoo-wsc-sc-count,[data-csdc-wc="cart-items"]';
 
-function getVisibleCartButton(){
-const buttons=Array.from(document.querySelectorAll('.x-anchor.xoo-wsc-cart-trigger'));
+function parseCount(value){
+const count=parseInt(String(value||'').replace(/[^\d]/g,''),10);
 
-return buttons.filter(function(button){
-const rect=button.getBoundingClientRect();
-return rect.width>0&&rect.height>0&&rect.top>=0&&rect.top<window.innerHeight;
-}).pop();
+return Number.isFinite(count)?count:null;
+}
+
+function readPageCartCount(root){
+const scope=root&&root.querySelectorAll?root:document;
+const countElements=Array.from(scope.querySelectorAll(sourceCountSelector));
+
+for(const element of countElements){
+const count=parseCount(element.textContent);
+
+if(count!==null){
+return count;
+}
+}
+
+return null;
 }
 
 function renderCartBadge(nextCount){
-cartCount=Number.isFinite(nextCount)?nextCount:cartCount;
+const parsedCount=nextCount!==undefined?parseCount(nextCount):readPageCartCount(document);
+cartCount=parsedCount!==null?parsedCount:cartCount;
 
 document.querySelectorAll('.meditrendy-cart-count').forEach(function(badge){
 badge.remove();
@@ -78,12 +94,13 @@ document.querySelectorAll('.meditrendy-cart-toggle').forEach(function(toggle){
 toggle.classList.remove('meditrendy-cart-toggle');
 });
 
-const cartButton=getVisibleCartButton();
+const cartButtons=Array.from(document.querySelectorAll(cartTriggerSelector));
 
-if(!cartButton){
+if(!cartButtons.length){
 return;
 }
 
+cartButtons.forEach(function(cartButton){
 const badgeTarget=cartButton.querySelector('.x-graphic')||cartButton;
 badgeTarget.classList.add('meditrendy-cart-toggle');
 
@@ -93,54 +110,105 @@ badge.className='meditrendy-cart-count';
 badge.textContent=cartCount;
 badgeTarget.appendChild(badge);
 }
+});
 }
 
-function readStoreCartCount(data){
-if(data&&typeof data.items_count==='number'){
-return data.items_count;
+function queueRender(nextCount){
+if(nextCount!==undefined){
+const parsedCount=parseCount(nextCount);
+
+if(parsedCount!==null){
+cartCount=parsedCount;
+queuedCount=parsedCount;
+}
 }
 
-if(data&&Array.isArray(data.items)){
-return data.items.reduce(function(total,item){
-return total+(Number(item.quantity)||0);
-},0);
-}
-
-return cartCount;
-}
-
-function refreshCartBadge(){
-if(!window.fetch){
-renderCartBadge(cartCount);
+if(renderQueued){
 return;
 }
 
-window.fetch(cartEndpoint,{credentials:'include'})
-.then(function(response){
-return response.ok?response.json():null;
-})
-.then(function(data){
-renderCartBadge(readStoreCartCount(data));
-})
-.catch(function(){
-renderCartBadge(cartCount);
+renderQueued=true;
+
+const schedule=window.requestAnimationFrame?window.requestAnimationFrame.bind(window):window.setTimeout.bind(window);
+
+schedule(function(){
+renderQueued=false;
+const nextCount=queuedCount;
+queuedCount=null;
+renderCartBadge(nextCount!==null?nextCount:undefined);
 });
 }
 
-function scheduleCartBadgeRefresh(){
-window.clearTimeout(refreshTimer);
-refreshTimer=window.setTimeout(refreshCartBadge,250);
+function readFragmentsCartCount(fragments){
+if(!fragments||typeof fragments!=='object'){
+return null;
 }
 
-document.addEventListener('DOMContentLoaded',function(){
+const holder=document.createElement('div');
+let foundCount=null;
+
+Object.keys(fragments).some(function(key){
+if(typeof fragments[key]!=='string'){
+return false;
+}
+
+holder.innerHTML=fragments[key];
+foundCount=readPageCartCount(holder);
+
+return foundCount!==null;
+});
+
+return foundCount;
+}
+
+function initCartBadge(){
 renderCartBadge(cartCount);
-window.setTimeout(function(){renderCartBadge(cartCount);},250);
-window.setTimeout(refreshCartBadge,900);
+
+if(window.MutationObserver&&document.documentElement){
+const observer=new MutationObserver(function(mutations){
+const shouldRender=mutations.some(function(mutation){
+if(mutation.type==='characterData'){
+return mutation.target.parentElement&&mutation.target.parentElement.matches(sourceCountSelector);
+}
+
+return Array.from(mutation.addedNodes).some(function(node){
+return node.nodeType===1&&(
+(node.matches&&(node.matches(cartTriggerSelector)||node.matches(sourceCountSelector)))||
+(node.querySelector&&(node.querySelector(cartTriggerSelector)||node.querySelector(sourceCountSelector)))
+);
+});
+});
+
+if(shouldRender){
+queueRender();
+}
+});
+
+observer.observe(document.documentElement,{
+childList:true,
+subtree:true,
+characterData:true
+});
+}
 
 if(window.jQuery){
-jQuery(document.body).on('added_to_cart removed_from_cart updated_cart_totals xoo_wsc_cart_updated xoo_wsc_quantity_updated',scheduleCartBadgeRefresh);
-}
+jQuery(document.body).on('added_to_cart removed_from_cart updated_cart_totals wc_fragments_loaded wc_fragments_refreshed xoo_wsc_quantity_updated',function(event,fragments){
+const count=readFragmentsCartCount(fragments);
+queueRender(count!==null?count:undefined);
 });
+
+jQuery(document.body).on('xoo_wsc_cart_updated',function(event,response){
+const count=response&&response.fragments?readFragmentsCartCount(response.fragments):null;
+queueRender(count!==null?count:undefined);
+});
+}
+}
+
+if(document.readyState==='loading'){
+document.addEventListener('DOMContentLoaded',initCartBadge);
+}else{
+initCartBadge();
+}
 }());
 
 </script>
