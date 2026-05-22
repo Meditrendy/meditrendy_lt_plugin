@@ -1,7 +1,7 @@
 .mt-product-waitlist-link {
     display: inline-flex;
     align-items: center;
-    margin-top: 14px;
+    margin-top: 8px;
     border: 0;
     padding: 0;
     background: transparent;
@@ -13,6 +13,14 @@
     text-decoration: underline;
     text-underline-offset: 3px;
     cursor: pointer;
+}
+
+.mt-product-waitlist-hint {
+    margin: 8px 0 0;
+    color: #667085;
+    font-size: 12px;
+    line-height: 1.4;
+    letter-spacing: 0;
 }
 
 .mt-product-waitlist-link:hover,

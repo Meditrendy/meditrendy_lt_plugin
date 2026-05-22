@@ -5,6 +5,7 @@
     const unavailableSetSelections = new Map();
     let selectedProductId = 0;
     let selectedSetId = 0;
+    let waitlistHint;
     let waitlistLink;
     let modal;
     let emailInput;
@@ -38,6 +39,30 @@
             document.querySelector('.entry-summary');
     }
 
+    function shouldShowHint() {
+        return !!(product.isVariable || product.isSet);
+    }
+
+    function ensureHint() {
+        if (waitlistHint || !shouldShowHint()) {
+            return waitlistHint;
+        }
+
+        waitlistHint = document.createElement('p');
+        waitlistHint.className = 'mt-product-waitlist-hint';
+        waitlistHint.textContent = product.isSet
+            ? text('setHint', 'Pasirinkite visų rinkinio prekių variantus. Jei bent vienas jų išparduotas, galėsite užsiregistruoti į laukimo sąrašą.')
+            : text('hint', 'Pasirinkite išparduotą variantą, kad galėtumėte užsiregistruoti į laukimo sąrašą.');
+
+        const target = findInsertTarget();
+
+        if (target && target.parentNode) {
+            target.parentNode.insertBefore(waitlistHint, target.nextSibling);
+        }
+
+        return waitlistHint;
+    }
+
     function ensureLink() {
         if (waitlistLink) {
             return waitlistLink;
@@ -50,7 +75,7 @@
         waitlistLink.hidden = true;
         waitlistLink.addEventListener('click', openModal);
 
-        const target = findInsertTarget();
+        const target = ensureHint() || findInsertTarget();
 
         if (target && target.parentNode) {
             target.parentNode.insertBefore(waitlistLink, target.nextSibling);
@@ -245,6 +270,36 @@
         return product.isSet ? parseInt(product.productId, 10) || 0 : 0;
     }
 
+    function readSelectedVariationId(form) {
+        const input = form ? form.querySelector('input.variation_id') : null;
+
+        return input && input.value ? parseInt(input.value, 10) || 0 : 0;
+    }
+
+    function getSetForms(setId) {
+        const wrap = getSetWrap(setId);
+
+        if (!wrap) {
+            return [];
+        }
+
+        return Array.from(wrap.querySelectorAll('.woosb-product form.variations_form'));
+    }
+
+    function setHasCompleteVariationSelection(setId) {
+        const forms = getSetForms(setId);
+
+        return forms.every(function (form) {
+            return !!(unavailableSetSelections.get(form) || readSelectedVariationId(form));
+        });
+    }
+
+    function setHasUnavailableSelection(setId) {
+        return getSetForms(setId).some(function (form) {
+            return !!unavailableSetSelections.get(form);
+        });
+    }
+
     function getSetItems(setId) {
         const wrap = getSetWrap(setId);
         const items = [];
@@ -258,7 +313,8 @@
             const key = setProduct.dataset.key || '';
             const form = setProduct.querySelector('form.variations_form');
             const unavailableSelection = form ? unavailableSetSelections.get(form) : null;
-            const id = unavailableSelection || parseInt(setProduct.dataset.id || '0', 10);
+            const selectedVariation = form ? readSelectedVariationId(form) : 0;
+            const id = unavailableSelection || selectedVariation || parseInt(setProduct.dataset.id || '0', 10);
 
             if (id > 0 && qty > 0 && key) {
                 items.push(id + '/' + key + '/' + qty);
@@ -281,7 +337,12 @@
     }
 
     function refreshSetLink(setId) {
-        if (unavailableSetSelections.size || hasSimpleUnavailableSetItem(setId)) {
+        if (!setHasCompleteVariationSelection(setId)) {
+            hideLink();
+            return;
+        }
+
+        if (setHasUnavailableSelection(setId) || hasSimpleUnavailableSetItem(setId)) {
             showLink(setId, setId);
             return;
         }
@@ -348,6 +409,7 @@
     }
 
     function init() {
+        ensureHint();
         ensureLink();
 
         if (product.isVariable || product.isSet) {

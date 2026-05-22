@@ -97,8 +97,8 @@
 
     function setSwatchState(item, isOutOfStock) {
         item.classList.toggle(outOfStockClass, isOutOfStock);
-        item.classList.toggle('no-stock', isOutOfStock);
-        item.setAttribute('aria-disabled', isOutOfStock ? 'true' : 'false');
+        item.classList.remove('no-stock');
+        item.removeAttribute('aria-disabled');
 
         if (isOutOfStock) {
             if (!item.getAttribute('data-wvstooltip-out-of-stock')) {
@@ -181,21 +181,6 @@
         });
     }
 
-    function preventUnavailableSelection(event) {
-        if (!event.target || !event.target.closest) {
-            return;
-        }
-
-        const item = event.target.closest(formSelector + ' .' + outOfStockClass + '.variable-item');
-
-        if (!item || item.classList.contains('selected')) {
-            return;
-        }
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-    }
-
     document.addEventListener('DOMContentLoaded', function () {
         scheduleRefresh(document);
         window.setTimeout(function () {
@@ -212,13 +197,6 @@
 
         if (form) {
             scheduleRefresh(form);
-        }
-    }, true);
-
-    document.addEventListener('click', preventUnavailableSelection, true);
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter' || event.key === ' ') {
-            preventUnavailableSelection(event);
         }
     }, true);
 

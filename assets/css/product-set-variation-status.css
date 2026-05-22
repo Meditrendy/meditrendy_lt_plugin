@@ -1,5 +1,5 @@
 form.variations_form .variable-items-wrapper .variable-item.mt-woosb-option-out-of-stock {
-    cursor: not-allowed;
+    cursor: pointer;
 }
 
 form.variations_form .variable-items-wrapper .variable-item.mt-woosb-option-out-of-stock:not(.radio-variable-item),

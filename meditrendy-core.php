@@ -42,7 +42,7 @@ function mt_gallery_loop( $options ) {
    CART BADGE
 ====================================================== */
 
-add_action('wp_footer',function(){
+add_action('wp_head',function(){
 
 if(is_admin()) return;
 
@@ -86,6 +86,12 @@ function renderCartBadge(nextCount){
 const parsedCount=nextCount!==undefined?parseCount(nextCount):readPageCartCount(document);
 cartCount=parsedCount!==null?parsedCount:cartCount;
 
+const cartButtons=Array.from(document.querySelectorAll(cartTriggerSelector));
+
+if(!cartButtons.length){
+return;
+}
+
 document.querySelectorAll('.meditrendy-cart-count').forEach(function(badge){
 badge.remove();
 });
@@ -93,12 +99,6 @@ badge.remove();
 document.querySelectorAll('.meditrendy-cart-toggle').forEach(function(toggle){
 toggle.classList.remove('meditrendy-cart-toggle');
 });
-
-const cartButtons=Array.from(document.querySelectorAll(cartTriggerSelector));
-
-if(!cartButtons.length){
-return;
-}
 
 cartButtons.forEach(function(cartButton){
 const badgeTarget=cartButton.querySelector('.x-graphic')||cartButton;
@@ -135,7 +135,7 @@ schedule(function(){
 renderQueued=false;
 const nextCount=queuedCount;
 queuedCount=null;
-renderCartBadge(nextCount!==null?nextCount:undefined);
+renderCartBadge(nextCount!==null?nextCount:cartCount);
 });
 }
 
@@ -161,12 +161,37 @@ return foundCount!==null;
 return foundCount;
 }
 
-function initCartBadge(){
-renderCartBadge(cartCount);
+function bindCartBadgeEvents(){
+if(!window.jQuery||window.meditrendyCartBadgeJqueryReady){
+return;
+}
 
-if(window.MutationObserver&&document.documentElement){
+window.meditrendyCartBadgeJqueryReady=true;
+
+jQuery(document.body).on('added_to_cart removed_from_cart updated_cart_totals wc_fragments_loaded wc_fragments_refreshed xoo_wsc_quantity_updated',function(event,fragments){
+const count=readFragmentsCartCount(fragments);
+queueRender(count!==null?count:undefined);
+});
+
+jQuery(document.body).on('xoo_wsc_cart_updated',function(event,response){
+const count=response&&response.fragments?readFragmentsCartCount(response.fragments):null;
+queueRender(count!==null?count:undefined);
+});
+}
+
+function watchCartBadgeTargets(){
+if(!window.MutationObserver||!document.documentElement||window.meditrendyCartBadgeObserverReady){
+return;
+}
+
+window.meditrendyCartBadgeObserverReady=true;
+
 const observer=new MutationObserver(function(mutations){
 const shouldRender=mutations.some(function(mutation){
+if(mutation.type==='attributes'){
+return mutation.target.matches&&(mutation.target.matches(cartTriggerSelector)||mutation.target.matches(sourceCountSelector));
+}
+
 if(mutation.type==='characterData'){
 return mutation.target.parentElement&&mutation.target.parentElement.matches(sourceCountSelector);
 }
@@ -187,28 +212,28 @@ queueRender();
 observer.observe(document.documentElement,{
 childList:true,
 subtree:true,
-characterData:true
+characterData:true,
+attributes:true,
+attributeFilter:['class']
 });
 }
 
-if(window.jQuery){
-jQuery(document.body).on('added_to_cart removed_from_cart updated_cart_totals wc_fragments_loaded wc_fragments_refreshed xoo_wsc_quantity_updated',function(event,fragments){
-const count=readFragmentsCartCount(fragments);
-queueRender(count!==null?count:undefined);
-});
+function initCartBadge(){
+renderCartBadge(cartCount);
+watchCartBadgeTargets();
+bindCartBadgeEvents();
+}
 
-jQuery(document.body).on('xoo_wsc_cart_updated',function(event,response){
-const count=response&&response.fragments?readFragmentsCartCount(response.fragments):null;
-queueRender(count!==null?count:undefined);
-});
-}
-}
+initCartBadge();
 
 if(document.readyState==='loading'){
-document.addEventListener('DOMContentLoaded',initCartBadge);
-}else{
-initCartBadge();
+document.addEventListener('DOMContentLoaded',function(){
+queueRender();
+bindCartBadgeEvents();
+});
 }
+
+window.addEventListener('load',bindCartBadgeEvents);
 }());
 
 </script>
