@@ -5,7 +5,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 ## Responsibility
 
 - Put custom WooCommerce behavior, filters, subcategory shortcodes, waitlist logic, AJAX product loading, admin settings, and reusable site features here.
-- Do not put theme-only visual changes here, limit the feature markup/CSS owned by the plugin to minimum.
+- Do not put theme-only visual changes here, limit the feature markup/CSS owned by the plugin to minimum required for the feature to work.
 - Do not edit WordPress core, WooCommerce core, the Pro parent theme, or third-party plugin files unless the user explicitly asks.
 
 ## Project Conventions
@@ -29,7 +29,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 Use existing feature files when possible:
 
 - Product filters: `includes/product-filters.php`, `includes/filter-settings.php`, `assets/js/product-filters.js`, `assets/css/product-filters.css`
-- Subcategories shortcode: `includes/product-subcategories.php`, `assets/css/product-subcategories.css`
+- Subcategories shortcode: `includes/product-subcategories.php`; visual styling lives in the child theme.
 - Product waitlist: `includes/product-waitlist.php`, `assets/js/product-waitlist.js`, `assets/css/product-waitlist.css`
 
 ## JavaScript And CSS

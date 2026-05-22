@@ -139,21 +139,3 @@ function meditrendy_subcategories_shortcode($atts) {
     return ob_get_clean();
 }
 add_shortcode('meditrendy_subcategories', 'meditrendy_subcategories_shortcode');
-
-function meditrendy_subcategories_enqueue_assets() {
-    if (is_admin()) {
-        return;
-    }
-
-    $css_path = MEDITRENDY_CORE_DIR . 'assets/css/product-subcategories.css';
-
-    if (file_exists($css_path)) {
-        wp_enqueue_style(
-            'meditrendy-subcategories',
-            MEDITRENDY_CORE_URL . 'assets/css/product-subcategories.css',
-            [],
-            filemtime($css_path)
-        );
-    }
-}
-add_action('wp_enqueue_scripts', 'meditrendy_subcategories_enqueue_assets', 30);
