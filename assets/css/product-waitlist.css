@@ -1,11 +1,12 @@
 .mt-product-waitlist-link {
     display: inline-flex;
     align-items: center;
-    margin-top: 8px;
-    border: 0;
-    padding: 0;
+    margin: 8px 0 18px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    padding: 10px 16px;
     background: transparent;
-    color: #004f91;
+    color: #b42318;
     font: inherit;
     font-weight: 700;
     letter-spacing: 0;
@@ -25,8 +26,9 @@
 
 .mt-product-waitlist-link:hover,
 .mt-product-waitlist-link:focus-visible {
-    color: #003b73;
-    text-decoration-thickness: 2px;
+    background: rgba(180, 35, 24, 0.06);
+    color: #8f1d13;
+    text-decoration: none;
 }
 
 .mt-product-waitlist-link[hidden],
