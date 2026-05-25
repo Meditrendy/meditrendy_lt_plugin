@@ -260,6 +260,90 @@
         return null;
     }
 
+    function readFormVariations(form) {
+        if (!form) {
+            return [];
+        }
+
+        if (window.jQuery) {
+            const jqueryVariations = window.jQuery(form).data('product_variations');
+
+            if (Array.isArray(jqueryVariations)) {
+                return jqueryVariations;
+            }
+        }
+
+        const rawVariations = form.getAttribute('data-product_variations');
+
+        if (!rawVariations) {
+            return [];
+        }
+
+        try {
+            const variations = JSON.parse(rawVariations);
+
+            return Array.isArray(variations) ? variations : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function getAttributeName(select) {
+        if (!select) {
+            return '';
+        }
+
+        const name = select.getAttribute('name') || select.dataset.attribute_name || '';
+
+        return name.indexOf('attribute_') === 0 ? name : 'attribute_' + name;
+    }
+
+    function getSelectedAttributes(form) {
+        const selected = {};
+        const selects = form ? Array.from(form.querySelectorAll('select[name^="attribute_"], select[data-attribute_name]')) : [];
+
+        selects.forEach(function (select) {
+            const attributeName = getAttributeName(select);
+
+            if (attributeName) {
+                selected[attributeName] = select.value || '';
+            }
+        });
+
+        return selected;
+    }
+
+    function hasCompleteAttributeSelection(selectedAttributes) {
+        const names = Object.keys(selectedAttributes);
+
+        return !!names.length && names.every(function (name) {
+            return !!selectedAttributes[name];
+        });
+    }
+
+    function variationMatchesSelection(variation, selectedAttributes) {
+        const variationAttributes = variation && variation.attributes ? variation.attributes : {};
+
+        return Object.keys(selectedAttributes).every(function (name) {
+            const selectedValue = selectedAttributes[name];
+            const variationValue = variationAttributes[name] || '';
+
+            return !!selectedValue && (!variationValue || variationValue === selectedValue);
+        });
+    }
+
+    function findSelectedVariation(form) {
+        const selectedAttributes = getSelectedAttributes(form);
+
+        if (!hasCompleteAttributeSelection(selectedAttributes)) {
+            return null;
+        }
+
+        return readFormVariations(form).find(function (variation) {
+            return variationMatchesSelection(variation, selectedAttributes);
+        }) || null;
+    }
+
     function getSetIdFromForm(form) {
         const wrap = form && form.closest ? form.closest('.woosb-wrap') : null;
 
@@ -273,7 +357,13 @@
     function readSelectedVariationId(form) {
         const input = form ? form.querySelector('input.variation_id') : null;
 
-        return input && input.value ? parseInt(input.value, 10) || 0 : 0;
+        if (input && input.value) {
+            return parseInt(input.value, 10) || 0;
+        }
+
+        const selectedVariation = findSelectedVariation(form);
+
+        return selectedVariation && selectedVariation.variation_id ? parseInt(selectedVariation.variation_id, 10) || 0 : 0;
     }
 
     function getSetForms(setId) {
@@ -296,7 +386,9 @@
 
     function setHasUnavailableSelection(setId) {
         return getSetForms(setId).some(function (form) {
-            return !!unavailableSetSelections.get(form);
+            const selectedVariation = findSelectedVariation(form);
+
+            return !!unavailableSetSelections.get(form) || !!(selectedVariation && selectedVariation.is_in_stock === false);
         });
     }
 
@@ -352,9 +444,10 @@
 
     function updateForSetVariation(variation, form) {
         const setId = getSetIdFromForm(form);
-        const variationId = variation && variation.variation_id ? parseInt(variation.variation_id, 10) : 0;
+        const selectedVariation = variation && variation.variation_id ? variation : findSelectedVariation(form);
+        const variationId = selectedVariation && selectedVariation.variation_id ? parseInt(selectedVariation.variation_id, 10) : 0;
 
-        if (variationId && variation.is_in_stock === false) {
+        if (variationId && selectedVariation.is_in_stock === false) {
             unavailableSetSelections.set(form, variationId);
         } else {
             unavailableSetSelections.delete(form);
@@ -392,13 +485,21 @@
 
         $body.on('reset_data hide_variation', 'form.variations_form', function () {
             if (product.isSet && this.closest('.woosb-wrap')) {
-                const setId = getSetIdFromForm(this);
-                unavailableSetSelections.delete(this);
-                refreshSetLink(setId);
+                updateForSetVariation(null, this);
                 return;
             }
 
             hideLink();
+        });
+
+        $body.on('woocommerce_variation_has_changed change', 'form.variations_form', function () {
+            if (product.isSet && this.closest('.woosb-wrap')) {
+                const form = this;
+
+                window.setTimeout(function () {
+                    updateForSetVariation(null, form);
+                }, 0);
+            }
         });
 
         const variationInput = document.querySelector('form.variations_form input.variation_id');
