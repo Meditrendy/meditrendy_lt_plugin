@@ -446,18 +446,18 @@ function meditrendy_stock_waitlist_send_notifications_for_set($set_id, $set_item
         return;
     }
 
-    $subject = __('PrekÄ— vÄ—l prekyboje', 'meditrendy-core');
+    $subject = __('Prekė vėl prekyboje', 'meditrendy-core');
     $headers = ['Content-Type: text/html; charset=UTF-8'];
 
     foreach ($rows as $row) {
         $message = sprintf(
             '<p>%1$s</p><p>%2$s <strong>%3$s</strong> %4$s</p><p><a href="%5$s">%6$s</a></p>',
             esc_html__('Sveiki,', 'meditrendy-core'),
-            esc_html__('PrekÄ—', 'meditrendy-core'),
+            esc_html__('Prekė', 'meditrendy-core'),
             esc_html($set->get_name()),
-            esc_html__('vÄ—l yra prekyboje.', 'meditrendy-core'),
+            esc_html__('vėl yra prekyboje.', 'meditrendy-core'),
             esc_url($set->get_permalink()),
-            esc_html__('PerĹľiĹ«rÄ—ti prekÄ™', 'meditrendy-core')
+            esc_html__('Peržiūrėti prekę', 'meditrendy-core')
         );
 
         wp_mail($row->email, $subject, $message, $headers);
