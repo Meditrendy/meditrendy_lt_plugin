@@ -533,14 +533,18 @@ function meditrendy_product_size_chart_data($product = null, $seen = []) {
     return null;
 }
 
-function meditrendy_size_charts_render_product_size_chart_html() {
-    $data = meditrendy_product_size_chart_data();
+function meditrendy_size_charts_render_product_size_chart_html($product = null, $context = 'product') {
+    $data = meditrendy_product_size_chart_data($product);
 
     if (!$data) {
         return '';
     }
 
-    $modal_id = 'mt-product-size-chart-' . absint($data['term']->term_id);
+    static $instance = 0;
+
+    $instance++;
+    $product_id = $product && is_a($product, 'WC_Product') ? (int) $product->get_id() : get_queried_object_id();
+    $modal_id = 'mt-product-size-chart-' . sanitize_html_class($context) . '-' . absint($product_id) . '-' . absint($data['term']->term_id) . '-' . $instance;
 
     ob_start();
     ?>
@@ -605,6 +609,12 @@ function meditrendy_render_product_size_chart_link() {
         return;
     }
 
+    $product = wc_get_product(get_queried_object_id());
+
+    if ($product && $product->is_type('woosb')) {
+        return;
+    }
+
     static $rendered = false;
 
     if ($rendered) {
@@ -622,9 +632,27 @@ function meditrendy_render_product_size_chart_link() {
     echo $html;
 }
 
+function meditrendy_render_set_item_size_chart_link($product) {
+    if (!$product || !is_a($product, 'WC_Product')) {
+        return;
+    }
+
+    echo meditrendy_size_charts_render_product_size_chart_html($product, 'set-item'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
+function meditrendy_render_fixed_set_item_size_chart_link($product) {
+    if (!$product || !is_a($product, 'WC_Product') || $product->is_type('variable')) {
+        return;
+    }
+
+    echo meditrendy_size_charts_render_product_size_chart_html($product, 'set-fixed-item'); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+
 add_shortcode('meditrendy_size_chart', 'meditrendy_size_chart_shortcode');
 add_action('admin_menu', 'meditrendy_size_charts_admin_menu', 35);
 add_action('admin_post_meditrendy_save_size_charts', 'meditrendy_save_size_charts');
 add_action('wp_enqueue_scripts', 'meditrendy_size_charts_enqueue_assets', 35);
 add_action('woocommerce_single_product_summary', 'meditrendy_render_product_size_chart_link', 25);
 add_action('woocommerce_before_add_to_cart_form', 'meditrendy_render_product_size_chart_link', 5);
+add_action('woosb_after_item_variations', 'meditrendy_render_set_item_size_chart_link', 10);
+add_action('woosb_after_item', 'meditrendy_render_fixed_set_item_size_chart_link', 10);
