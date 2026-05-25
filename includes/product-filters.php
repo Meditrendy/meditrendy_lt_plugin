@@ -921,6 +921,7 @@ function meditrendy_native_filters_enqueue_assets() {
                 'nonce'   => wp_create_nonce('meditrendy_native_filters'),
                 'labels'  => [
                     'submit'  => 'Rodyti rezultatus',
+                    'showProducts' => 'Rodyti produktus',
                     'loading' => 'Skaičiuojama...',
                 ],
             ]
@@ -936,6 +937,7 @@ function meditrendy_native_filters_enqueue_assets() {
                 'nonce'   => wp_create_nonce('meditrendy_native_filters'),
                 'labels'  => [
                     'submit'     => meditrendy_filter_setting_label('submit'),
+                    'showProducts' => meditrendy_filter_setting_label('show_products'),
                     'loading'    => meditrendy_filter_setting_label('loading'),
                     'reset'      => meditrendy_filter_setting_label('active_reset'),
                     'noProducts' => meditrendy_filter_setting_label('no_products'),

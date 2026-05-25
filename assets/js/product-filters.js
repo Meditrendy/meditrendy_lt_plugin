@@ -3,6 +3,7 @@
   var uid = 0;
   var countTimers = new WeakMap();
   var filterStates = new WeakMap();
+  const productRequests = new WeakMap();
   var debugEnabled = false;
 
   function debugPanel() {
@@ -346,6 +347,7 @@
     form.classList.add('is-loading');
     form.removeAttribute('data-filter-error');
     document.documentElement.classList.add('mt-native-products-loading');
+    setSubmitText(form, labels().loading || 'Kraunama...');
 
     if (targets.products) {
       targets.products.classList.add('is-mt-products-loading');
@@ -951,7 +953,6 @@
 
     var targets = productTargets();
 
-    setLoading(form);
     debugLog('loadFilteredProducts start', {
       ajaxUrl: ajaxUrl(form),
       hasFetch: !!window.fetch,
@@ -964,6 +965,20 @@
       filterError(form, 'missing_ajax');
       return;
     }
+
+    window.clearTimeout(countTimers.get(form));
+
+    const previousRequest = productRequests.get(form);
+
+    if (previousRequest && previousRequest.controller) {
+      previousRequest.controller.abort();
+    }
+
+    const controller = window.AbortController ? new AbortController() : null;
+    const request = { controller: controller };
+    productRequests.set(form, request);
+
+    setLoading(form);
 
     var data = selectedPayload(form);
     data.append('action', 'meditrendy_native_filters_products');
@@ -981,9 +996,14 @@
     fetch(ajaxUrl(form), {
       method: 'POST',
       credentials: 'same-origin',
-      body: data
+      body: data,
+      signal: controller ? controller.signal : undefined
     })
       .then(function (response) {
+        if (productRequests.get(form) !== request) {
+          return null;
+        }
+
         debugLog('AJAX HTTP response', {
           ok: response.ok,
           status: response.status,
@@ -997,6 +1017,10 @@
         return response.json();
       })
       .then(function (response) {
+        if (!response || productRequests.get(form) !== request) {
+          return;
+        }
+
         debugLog('AJAX JSON response', {
           success: !!(response && response.success),
           hasData: !!(response && response.data),
@@ -1037,7 +1061,7 @@
         if (options.closeMobilePanel) {
           closeMobilePanel(form);
         }
-        resetSubmitText(form);
+        setProductsLoadedText(form);
         debugLog('products replaced', {
           count: response.data.count,
           nextProductsClass: nextProducts.className,
@@ -1049,11 +1073,18 @@
         }
       })
       .catch(function (error) {
+        if (error && error.name === 'AbortError') {
+          return;
+        }
+
         filterError(form, 'request_failed', error);
-        clearLoading(form);
+        resetSubmitText(form);
       })
       .finally(function () {
-        clearLoading(form);
+        if (productRequests.get(form) === request) {
+          productRequests.delete(form);
+          clearLoading(form);
+        }
       });
   }
 
@@ -1200,11 +1231,19 @@
   }
 
   function resetSubmitText(form) {
+    setSubmitText(form, labels().submit || 'Rodyti rezultatus');
+  }
+
+  function setProductsLoadedText(form) {
+    setSubmitText(form, labels().showProducts || 'Rodyti produktus');
+  }
+
+  function setSubmitText(form, text) {
     var panel = form.querySelector('.mt-native-filters-panel') || form._mtPanel;
     var submit = panel && panel.querySelector('.mt-native-filters-submit');
 
     if (submit) {
-      submit.textContent = labels().submit || 'Rodyti rezultatus';
+      submit.textContent = text;
     }
   }
 
@@ -1329,7 +1368,6 @@
       trigger.setAttribute('aria-expanded', 'true');
       document.documentElement.classList.add('mt-native-filters-lock');
       document.body.classList.add('mt-native-filters-lock');
-      scheduleCount(form);
     });
 
     close.addEventListener('click', function () {
@@ -1367,15 +1405,19 @@
         setControlState(form, control);
         updateActiveRows(form);
         updateActiveChips(form);
-
-        if (isMobile()) {
-          scheduleCount(form);
-        }
       });
     });
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
+
+      if (isMobile()) {
+        if (!form.classList.contains('is-loading')) {
+          closeMobilePanel(form);
+        }
+        return;
+      }
+
       submitForm(form, { closeMobilePanel: true });
     });
 
@@ -1469,11 +1511,6 @@
     updateActiveRows(form);
     updateActiveChips(form);
 
-    if (isMobile()) {
-      scheduleCount(form);
-      return;
-    }
-
     submitForm(form);
   });
 
@@ -1488,6 +1525,14 @@
 
     event.preventDefault();
     debugLog('delegated submit click', { formFound: !!form });
+
+    if (isMobile()) {
+      if (!form.classList.contains('is-loading')) {
+        closeMobilePanel(form);
+      }
+      return;
+    }
+
     submitForm(form, { closeMobilePanel: true });
   });
 

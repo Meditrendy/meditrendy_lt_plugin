@@ -475,13 +475,6 @@
   cursor: progress;
 }
 
-.mt-native-filters.is-loading .mt-native-filter-heading,
-.mt-native-filters.is-loading .mt-native-filter-body,
-.mt-native-filters.is-loading .mt-native-filters-reset {
-  opacity: .62;
-  pointer-events: none;
-}
-
 .is-mt-products-loading,
 #products-wrapper.is-mt-products-loading {
   position: relative;
@@ -828,5 +821,10 @@
     flex: 1 1 0;
     width: auto;
     min-height: 48px;
+  }
+
+  .mt-native-filters.is-loading .mt-native-filters-submit {
+    cursor: progress;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, .12);
   }
 }
