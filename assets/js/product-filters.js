@@ -926,6 +926,22 @@
     return true;
   }
 
+  function replaceProductCardsHtml(target, html) {
+    if (!target || target.id !== 'products-wrapper' || !html) {
+      return false;
+    }
+
+    const nextTarget = htmlToElement(html);
+
+    if (!nextTarget) {
+      return false;
+    }
+
+    target.replaceWith(nextTarget);
+
+    return true;
+  }
+
   function htmlToElement(html) {
     var template = document.createElement('template');
 
@@ -1057,7 +1073,10 @@
           return;
         }
 
-        if (!replaceCornerstoneProducts(targets.products, nextProducts)) {
+        if (
+          !replaceProductCardsHtml(targets.products, response.data.productCardsHtml)
+          && !replaceCornerstoneProducts(targets.products, nextProducts)
+        ) {
           replaceOrRemove(targets.products, nextProducts);
         }
         updateNativePagination(form, response.data.currentPage, response.data.maxPages);

@@ -11,9 +11,11 @@ define('MEDITRENDY_CORE_FILE', __FILE__);
 define('MEDITRENDY_CORE_DIR', plugin_dir_path(__FILE__));
 define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
 
+require_once MEDITRENDY_CORE_DIR . 'includes/product-card-renderer.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/brand-products-shortcode.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';

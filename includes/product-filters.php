@@ -1154,8 +1154,9 @@ function meditrendy_native_filters_ajax_products() {
     $paged = !empty($source['mt_filter_paged']) ? max(1, absint($source['mt_filter_paged'])) : 1;
     $per_page = meditrendy_native_filters_products_per_page();
     $cache_key = meditrendy_native_filters_cache_key('ajax_products', $source, [
-        'paged'    => $paged,
-        'per_page' => $per_page,
+        'paged'          => $paged,
+        'per_page'       => $per_page,
+        'product_cards'  => 'v1',
     ]);
     $cached_response = get_transient($cache_key);
 
@@ -1196,6 +1197,13 @@ function meditrendy_native_filters_ajax_products() {
 
     $response = [
         'productsHtml'    => meditrendy_native_filters_render_products($query),
+        'productCardsHtml' => meditrendy_render_product_card_grid(
+            $query,
+            [
+                'id'         => 'products-wrapper',
+                'empty_text' => meditrendy_filter_setting_label('no_products'),
+            ]
+        ),
         'resultCountHtml' => meditrendy_native_filters_result_count_html($query, $paged, $per_page),
         'count'           => (int) $query->found_posts,
         'currentPage'     => (int) $paged,
