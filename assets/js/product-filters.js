@@ -946,6 +946,14 @@
 
     document.documentElement.classList.remove('mt-native-filters-lock');
     document.body.classList.remove('mt-native-filters-lock');
+
+    scrollToTop();
+  }
+
+  function scrollToTop() {
+    window.requestAnimationFrame(function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
 
   function loadFilteredProducts(form, url, options) {
@@ -1060,6 +1068,9 @@
         closeAllExcept(form, null);
         if (options.closeMobilePanel) {
           closeMobilePanel(form);
+        }
+        if (options.scrollTop) {
+          scrollToTop();
         }
         setProductsLoadedText(form);
         debugLog('products replaced', {
@@ -1454,7 +1465,7 @@
 
       event.preventDefault();
       syncStateFromControls(form);
-      loadFilteredProducts(form, paginationUrlFromCurrentFilters(form, pageLink));
+      loadFilteredProducts(form, paginationUrlFromCurrentFilters(form, pageLink), { scrollTop: true });
     });
 
     document.addEventListener('click', function (event) {
