@@ -4,6 +4,25 @@ if (!defined('ABSPATH')) exit;
 const MEDITRENDY_SIZE_CHART_OPTION = 'meditrendy_size_chart_attribute';
 const MEDITRENDY_SIZE_CHART_META_KEY = 'meditrendy_size_chart_html';
 
+function meditrendy_size_charts_contexts() {
+    return apply_filters('meditrendy_size_chart_contexts', [
+        'women' => [
+            'label'          => __('Women', 'meditrendy-core'),
+            'category_slugs' => ['moterims'],
+        ],
+        'men' => [
+            'label'          => __('Men', 'meditrendy-core'),
+            'category_slugs' => ['vyrams'],
+        ],
+    ]);
+}
+
+function meditrendy_size_charts_context_meta_key($context) {
+    $context = sanitize_key((string) $context);
+
+    return $context ? MEDITRENDY_SIZE_CHART_META_KEY . '_' . $context : MEDITRENDY_SIZE_CHART_META_KEY;
+}
+
 function meditrendy_size_charts_capability() {
     if (function_exists('meditrendy_filter_settings_capability')) {
         return meditrendy_filter_settings_capability();
@@ -233,12 +252,14 @@ function meditrendy_size_charts_render_term_translations($term) {
     return ob_get_clean();
 }
 
-function meditrendy_size_charts_term_chart($term) {
+function meditrendy_size_charts_term_chart($term, $context = '') {
     if (!$term || empty($term->term_id)) {
         return '';
     }
 
     $term_ids = [(int) $term->term_id];
+    $meta_keys = [];
+    $context = sanitize_key((string) $context);
 
     foreach (meditrendy_size_charts_term_translations($term) as $translation) {
         if (!empty($translation['term_id'])) {
@@ -246,11 +267,19 @@ function meditrendy_size_charts_term_chart($term) {
         }
     }
 
-    foreach (array_unique(array_filter($term_ids)) as $term_id) {
-        $chart = meditrendy_size_charts_sanitize_html((string) get_term_meta($term_id, MEDITRENDY_SIZE_CHART_META_KEY, true));
+    if ($context !== '') {
+        $meta_keys[] = meditrendy_size_charts_context_meta_key($context);
+    }
 
-        if ($chart !== '') {
-            return $chart;
+    $meta_keys[] = MEDITRENDY_SIZE_CHART_META_KEY;
+
+    foreach (array_unique($meta_keys) as $meta_key) {
+        foreach (array_unique(array_filter($term_ids)) as $term_id) {
+            $chart = meditrendy_size_charts_sanitize_html((string) get_term_meta($term_id, $meta_key, true));
+
+            if ($chart !== '') {
+                return $chart;
+            }
         }
     }
 
@@ -273,6 +302,62 @@ function meditrendy_size_charts_attribute_product($product) {
     return $product;
 }
 
+function meditrendy_size_charts_product_context($product) {
+    $attribute_product = meditrendy_size_charts_attribute_product($product);
+
+    if (!$attribute_product) {
+        return '';
+    }
+
+    static $cache = [];
+
+    $product_id = (int) $attribute_product->get_id();
+
+    if (isset($cache[$product_id])) {
+        return $cache[$product_id];
+    }
+
+    $term_ids = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'ids']);
+
+    if (is_wp_error($term_ids) || !$term_ids) {
+        $cache[$product_id] = '';
+        return '';
+    }
+
+    $slugs = [];
+
+    foreach ($term_ids as $term_id) {
+        $term_id = (int) $term_id;
+        $term = get_term($term_id, 'product_cat');
+
+        if ($term && !is_wp_error($term) && !empty($term->slug)) {
+            $slugs[] = $term->slug;
+        }
+
+        foreach (get_ancestors($term_id, 'product_cat', 'taxonomy') as $ancestor_id) {
+            $ancestor = get_term((int) $ancestor_id, 'product_cat');
+
+            if ($ancestor && !is_wp_error($ancestor) && !empty($ancestor->slug)) {
+                $slugs[] = $ancestor->slug;
+            }
+        }
+    }
+
+    $slugs = array_unique(array_map('sanitize_title', $slugs));
+
+    foreach (meditrendy_size_charts_contexts() as $context => $settings) {
+        $category_slugs = array_map('sanitize_title', (array) ($settings['category_slugs'] ?? []));
+
+        if (array_intersect($slugs, $category_slugs)) {
+            $cache[$product_id] = sanitize_key($context);
+            return $cache[$product_id];
+        }
+    }
+
+    $cache[$product_id] = '';
+    return '';
+}
+
 function meditrendy_size_charts_product_term_data($product, $taxonomy) {
     $attribute_product = meditrendy_size_charts_attribute_product($product);
 
@@ -286,14 +371,17 @@ function meditrendy_size_charts_product_term_data($product, $taxonomy) {
         return null;
     }
 
+    $context = meditrendy_size_charts_product_context($attribute_product);
+
     foreach ($terms as $term) {
-        $chart = meditrendy_size_charts_term_chart($term);
+        $chart = meditrendy_size_charts_term_chart($term, $context);
 
         if ($chart !== '') {
             return [
                 'term'     => $term,
                 'taxonomy' => $taxonomy,
                 'chart'    => $chart,
+                'context'  => $context,
             ];
         }
     }
@@ -364,6 +452,7 @@ function meditrendy_render_size_charts_admin_page() {
     $attributes = meditrendy_size_charts_available_attributes();
     $selected_taxonomy = meditrendy_size_charts_admin_taxonomy();
     $terms = meditrendy_size_charts_get_terms($selected_taxonomy);
+    $contexts = meditrendy_size_charts_contexts();
     ?>
     <div class="wrap meditrendy-size-charts-admin">
         <h1><?php esc_html_e('Size charts', 'meditrendy-core'); ?></h1>
@@ -395,7 +484,7 @@ function meditrendy_render_size_charts_admin_page() {
                                 <?php endforeach; ?>
                             </select>
                             <p class="description">
-                                <?php esc_html_e('Products using a selected attribute item with a chart will show a size chart link.', 'meditrendy-core'); ?>
+                                <?php esc_html_e('Products using a selected attribute item with a chart will show a size chart link. Category-specific charts are used first, then the generic fallback chart.', 'meditrendy-core'); ?>
                             </p>
                         </td>
                     </tr>
@@ -408,7 +497,10 @@ function meditrendy_render_size_charts_admin_page() {
                         <tr>
                             <th style="width: 240px;"><?php esc_html_e('Item', 'meditrendy-core'); ?></th>
                             <th style="width: 300px;"><?php esc_html_e('Translations', 'meditrendy-core'); ?></th>
-                            <th><?php esc_html_e('Size chart HTML table', 'meditrendy-core'); ?></th>
+                            <th><?php esc_html_e('Generic fallback chart', 'meditrendy-core'); ?></th>
+                            <?php foreach ($contexts as $context) : ?>
+                                <th><?php echo esc_html(sprintf(__('%s chart', 'meditrendy-core'), $context['label'] ?? '')); ?></th>
+                            <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody>
@@ -431,11 +523,22 @@ function meditrendy_render_size_charts_admin_page() {
                                             placeholder="<table><tbody><tr><th>Size</th><th>...</th></tr></tbody></table>"
                                         ><?php echo esc_textarea($chart); ?></textarea>
                                     </td>
+                                    <?php foreach ($contexts as $context_key => $context) : ?>
+                                        <?php $context_chart = (string) get_term_meta($term->term_id, meditrendy_size_charts_context_meta_key($context_key), true); ?>
+                                        <td>
+                                            <textarea
+                                                name="size_chart_contexts[<?php echo esc_attr($context_key); ?>][<?php echo esc_attr((int) $term->term_id); ?>]"
+                                                rows="6"
+                                                class="large-text code"
+                                                placeholder="<table><tbody><tr><th>Size</th><th>...</th></tr></tbody></table>"
+                                            ><?php echo esc_textarea($context_chart); ?></textarea>
+                                        </td>
+                                    <?php endforeach; ?>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else : ?>
                             <tr>
-                                <td colspan="3"><?php esc_html_e('No items found for this attribute.', 'meditrendy-core'); ?></td>
+                                <td colspan="<?php echo esc_attr(3 + count($contexts)); ?>"><?php esc_html_e('No items found for this attribute.', 'meditrendy-core'); ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -475,6 +578,8 @@ function meditrendy_save_size_charts() {
     update_option(MEDITRENDY_SIZE_CHART_OPTION, $taxonomy);
 
     $charts = isset($_POST['size_charts']) && is_array($_POST['size_charts']) ? $_POST['size_charts'] : [];
+    $context_charts = isset($_POST['size_chart_contexts']) && is_array($_POST['size_chart_contexts']) ? $_POST['size_chart_contexts'] : [];
+    $contexts = meditrendy_size_charts_contexts();
 
     foreach (meditrendy_size_charts_get_terms($taxonomy) as $term) {
         $term_id = (int) $term->term_id;
@@ -484,6 +589,18 @@ function meditrendy_save_size_charts() {
             delete_term_meta($term_id, MEDITRENDY_SIZE_CHART_META_KEY);
         } else {
             update_term_meta($term_id, MEDITRENDY_SIZE_CHART_META_KEY, $chart);
+        }
+
+        foreach ($contexts as $context_key => $context) {
+            $context_key = sanitize_key($context_key);
+            $context_chart = meditrendy_size_charts_sanitize_html($context_charts[$context_key][$term_id] ?? '', true);
+            $meta_key = meditrendy_size_charts_context_meta_key($context_key);
+
+            if ($context_chart === '') {
+                delete_term_meta($term_id, $meta_key);
+            } else {
+                update_term_meta($term_id, $meta_key, $context_chart);
+            }
         }
     }
 
