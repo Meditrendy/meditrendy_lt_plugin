@@ -16,6 +16,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/brand-products-shortcode.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/blog-archive.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
