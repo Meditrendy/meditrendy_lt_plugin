@@ -51,7 +51,7 @@
 .mt-product-size-chart-dialog {
     position: relative;
     z-index: 1;
-    width: min(100%, 680px);
+    width: min(100%, 960px);
     max-height: min(760px, 90vh);
     overflow: auto;
     border-radius: 8px;
