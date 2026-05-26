@@ -18,6 +18,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/brand-products-shortcode.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/blog-archive.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-color-swatches.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
 
@@ -277,161 +278,6 @@ pointer-events: none;
 
 
 /* ======================================================
-   COLOR SWATCHES SHORTCODE (OPTIMIZED)
-====================================================== */
-
-add_shortcode('meditrendy_colors', function(){
-
-    if(!function_exists('is_product') || !is_product()) {
-        return '';
-    }
-
-    global $product;
-
-    if(!$product) {
-        return '';
-    }
-
-    $product_id = $product->get_id();
-
-    /* CACHE */
-
-    $cache_key = 'mt_swatches_' . $product_id;
-
-    $cached = get_transient($cache_key);
-
-    if($cached !== false) {
-        return $cached;
-    }
-
-    /* MODEL */
-
-    $model_terms = wp_get_post_terms(
-        $product_id,
-        'pa_model'
-    );
-
-    if(empty($model_terms)) {
-        return '';
-    }
-
-    $model_slug = $model_terms[0]->slug;
-
-    /* QUERY */
-
-    $args = [
-
-        'post_type' => 'product',
-        'posts_per_page' => 28,
-        'post_status' => 'publish',
-
-        // PERFORMANCE
-        'fields' => 'ids',
-        'no_found_rows' => true,
-        'update_post_meta_cache' => false,
-        'update_post_term_cache' => false,
-
-        'tax_query' => [
-            [
-                'taxonomy' => 'pa_model',
-                'field'    => 'slug',
-                'terms'    => $model_slug
-            ]
-        ]
-
-    ];
-
-    $query = new WP_Query($args);
-
-    if(empty($query->posts)) {
-        return '';
-    }
-
-    /* CURRENT COLOR */
-
-    $current_color_terms = wp_get_post_terms(
-        $product_id,
-        'pa_color'
-    );
-
-    $current_color_name = !empty($current_color_terms)
-        ? $current_color_terms[0]->name
-        : '';
-
-    ob_start();
-
-    echo '<div class="mt-color-wrapper">';
-
-    echo '<div class="mt-color-label">';
-    echo 'Color: <span class="mt-current-color">'
-    . esc_html($current_color_name) .
-    '</span>';
-    echo '</div>';
-
-    echo '<div class="mt-color-swatches">';
-
-    foreach($query->posts as $p_id){
-
-        // LIGHTWEIGHT STOCK CHECK
-        $stock = get_post_meta(
-            $p_id,
-            '_stock_status',
-            true
-        );
-
-        if($stock !== 'instock') {
-            continue;
-        }
-
-        $color_terms = wp_get_post_terms(
-            $p_id,
-            'pa_color'
-        );
-
-        if(empty($color_terms)) {
-            continue;
-        }
-
-        $color_term = $color_terms[0];
-
-        $hex = get_term_meta(
-            $color_term->term_id,
-            'color_hex',
-            true
-        );
-
-        if(empty($hex)) {
-            continue;
-        }
-
-        $is_active = ($p_id == $product_id)
-            ? 'active'
-            : '';
-
-        echo '<a href="' . esc_url(get_permalink($p_id)) . '"
-        class="mt-swatch ' . esc_attr($is_active) . '"
-        style="background:' . esc_attr($hex) . '"
-        title="' . esc_attr($color_term->name) . '"
-        aria-label="' . esc_attr($color_term->name) . '"></a>';
-    }
-
-    echo '</div>';
-    echo '</div>';
-
-    $output = ob_get_clean();
-
-    /* CACHE 12h */
-
-    set_transient(
-        $cache_key,
-        $output,
-        12 * HOUR_IN_SECONDS
-    );
-
-    return $output;
-
-});
-/* ======================================================
    ACF +SHOP MAMAGER
 ====================================================== */
 add_filter('acf/settings/capability', function() {
@@ -470,13 +316,6 @@ add_action('wp_enqueue_scripts', function() {
 remove_action('wp_head', 'print_emoji_detection_script', 7);
 remove_action('wp_print_styles', 'print_emoji_styles');
 
-
-
-add_action('woocommerce_after_shop_loop_item_title', 'meditrendy_add_colors_to_loop', 15);
-
-function meditrendy_add_colors_to_loop() {
-    echo do_shortcode('[meditrendy_colors]');
-}
 /* ======================================================
    FILTER COLORS SHORTCODE
 ====================================================== */
