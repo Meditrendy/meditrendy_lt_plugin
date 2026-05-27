@@ -73,7 +73,49 @@ function meditrendy_stock_waitlist_product_data() {
         'isVariable' => $product->is_type('variable'),
         'isSet' => $product->is_type('woosb'),
         'isInStock' => $product->is_in_stock(),
+        'hasUnavailableVariation' => meditrendy_waitlist_product_has_unavailable_variation($product),
+        'hasUnavailableSetItem' => meditrendy_waitlist_set_has_unavailable_item($product),
     ];
+}
+
+function meditrendy_waitlist_product_has_unavailable_variation($product) {
+    if (!$product || !is_a($product, 'WC_Product') || !$product->is_type('variable')) {
+        return false;
+    }
+
+    foreach ($product->get_children() as $variation_id) {
+        $variation = wc_get_product($variation_id);
+
+        if ($variation && $variation->exists() && $variation->is_purchasable() && !$variation->is_in_stock()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function meditrendy_waitlist_set_has_unavailable_item($set) {
+    if (!$set || !is_a($set, 'WC_Product') || !$set->is_type('woosb')) {
+        return false;
+    }
+
+    foreach (meditrendy_waitlist_set_items($set->get_id()) as $item) {
+        $item_product = !empty($item['id']) ? wc_get_product(absint($item['id'])) : null;
+
+        if (!$item_product || !is_a($item_product, 'WC_Product')) {
+            continue;
+        }
+
+        if ($item_product->is_type('variable') && meditrendy_waitlist_product_has_unavailable_variation($item_product)) {
+            return true;
+        }
+
+        if (!$item_product->is_type('variable') && $item_product->is_purchasable() && !$item_product->is_in_stock()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function meditrendy_waitlist_product_available($product, $qty = 1) {

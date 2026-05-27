@@ -272,7 +272,7 @@ function meditrendy_color_swatches_shortcode() {
     }
 
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v3_' . $product_id;
+    $cache_key = 'mt_swatches_v4_' . $product_id . '_' . meditrendy_current_language_slug();
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -328,7 +328,7 @@ function meditrendy_color_swatches_shortcode() {
 
     echo '<div class="mt-color-wrapper">';
     echo '<div class="mt-color-label">';
-    echo 'Color: <span class="mt-current-color">' . esc_html($current_color_name) . '</span>';
+    echo esc_html(wc_attribute_label('pa_color')) . ': <span class="mt-current-color">' . esc_html($current_color_name) . '</span>';
     echo '</div>';
     echo '<div class="mt-color-swatches">';
     echo $swatches_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

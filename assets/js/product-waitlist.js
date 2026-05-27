@@ -28,19 +28,47 @@
         return setId ? document.querySelector('.woosb-wrap[data-id="' + setId + '"]') : document.querySelector('.woosb-wrap');
     }
 
+    function getVariationSelectorTarget(form) {
+        if (!form) {
+            return null;
+        }
+
+        return form.querySelector('.variations') ||
+            form.querySelector('.woo-variation-items-wrapper') ||
+            form.querySelector('.variable-items-wrapper') ||
+            form.querySelector('select[name^="attribute_"]');
+    }
+
     function findInsertTarget() {
         if (product.isSet) {
             return getSetWrap(product.productId) || document.querySelector('form.cart');
         }
 
-        return getVariationForm() ||
+        const form = getVariationForm();
+
+        return getVariationSelectorTarget(form) ||
+            form ||
             document.querySelector('form.cart') ||
             document.querySelector('.summary') ||
             document.querySelector('.entry-summary');
     }
 
     function shouldShowHint() {
-        return !!(product.isVariable || product.isSet);
+        if (product.isVariable) {
+            return !!(product.hasUnavailableVariation || hasUnavailableVariations(getVariationForm()));
+        }
+
+        if (product.isSet) {
+            const setId = product.productId;
+
+            return !!(
+                product.hasUnavailableSetItem ||
+                hasSimpleUnavailableSetItem(setId) ||
+                getSetForms(setId).some(hasUnavailableVariations)
+            );
+        }
+
+        return false;
     }
 
     function ensureHint() {
@@ -286,6 +314,12 @@
         } catch (error) {
             return [];
         }
+    }
+
+    function hasUnavailableVariations(form) {
+        return readFormVariations(form).some(function (variation) {
+            return variation && variation.variation_id && variation.is_in_stock === false;
+        });
     }
 
     function getAttributeName(select) {
