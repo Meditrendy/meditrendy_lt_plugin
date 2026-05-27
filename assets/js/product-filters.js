@@ -985,6 +985,7 @@
         replaceOrRemove(targets.resultCount, nextResultCount);
         updateActiveRows(form);
         updateFilterOptionCounts(form, response.data.optionCounts);
+        updatePricePlaceholders(form, response.data.priceRange);
         updateActiveChips(form);
         closeAllExcept(form, null);
         if (options.closeMobilePanel) {
@@ -1067,6 +1068,21 @@
         countElement.textContent = `(${String(count)})`;
       }
     });
+  }
+
+  function updatePricePlaceholders(form, priceRange) {
+    if (!priceRange) return;
+
+    var minInput = filterControls(form, 'input[name="mt_min_price"]')[0];
+    var maxInput = filterControls(form, 'input[name="mt_max_price"]')[0];
+
+    if (minInput) {
+      minInput.placeholder = priceRange.min || '';
+    }
+
+    if (maxInput) {
+      maxInput.placeholder = priceRange.max || '';
+    }
   }
 
   function activeChipLabel(input) {
@@ -1258,6 +1274,7 @@
 
         resetSubmitText(form);
         updateFilterOptionCounts(form, response.data.optionCounts);
+        updatePricePlaceholders(form, response.data.priceRange);
       })
       .catch(function () {
         resetSubmitText(form);

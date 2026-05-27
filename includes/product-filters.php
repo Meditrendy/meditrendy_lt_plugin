@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 const MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION = 'meditrendy_native_filters_cache_version';
 const MEDITRENDY_NATIVE_FILTERS_CACHE_TTL = 30 * MINUTE_IN_SECONDS;
-const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260527-pagination-edges';
+const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260527-price-placeholders';
 
 function meditrendy_native_filters_cache_version() {
     $version = (string) get_option(MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION, '');
@@ -245,6 +245,91 @@ function meditrendy_native_price_meta_query($source = null) {
     $clause['compare'] = '<=';
 
     return [$clause];
+}
+
+function meditrendy_native_filters_source_without_price($source = null, $include_current_context = true) {
+    $source = $source === null ? $_GET : (array) $source;
+    unset($source['mt_min_price'], $source['mt_max_price']);
+
+    if ($include_current_context && empty($source['mt_filter_context_taxonomy']) && empty($source['mt_filter_context_term'])) {
+        $context = meditrendy_native_filter_context();
+
+        if (!empty($context['taxonomy']) && !empty($context['term'])) {
+            $source['mt_filter_context_taxonomy'] = $context['taxonomy'];
+            $source['mt_filter_context_term'] = $context['term'];
+        }
+    }
+
+    return $source;
+}
+
+function meditrendy_native_filters_price_placeholder($price) {
+    if ($price === '' || $price === null || !is_numeric($price)) {
+        return '';
+    }
+
+    return wc_format_decimal((float) $price, 2);
+}
+
+function meditrendy_native_filters_price_range($source = null) {
+    global $wpdb;
+
+    $source = meditrendy_native_filters_source_without_price($source);
+    $cache_key = meditrendy_native_filters_cache_key('price_range', $source);
+    $cached_range = get_transient($cache_key);
+
+    if (is_array($cached_range)) {
+        return $cached_range;
+    }
+
+    $args = [
+        'post_type'              => 'product',
+        'post_status'            => 'publish',
+        'posts_per_page'         => -1,
+        'fields'                 => 'ids',
+        'no_found_rows'          => true,
+        'update_post_meta_cache' => false,
+        'update_post_term_cache' => false,
+    ];
+
+    $tax_query = meditrendy_native_filters_tax_query($source, true);
+
+    if ($tax_query) {
+        $args['tax_query'] = $tax_query;
+    }
+
+    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
+    $product_ids = array_map('absint', $query->posts);
+
+    if (!$product_ids) {
+        $range = [
+            'min' => '',
+            'max' => '',
+        ];
+
+        set_transient($cache_key, $range, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
+        return $range;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($product_ids), '%d'));
+    $sql = "
+        SELECT MIN(CAST(meta_value AS DECIMAL(10,2))) AS min_price,
+               MAX(CAST(meta_value AS DECIMAL(10,2))) AS max_price
+        FROM {$wpdb->postmeta}
+        WHERE meta_key = '_price'
+          AND meta_value <> ''
+          AND post_id IN ($placeholders)
+    ";
+    $row = $wpdb->get_row($wpdb->prepare($sql, $product_ids));
+
+    $range = [
+        'min' => $row ? meditrendy_native_filters_price_placeholder($row->min_price) : '',
+        'max' => $row ? meditrendy_native_filters_price_placeholder($row->max_price) : '',
+    ];
+
+    set_transient($cache_key, $range, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
+
+    return $range;
 }
 
 function meditrendy_native_filter_raw_value($param, $source = null) {
@@ -662,6 +747,7 @@ function meditrendy_get_native_product_filters_html() {
         if (($filter['type'] ?? '') === 'price') {
             $min_price = meditrendy_native_price_value('mt_min_price');
             $max_price = meditrendy_native_price_value('mt_max_price');
+            $price_range = meditrendy_native_filters_price_range();
             $active = [];
 
             if ($min_price !== '') {
@@ -678,6 +764,8 @@ function meditrendy_get_native_product_filters_html() {
             $filter['active'] = $active;
             $filter['min_price'] = $min_price;
             $filter['max_price'] = $max_price;
+            $filter['min_placeholder'] = $price_range['min'] ?? '';
+            $filter['max_placeholder'] = $price_range['max'] ?? '';
             $visible_filters[] = $filter;
             continue;
         }
@@ -760,11 +848,11 @@ function meditrendy_get_native_product_filters_html() {
                                 <div class="mt-native-price-filter">
                                     <label>
                                         <span>Min</span>
-                                        <input type="number" min="0" step="0.01" name="mt_min_price" value="<?php echo esc_attr($filter['min_price']); ?>">
+                                        <input type="number" min="0" step="0.01" name="mt_min_price" value="<?php echo esc_attr($filter['min_price']); ?>" placeholder="<?php echo esc_attr($filter['min_placeholder'] ?? ''); ?>">
                                     </label>
                                     <label>
                                         <span>Max</span>
-                                        <input type="number" min="0" step="0.01" name="mt_max_price" value="<?php echo esc_attr($filter['max_price']); ?>">
+                                        <input type="number" min="0" step="0.01" name="mt_max_price" value="<?php echo esc_attr($filter['max_price']); ?>" placeholder="<?php echo esc_attr($filter['max_placeholder'] ?? ''); ?>">
                                     </label>
                                 </div>
                             <?php else : ?>
@@ -1063,6 +1151,7 @@ function meditrendy_native_filters_ajax_count() {
     $response = [
         'count'        => meditrendy_native_filters_count_products($source),
         'optionCounts' => meditrendy_native_filters_option_counts($source),
+        'priceRange'   => meditrendy_native_filters_price_range($source),
     ];
 
     set_transient($cache_key, $response, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
@@ -1227,6 +1316,7 @@ function meditrendy_native_filters_ajax_products() {
         'currentPage'     => (int) $paged,
         'maxPages'        => (int) $query->max_num_pages,
         'optionCounts'    => meditrendy_native_filters_option_counts($source),
+        'priceRange'      => meditrendy_native_filters_price_range($source),
     ];
 
     set_transient($cache_key, $response, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
