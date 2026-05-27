@@ -14,6 +14,7 @@ define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
 require_once MEDITRENDY_CORE_DIR . 'includes/product-card-renderer.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/site-identity.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/cart-badge.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/edrone-newsletter.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
