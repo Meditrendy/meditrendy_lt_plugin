@@ -662,6 +662,7 @@ function meditrendy_size_charts_render_product_size_chart_html($product = null, 
     $instance++;
     $product_id = $product && is_a($product, 'WC_Product') ? (int) $product->get_id() : get_queried_object_id();
     $modal_id = 'mt-product-size-chart-' . sanitize_html_class($context) . '-' . absint($product_id) . '-' . absint($data['term']->term_id) . '-' . $instance;
+    $sizing_note = __('Amerikietiški dydžiai – rinkitės mažesnį dydį', 'meditrendy-core');
 
     ob_start();
     ?>
@@ -675,11 +676,11 @@ function meditrendy_size_charts_render_product_size_chart_html($product = null, 
         >
             <?php esc_html_e('Dydžių lentelė', 'meditrendy-core'); ?>
         </button>
-
         <div id="<?php echo esc_attr($modal_id); ?>" class="mt-product-size-chart-modal" data-mt-size-chart-modal hidden>
             <div class="mt-product-size-chart-backdrop" data-mt-size-chart-close></div>
             <div class="mt-product-size-chart-dialog" role="dialog" aria-modal="true" aria-labelledby="<?php echo esc_attr($modal_id); ?>-heading" tabindex="-1">
                 <div class="mt-product-size-chart-header">
+                    <p class="mt-product-size-chart-header-note"><?php echo esc_html($sizing_note); ?></p>
                     <h2 id="<?php echo esc_attr($modal_id); ?>-heading"><?php esc_html_e('Dydžių lentelė', 'meditrendy-core'); ?></h2>
                     <button type="button" class="mt-product-size-chart-close" data-mt-size-chart-close aria-label="<?php esc_attr_e('Uždaryti', 'meditrendy-core'); ?>"></button>
                 </div>

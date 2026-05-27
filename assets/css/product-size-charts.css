@@ -71,6 +71,7 @@
     z-index: 2;
     display: flex;
     align-items: center;
+    gap: 8px 14px;
     min-height: 76px;
     margin: 0 -28px 18px;
     padding: 18px 64px 18px 28px;
@@ -83,11 +84,20 @@
 }
 
 .mt-product-size-chart-header h2 {
+    order: 1;
     margin: 0;
     color: #07111f;
     font-size: 22px;
     line-height: 1.2;
     letter-spacing: 0;
+}
+
+.mt-product-size-chart-header-note {
+    order: 2;
+    margin: 2px 0 0;
+    color: #7a828d;
+    font-size: 13px;
+    line-height: 1.35;
 }
 
 .mt-product-size-chart-close {
@@ -208,6 +218,9 @@
     }
 
     .mt-product-size-chart-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
         min-height: 68px;
         margin: 0 -20px 16px;
         padding: 16px 56px 16px 20px;
@@ -215,6 +228,11 @@
 
     .mt-product-size-chart-header h2 {
         font-size: 20px;
+    }
+
+    .mt-product-size-chart-header-note {
+        margin-top: 0;
+        font-size: 12px;
     }
 
     .mt-product-size-chart-close {
