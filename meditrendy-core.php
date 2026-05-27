@@ -25,27 +25,8 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-color-swatches.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
 
-/* ======================================================
-   REMOVE GALLERY ZOOM & SLIDER
-====================================================== */
-add_action( 'after_setup_theme', 'remove_woo_three_support', 11 ); 
-function remove_woo_three_support() {
-    remove_theme_support( 'wc-product-gallery-zoom' );
-}
-add_filter( 'woocommerce_single_product_carousel_options', 'mt_gallery_loop' );
-
-function mt_gallery_loop( $options ) {
-
-    $options['animationLoop'] = true;   // loop
-    $options['slideshow'] = false;      // bez autoplay
-    $options['controlNav'] = 'thumbnails'; // miniaturki
-    $options['directionNav'] = true;   // bez strzałek
-    $options['smoothHeight'] = true;
-    $options['animation'] = 'slide';
-
-    return $options;
-}
 /* ======================================================
    ACF +SHOP MAMAGER
 ====================================================== */
