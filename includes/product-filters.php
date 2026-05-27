@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 const MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION = 'meditrendy_native_filters_cache_version';
 const MEDITRENDY_NATIVE_FILTERS_CACHE_TTL = 30 * MINUTE_IN_SECONDS;
+const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260527-pagination-edges';
 
 function meditrendy_native_filters_cache_version() {
     $version = (string) get_option(MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION, '');
@@ -81,6 +82,7 @@ function meditrendy_native_filters_cache_source($source, $extra = []) {
 function meditrendy_native_filters_cache_key($group, $source, $extra = []) {
     $payload = [
         'version' => meditrendy_native_filters_cache_version(),
+        'response_version' => MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION,
         'group'   => (string) $group,
         'source'  => meditrendy_native_filters_cache_source($source, $extra),
     ];
@@ -1116,12 +1118,27 @@ function meditrendy_native_filters_pagination_html($query, $current_url, $paged)
         'current'   => max(1, (int) $paged),
         'total'     => (int) $query->max_num_pages,
         'type'      => 'list',
+        'prev_next' => true,
         'prev_text' => '&larr;',
         'next_text' => '&rarr;',
+        'end_size'  => 1,
+        'mid_size'  => 1,
     ]);
 
-    return $links ? '<nav class="woocommerce-pagination">' . $links . '</nav>' : '';
+    return $links ? '<nav class="woocommerce-pagination" aria-label="' . esc_attr__('Product Pagination', 'woocommerce') . '">' . $links . '</nav>' : '';
 }
+
+function meditrendy_native_filters_woocommerce_pagination_args($args) {
+    $args['prev_next'] = true;
+    $args['prev_text'] = '&larr;';
+    $args['next_text'] = '&rarr;';
+    $args['end_size'] = 1;
+    $args['mid_size'] = 1;
+
+    return $args;
+}
+
+add_filter('woocommerce_pagination_args', 'meditrendy_native_filters_woocommerce_pagination_args');
 
 function meditrendy_native_filters_result_count_html($query, $paged, $per_page) {
     $total = (int) $query->found_posts;
@@ -1204,6 +1221,7 @@ function meditrendy_native_filters_ajax_products() {
                 'empty_text' => meditrendy_filter_setting_label('no_products'),
             ]
         ),
+        'paginationHtml'   => meditrendy_native_filters_pagination_html($query, $source['mt_filter_url'] ?? '', $paged),
         'resultCountHtml' => meditrendy_native_filters_result_count_html($query, $paged, $per_page),
         'count'           => (int) $query->found_posts,
         'currentPage'     => (int) $paged,

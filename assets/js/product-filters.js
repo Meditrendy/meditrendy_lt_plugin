@@ -657,122 +657,23 @@
     return current;
   }
 
-  function clearPaginationCurrentState(pagination) {
-    pagination.querySelectorAll('.current, .active, .is-active, .x-active, [aria-current]').forEach(function (item) {
-      item.classList.remove('current', 'active', 'is-active', 'x-active');
-      item.removeAttribute('aria-current');
-    });
-  }
-
-  function setPaginationItemCurrent(item) {
-    item.classList.add('current');
-    item.setAttribute('aria-current', 'page');
-
-    var parent = item.parentElement;
-
-    if (parent && parent.tagName === 'LI') {
-      parent.classList.add('current', 'active', 'is-active');
-    }
-  }
-
-  function paginationItemPage(item, currentPage) {
-    var text = (item.textContent || '').trim();
-    var numericText = text.match(/[0-9]+/);
-
-    if (numericText) {
-      return parseInt(numericText[0], 10);
+  function replaceOrInsertPagination(current, next, products) {
+    if (current && next) {
+      current.replaceWith(next);
+      return next;
     }
 
-    if (item.matches('a[href]')) {
-      var hrefPage = currentPageFromUrl(new URL(item.href, window.location.href));
-
-      if (item.classList.contains('prev') || item.getAttribute('rel') === 'prev') {
-        return Math.max(1, currentPage - 1);
-      }
-
-      if (item.classList.contains('next') || item.getAttribute('rel') === 'next') {
-        return currentPage + 1;
-      }
-
-      return hrefPage;
+    if (current && !next) {
+      current.remove();
+      return null;
     }
 
-    return 0;
-  }
-
-  function pageUrlFromCurrentFilters(form, page) {
-    var url = buildFilterUrl(form);
-
-    url.searchParams.delete('paged');
-    url.searchParams.delete('product-page');
-
-    if (page > 1) {
-      url.searchParams.set('paged', String(page));
+    if (!current && next && products) {
+      products.insertAdjacentElement('afterend', next);
+      return next;
     }
 
-    return url;
-  }
-
-  function updateNativePagination(form, currentPage, maxPages) {
-    var pagination = findPagination(document);
-
-    cleanupGeneratedPagination(pagination);
-
-    if (!pagination) return;
-
-    currentPage = Math.max(1, parseInt(currentPage || '1', 10));
-    maxPages = Math.max(1, parseInt(maxPages || '1', 10));
-    pagination.style.display = maxPages > 1 ? '' : 'none';
-
-    clearPaginationCurrentState(pagination);
-
-    Array.prototype.slice.call(pagination.querySelectorAll('a[href], span')).forEach(function (item) {
-      var page = paginationItemPage(item, currentPage);
-      var wrapper = item.tagName === 'LI' ? item : item.closest('li');
-
-      if (page > maxPages || page < 1) {
-        if (wrapper) {
-          wrapper.style.display = page ? 'none' : '';
-        } else {
-          item.style.display = page ? 'none' : '';
-        }
-        return;
-      }
-
-      if (wrapper) {
-        wrapper.style.display = '';
-      }
-
-      item.style.display = '';
-
-      if (page && page !== currentPage && !item.matches('a[href]')) {
-        var link = document.createElement('a');
-
-        link.className = item.className;
-        link.textContent = item.textContent;
-        link.href = pageUrlFromCurrentFilters(form, page).toString();
-        item.replaceWith(link);
-        item = link;
-      } else if (item.matches('a[href]')) {
-        item.href = pageUrlFromCurrentFilters(form, page).toString();
-      }
-
-      if (page === currentPage && !item.matches('.prev, .next')) {
-        setPaginationItemCurrent(item);
-      }
-    });
-
-    pagination.querySelectorAll('li').forEach(function (item) {
-      var page = paginationItemPage(item, currentPage);
-
-      if (!page) return;
-
-      item.style.display = page > maxPages ? 'none' : '';
-
-      if (page === currentPage && !item.querySelector('.prev, .next')) {
-        item.classList.add('current', 'active', 'is-active');
-      }
-    });
+    return current;
   }
 
   function firstText(root, selector) {
@@ -1059,6 +960,7 @@
         }
 
         var nextProducts = htmlToElement(response.data.productsHtml);
+        var nextPagination = htmlToElement(response.data.paginationHtml);
         var nextResultCount = htmlToElement(response.data.resultCountHtml);
 
         if (!nextProducts) {
@@ -1079,7 +981,7 @@
         ) {
           replaceOrRemove(targets.products, nextProducts);
         }
-        updateNativePagination(form, response.data.currentPage, response.data.maxPages);
+        replaceOrInsertPagination(targets.pagination, nextPagination, targets.products);
         replaceOrRemove(targets.resultCount, nextResultCount);
         updateActiveRows(form);
         updateFilterOptionCounts(form, response.data.optionCounts);
