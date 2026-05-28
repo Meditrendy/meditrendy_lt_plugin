@@ -74,6 +74,30 @@ function meditrendy_clear_color_swatches_cache_for_product($product_id) {
     delete_transient('mt_swatches_' . $product_id);
     delete_transient('mt_swatches_v2_' . $product_id);
     delete_transient('mt_swatches_v3_' . $product_id);
+
+    global $wpdb;
+
+    if(!$wpdb) {
+        return;
+    }
+
+    $patterns = [
+        $wpdb->esc_like('_transient_mt_swatches_v4_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v5_' . $product_id . '_') . '%',
+    ];
+
+    foreach($patterns as $pattern) {
+        $transients = $wpdb->get_col(
+            $wpdb->prepare(
+                "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+                $pattern
+            )
+        );
+
+        foreach($transients as $transient) {
+            delete_transient(str_replace('_transient_', '', $transient));
+        }
+    }
 }
 
 function meditrendy_clear_related_color_swatches_cache($product_id) {
@@ -260,7 +284,15 @@ function meditrendy_color_swatches_related_product_ids($product, $model_slugs) {
     return array_map('absint', $query->posts);
 }
 
-function meditrendy_color_swatches_shortcode() {
+function meditrendy_color_swatches_bool($value) {
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    return in_array(strtolower((string) $value), ['1', 'true', 'yes', 'on'], true);
+}
+
+function meditrendy_color_swatches_shortcode($atts = []) {
     if(!function_exists('is_product') || !is_product()) {
         return '';
     }
@@ -271,8 +303,18 @@ function meditrendy_color_swatches_shortcode() {
         return '';
     }
 
+    $atts = shortcode_atts(
+        [
+            'limit'     => 0,
+            'show_more' => 0,
+        ],
+        is_array($atts) ? $atts : [],
+        'meditrendy_colors'
+    );
+    $limit = max(0, absint($atts['limit']));
+    $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v4_' . $product_id . '_' . meditrendy_current_language_slug();
+    $cache_key = 'mt_swatches_v5_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -294,7 +336,7 @@ function meditrendy_color_swatches_shortcode() {
 
     $current_color_terms = meditrendy_color_swatches_product_terms($product, 'pa_color');
     $current_color_name = !empty($current_color_terms) ? $current_color_terms[0]->name : '';
-    $swatches_html = '';
+    $swatches = [];
 
     foreach($related_product_ids as $p_id){
         $related_product = wc_get_product($p_id);
@@ -311,17 +353,49 @@ function meditrendy_color_swatches_shortcode() {
 
         $color_term = $color_terms[0];
         $hex = meditrendy_color_term_hex($color_term);
-        $is_active = ($p_id == $product_id) ? 'active' : '';
+        $is_active = (int) $p_id === (int) $product_id;
 
-        $swatches_html .= '<a href="' . esc_url(get_permalink($p_id)) . '"
-        class="mt-swatch ' . esc_attr($is_active) . '"
-        style="background:' . esc_attr($hex) . '"
-        title="' . esc_attr($color_term->name) . '"
-        aria-label="' . esc_attr($color_term->name) . '"></a>';
+        $swatches[] = [
+            'url'       => get_permalink($p_id),
+            'name'      => $color_term->name,
+            'hex'       => $hex,
+            'is_active' => $is_active,
+        ];
     }
 
-    if($swatches_html === '') {
+    if(empty($swatches)) {
         return '';
+    }
+
+    if($limit > 0 && count($swatches) > $limit) {
+        $active_swatches = array_values(array_filter($swatches, function($swatch) {
+            return !empty($swatch['is_active']);
+        }));
+        $inactive_swatches = array_values(array_filter($swatches, function($swatch) {
+            return empty($swatch['is_active']);
+        }));
+        $visible_swatches = array_slice(array_merge($active_swatches, $inactive_swatches), 0, $limit);
+    } else {
+        $visible_swatches = $swatches;
+    }
+
+    $hidden_count = max(0, count($swatches) - count($visible_swatches));
+    $swatches_html = '';
+
+    foreach($visible_swatches as $swatch) {
+        $is_active = !empty($swatch['is_active']) ? ' active' : '';
+        $swatches_html .= '<a href="' . esc_url($swatch['url']) . '"
+        class="mt-swatch' . esc_attr($is_active) . '"
+        style="background:' . esc_attr($swatch['hex']) . '"
+        title="' . esc_attr($swatch['name']) . '"
+        aria-label="' . esc_attr($swatch['name']) . '"></a>';
+    }
+
+    if($show_more && $hidden_count > 0) {
+        $swatches_html .= '<a href="' . esc_url($product->get_permalink()) . '"
+        class="mt-swatch-more"
+        title="' . esc_attr(sprintf(__('Rodyti visas spalvas (+%d)', 'meditrendy-core'), $hidden_count)) . '"
+        aria-label="' . esc_attr(sprintf(__('Rodyti visas spalvas. Dar spalvų: %d', 'meditrendy-core'), $hidden_count)) . '">' . esc_html(sprintf(__('Visos +%d', 'meditrendy-core'), $hidden_count)) . '</a>';
     }
 
     ob_start();
@@ -343,7 +417,12 @@ function meditrendy_color_swatches_shortcode() {
 }
 
 function meditrendy_add_colors_to_loop() {
-    echo do_shortcode('[meditrendy_colors]');
+    if(function_exists('is_product') && is_product()) {
+        echo meditrendy_color_swatches_shortcode(['limit' => 3, 'show_more' => 1]); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        return;
+    }
+
+    echo meditrendy_color_swatches_shortcode(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
 add_action('save_post_product', 'meditrendy_clear_related_color_swatches_cache');
