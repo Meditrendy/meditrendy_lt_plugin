@@ -725,7 +725,11 @@ function meditrendy_render_waitlist_admin_page() {
     <?php
 }
 
-add_action('init', 'meditrendy_stock_waitlist_install', 5);
+if (defined('MEDITRENDY_CORE_FILE')) {
+    register_activation_hook(MEDITRENDY_CORE_FILE, 'meditrendy_stock_waitlist_install');
+}
+
+add_action('admin_init', 'meditrendy_stock_waitlist_install');
 add_action('admin_menu', 'meditrendy_waitlist_admin_menu', 30);
 add_action('wp_enqueue_scripts', 'meditrendy_waitlist_enqueue_assets', 30);
 add_action('wp_ajax_meditrendy_stock_waitlist_subscribe', 'meditrendy_stock_waitlist_subscribe');

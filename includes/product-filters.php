@@ -475,6 +475,31 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
     }
 
     $context = $context === null ? meditrendy_native_filter_context() : $context;
+    $count_source = [];
+
+    foreach (['mt_min_price', 'mt_max_price'] as $price_param) {
+        if (isset($_GET[$price_param])) {
+            $count_source[$price_param] = wp_unslash($_GET[$price_param]);
+        }
+    }
+
+    $cache_key = meditrendy_native_filters_cache_key(
+        'term_count',
+        $count_source,
+        [
+            'taxonomy'         => $taxonomy,
+            'term'             => $term->slug,
+            'context_taxonomy' => $context['taxonomy'] ?? '',
+            'context_term'     => $context['term'] ?? '',
+            'language'         => function_exists('meditrendy_current_language_slug') ? meditrendy_current_language_slug() : '',
+        ]
+    );
+    $cached_count = get_transient($cache_key);
+
+    if ($cached_count !== false) {
+        return (int) $cached_count;
+    }
+
     $tax_query = [
         'relation' => 'AND',
         [
@@ -512,8 +537,11 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
     }
 
     $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
+    $count = (int) $query->found_posts;
 
-    return (int) $query->found_posts;
+    set_transient($cache_key, $count, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
+
+    return $count;
 }
 
 function meditrendy_native_color_group_hex($term) {
