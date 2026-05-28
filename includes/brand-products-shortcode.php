@@ -14,6 +14,9 @@ add_action('woocommerce_variation_set_stock_status', 'meditrendy_brand_products_
 add_action('edited_pa_brand', 'meditrendy_brand_products_bump_cache_version');
 add_action('created_pa_brand', 'meditrendy_brand_products_bump_cache_version');
 add_action('delete_pa_brand', 'meditrendy_brand_products_bump_cache_version');
+add_action('edited_product_cat', 'meditrendy_brand_products_bump_cache_version');
+add_action('created_product_cat', 'meditrendy_brand_products_bump_cache_version');
+add_action('delete_product_cat', 'meditrendy_brand_products_bump_cache_version');
 
 function meditrendy_brand_products_language_key() {
     if (function_exists('pll_current_language')) {
@@ -84,6 +87,23 @@ function meditrendy_brand_products_terms($brand_slugs) {
     return $terms;
 }
 
+function meditrendy_brand_products_category_tax_query($category_slugs) {
+    $slugs = array_filter(array_map('sanitize_title', explode(',', (string) $category_slugs)));
+
+    if (!$slugs) {
+        return [];
+    }
+
+    return [
+        [
+            'taxonomy'         => 'product_cat',
+            'field'            => 'slug',
+            'terms'            => $slugs,
+            'include_children' => true,
+        ],
+    ];
+}
+
 function meditrendy_brand_products_selected_ids($atts) {
     $limit = max(1, min(12, absint($atts['limit'])));
     $terms = meditrendy_brand_products_terms($atts['brands']);
@@ -99,6 +119,7 @@ function meditrendy_brand_products_selected_ids($atts) {
     $selected_product_ids = [];
     $selected_brand_ids = [];
     $visibility_tax_query = meditrendy_brand_products_visibility_tax_query($atts['hide_out_of_stock'] === '1');
+    $category_tax_query = meditrendy_brand_products_category_tax_query($atts['parent_category']);
 
     foreach ($terms as $term) {
         if (count($selected_product_ids) >= $limit) {
@@ -117,6 +138,7 @@ function meditrendy_brand_products_selected_ids($atts) {
                     'terms'    => [(int) $term->term_id],
                 ],
             ],
+            $category_tax_query,
             $visibility_tax_query
         );
 
@@ -188,6 +210,7 @@ function meditrendy_brand_products_shortcode($atts) {
             'limit'             => '4',
             'columns'           => '4',
             'brands'            => '',
+            'parent_category'   => '',
             'orderby'           => 'rand',
             'hide_out_of_stock' => '1',
             'cache'             => '1',
