@@ -19,6 +19,9 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Always consider the user experience when making changes.
 - Always consider website performance when making changes.
 - Changes that apply to products usually apply to product sets as well.
+- Do not introduce English or Polish frontend strings unless the user explicitly approves them.
+- For user-facing strings, use Lithuanian wording and keep it consistent with WooCommerce context.
+- Always prepare for translations in the future.
 
 ## File Layout
 
@@ -38,7 +41,7 @@ Use existing feature files when possible:
 - Use `const` and `let` in new JavaScript.
 - Keep frontend JavaScript scoped to plugin-owned markup.
 - Do not depend on generated Cornerstone classes when a plugin-owned class can be used.
-- Prefer CSS variables over custom properties.
+- Prefer CSS custom properties for reusable values.
 - Prefer CSS over JavaScript for styling.
 - When writing JavaScript, use ES6 syntax and modern browser features.
 - When writing JavaScript, avoid jQuery and other third-party libraries.
