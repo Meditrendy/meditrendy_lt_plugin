@@ -7,12 +7,15 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Put custom WooCommerce behavior, filters, subcategory shortcodes, waitlist logic, AJAX product loading, admin settings, and reusable site features here.
 - Do not put theme-only visual changes here, limit the feature markup/CSS owned by the plugin to minimum required for the feature to work.
 - Do not edit WordPress core, WooCommerce core, the Pro parent theme, or third-party plugin files unless the user explicitly asks.
+- If a requested change can be made cleanly in Cornerstone, Pro, WordPress admin, WooCommerce settings, or another editor UI, prefer giving the user exact editor instructions instead of changing code.
+- Use plugin code for editor-controlled areas only when the editor cannot reasonably express the behavior, the change must be reusable/systematic, or the user explicitly asks for a code-level implementation.
 
 ## Project Conventions
 
 - Frontend/customer-facing labels should stay Lithuanian by default.
 - Admin/editor-facing labels may be English or Polish.
 - Keep business logic independent from Cornerstone wherever possible.
+- Before adding plugin logic for a Cornerstone/Pro element, check whether the same result can be achieved by adding a class, changing element settings, or editing content in the editor.
 - Avoid adding third-party dependencies unless the user explicitly approves them.
 - Prefer WooCommerce APIs and WordPress APIs over direct SQL, except where direct SQL is already part of the local feature and is carefully scoped.
 - Keep changes focused and avoid unrelated refactors.
