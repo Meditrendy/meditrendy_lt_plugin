@@ -20,6 +20,12 @@ function meditrendy_register_checkout_invoice_fields() {
         return;
     }
 
+    $is_rest_request = function_exists('wp_is_serving_rest_request') && wp_is_serving_rest_request();
+
+    if (!is_admin() && !wp_doing_ajax() && !$is_rest_request && !did_action('woocommerce_blocks_checkout_enqueue_data')) {
+        return;
+    }
+
     if (!function_exists('woocommerce_register_additional_checkout_field')) {
         return;
     }
@@ -92,6 +98,7 @@ function meditrendy_register_checkout_invoice_fields() {
 
 add_action('woocommerce_init', 'meditrendy_register_checkout_invoice_fields');
 add_action('woocommerce_blocks_loaded', 'meditrendy_register_checkout_invoice_fields');
+add_action('woocommerce_blocks_checkout_enqueue_data', 'meditrendy_register_checkout_invoice_fields', 1);
 
 add_action('wp_enqueue_scripts', function() {
     if (!function_exists('is_checkout') || !is_checkout()) {

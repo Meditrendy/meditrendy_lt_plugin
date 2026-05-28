@@ -516,6 +516,102 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
     return (int) $query->found_posts;
 }
 
+function meditrendy_native_filter_term_product_counts_query($filter, $terms, $context = null) {
+    global $wpdb;
+
+    $taxonomy = meditrendy_native_filter_taxonomy($filter);
+
+    if (!$wpdb || !$taxonomy || !$terms) {
+        return [];
+    }
+
+    $term_taxonomy_ids = [];
+    $term_taxonomy_id_to_term_id = [];
+
+    foreach ($terms as $term) {
+        if (empty($term->term_id) || empty($term->term_taxonomy_id)) {
+            continue;
+        }
+
+        $term_taxonomy_id = absint($term->term_taxonomy_id);
+        $term_taxonomy_ids[] = $term_taxonomy_id;
+        $term_taxonomy_id_to_term_id[$term_taxonomy_id] = absint($term->term_id);
+    }
+
+    if (!$term_taxonomy_ids) {
+        return [];
+    }
+
+    $context = $context === null ? meditrendy_native_filter_context() : $context;
+    $joins = [
+        "INNER JOIN {$wpdb->term_relationships} filter_rel ON filter_rel.object_id = p.ID",
+    ];
+    $where = [
+        "p.post_type = 'product'",
+        "p.post_status = 'publish'",
+        'filter_rel.term_taxonomy_id IN (' . implode(',', array_fill(0, count($term_taxonomy_ids), '%d')) . ')',
+    ];
+    $values = $term_taxonomy_ids;
+
+    if (!empty($context['taxonomy']) && !empty($context['term']) && taxonomy_exists($context['taxonomy'])) {
+        $context_term = get_term_by('slug', $context['term'], $context['taxonomy']);
+
+        if ($context_term && !is_wp_error($context_term) && !empty($context_term->term_taxonomy_id)) {
+            $joins[] = "INNER JOIN {$wpdb->term_relationships} context_rel ON context_rel.object_id = p.ID AND context_rel.term_taxonomy_id = %d";
+            $values[] = absint($context_term->term_taxonomy_id);
+        }
+    }
+
+    if (function_exists('wc_get_product_visibility_term_ids')) {
+        $visibility_terms = wc_get_product_visibility_term_ids();
+
+        if (!empty($visibility_terms['outofstock'])) {
+            $joins[] = "LEFT JOIN {$wpdb->term_relationships} stock_rel ON stock_rel.object_id = p.ID AND stock_rel.term_taxonomy_id = %d";
+            $where[] = 'stock_rel.object_id IS NULL';
+            $values[] = absint($visibility_terms['outofstock']);
+        }
+    }
+
+    $min_price = meditrendy_native_price_value('mt_min_price');
+    $max_price = meditrendy_native_price_value('mt_max_price');
+
+    if ($min_price !== '' || $max_price !== '') {
+        $joins[] = "INNER JOIN {$wpdb->postmeta} price_meta ON price_meta.post_id = p.ID AND price_meta.meta_key = '_price' AND price_meta.meta_value <> ''";
+
+        if ($min_price !== '') {
+            $where[] = 'CAST(price_meta.meta_value AS DECIMAL(10,2)) >= %f';
+            $values[] = (float) $min_price;
+        }
+
+        if ($max_price !== '') {
+            $where[] = 'CAST(price_meta.meta_value AS DECIMAL(10,2)) <= %f';
+            $values[] = (float) $max_price;
+        }
+    }
+
+    $sql = "
+        SELECT filter_rel.term_taxonomy_id, COUNT(DISTINCT p.ID) AS product_count
+        FROM {$wpdb->posts} p
+        " . implode("\n", $joins) . "
+        WHERE " . implode("\nAND ", $where) . "
+        GROUP BY filter_rel.term_taxonomy_id
+    ";
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $values));
+    $counts = array_fill_keys(array_map('absint', array_values($term_taxonomy_id_to_term_id)), 0);
+
+    foreach ((array) $rows as $row) {
+        $term_taxonomy_id = absint($row->term_taxonomy_id ?? 0);
+        $term_id = $term_taxonomy_id_to_term_id[$term_taxonomy_id] ?? 0;
+
+        if ($term_id) {
+            $counts[$term_id] = absint($row->product_count ?? 0);
+        }
+    }
+
+    return $counts;
+}
+
 function meditrendy_native_filter_term_product_counts($filter, $terms, $context = null) {
     $taxonomy = meditrendy_native_filter_taxonomy($filter);
 
@@ -548,15 +644,7 @@ function meditrendy_native_filter_term_product_counts($filter, $terms, $context 
         return array_map('absint', $cached_counts);
     }
 
-    $counts = [];
-
-    foreach ($terms as $term) {
-        if (!isset($term->term_id)) {
-            continue;
-        }
-
-        $counts[(int) $term->term_id] = meditrendy_native_filter_term_product_count($filter, $term, $context);
-    }
+    $counts = meditrendy_native_filter_term_product_counts_query($filter, $terms, $context);
 
     set_transient($cache_key, $counts, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
 
