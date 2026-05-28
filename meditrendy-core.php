@@ -25,6 +25,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-color-swatches.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-complete-set.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
 
 /* ======================================================
