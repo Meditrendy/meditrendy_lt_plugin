@@ -27,6 +27,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-complete-set.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/checkout-invoice-fields.php';
 
 /* ======================================================
    ACF +SHOP MAMAGER
