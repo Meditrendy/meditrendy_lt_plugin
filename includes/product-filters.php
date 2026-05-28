@@ -544,6 +544,53 @@ function meditrendy_native_filter_term_product_count($filter, $term, $context = 
     return $count;
 }
 
+function meditrendy_native_filter_term_product_counts($filter, $terms, $context = null) {
+    $taxonomy = meditrendy_native_filter_taxonomy($filter);
+
+    if (!$taxonomy || !$terms) {
+        return [];
+    }
+
+    $context = $context === null ? meditrendy_native_filter_context() : $context;
+    $count_source = [];
+
+    foreach (['mt_min_price', 'mt_max_price'] as $price_param) {
+        if (isset($_GET[$price_param])) {
+            $count_source[$price_param] = wp_unslash($_GET[$price_param]);
+        }
+    }
+
+    $cache_key = meditrendy_native_filters_cache_key(
+        'term_counts',
+        $count_source,
+        [
+            'taxonomy'         => $taxonomy,
+            'context_taxonomy' => $context['taxonomy'] ?? '',
+            'context_term'     => $context['term'] ?? '',
+            'language'         => function_exists('meditrendy_current_language_slug') ? meditrendy_current_language_slug() : '',
+        ]
+    );
+    $cached_counts = get_transient($cache_key);
+
+    if (is_array($cached_counts)) {
+        return array_map('absint', $cached_counts);
+    }
+
+    $counts = [];
+
+    foreach ($terms as $term) {
+        if (!isset($term->term_id)) {
+            continue;
+        }
+
+        $counts[(int) $term->term_id] = meditrendy_native_filter_term_product_count($filter, $term, $context);
+    }
+
+    set_transient($cache_key, $counts, MEDITRENDY_NATIVE_FILTERS_CACHE_TTL);
+
+    return $counts;
+}
+
 function meditrendy_native_color_group_hex($term) {
     $hex = get_term_meta($term->term_id, 'color_hex', true);
 
@@ -805,10 +852,9 @@ function meditrendy_get_native_product_filters_html() {
             continue;
         }
 
-        $term_counts = [];
-        $terms = array_values(array_filter($terms, function ($term) use ($filter, $context, &$term_counts, $hide_empty_initial) {
-            $count = meditrendy_native_filter_term_product_count($filter, $term, $context);
-            $term_counts[$term->term_id] = $count;
+        $term_counts = meditrendy_native_filter_term_product_counts($filter, $terms, $context);
+        $terms = array_values(array_filter($terms, function ($term) use ($term_counts, $hide_empty_initial) {
+            $count = (int) ($term_counts[$term->term_id] ?? 0);
 
             return !$hide_empty_initial || $count > 0;
         }));
