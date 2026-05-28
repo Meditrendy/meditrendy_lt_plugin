@@ -96,7 +96,6 @@ function meditrendy_register_checkout_invoice_fields() {
     ]);
 }
 
-add_action('woocommerce_init', 'meditrendy_register_checkout_invoice_fields');
 add_action('woocommerce_blocks_loaded', 'meditrendy_register_checkout_invoice_fields');
 add_action('woocommerce_blocks_checkout_enqueue_data', 'meditrendy_register_checkout_invoice_fields', 1);
 
