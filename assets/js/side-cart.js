@@ -174,7 +174,7 @@
       event.stopImmediatePropagation();
     }
 
-    open(true);
+    open(false);
   };
 
   const getAddToCartForm = (target) => {
