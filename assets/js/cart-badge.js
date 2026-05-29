@@ -69,7 +69,11 @@
 
         cartButtons.forEach((cartButton) => {
             const badgeTarget = cartButton.querySelector('.x-graphic') || cartButton;
+
+            cartButton.classList.add('meditrendy-cart-trigger');
             badgeTarget.classList.add('meditrendy-cart-toggle');
+            badgeTarget.querySelectorAll('.xoo-wsc-items-count, .xoo-wsch-items-count, .xoo-wscb-count, .xoo-wsc-sc-count')
+                .forEach((legacyBadge) => legacyBadge.remove());
 
             if (cartCount <= 0) {
                 return;
@@ -120,6 +124,10 @@
         window.jQuery(document.body).on('xoo_wsc_cart_updated', (event, response) => {
             queueRender(readFragmentCount(response && response.fragments));
         });
+
+        window.jQuery(document.body).on('meditrendy_side_cart_updated', (event, data) => {
+            queueRender(data && data.count);
+        });
     }
 
     function watchLateCartMarkup() {
@@ -154,6 +162,9 @@
 
     function init() {
         render(cartCount);
+        document.addEventListener('meditrendy_side_cart_updated', (event) => {
+            queueRender(event.detail && event.detail.count);
+        });
         bindCartEvents();
         watchLateCartMarkup();
     }

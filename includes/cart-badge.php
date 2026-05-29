@@ -34,7 +34,7 @@ function meditrendy_cart_badge_enqueue_assets() {
         'MeditrendyCartBadge',
         [
             'count' => meditrendy_cart_badge_count(),
-            'cartTriggerSelector' => '.x-anchor.xoo-wsc-cart-trigger',
+            'cartTriggerSelector' => 'header .xoo-wsc-cart-trigger, header .custom-cart-icon, header .meditrendy-cart-trigger, header a[href*="/cart"]',
             'sourceCountSelector' => '.xoo-wsc-items-count,.xoo-wsch-items-count,.xoo-wscb-count,.xoo-wsc-sc-count,[data-csdc-wc="cart-items"]',
         ]
     );

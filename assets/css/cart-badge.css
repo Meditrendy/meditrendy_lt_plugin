@@ -3,6 +3,13 @@
     display: inline-flex;
 }
 
+.meditrendy-cart-toggle > .xoo-wsc-items-count,
+.meditrendy-cart-toggle > .xoo-wsch-items-count,
+.meditrendy-cart-toggle > .xoo-wscb-count,
+.meditrendy-cart-toggle > .xoo-wsc-sc-count {
+    display: none !important;
+}
+
 .meditrendy-cart-count {
     position: absolute;
     top: -8px;
