@@ -85,7 +85,12 @@ function meditrendy_side_cart_items_html() {
             $max_attribute = $max_quantity > 0 ? $max_quantity : '';
             $attributes = meditrendy_side_cart_item_attributes($cart_item);
             ?>
-            <article class="mt-side-cart-item" data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>">
+            <article
+                class="mt-side-cart-item"
+                data-cart-item-key="<?php echo esc_attr($cart_item_key); ?>"
+                data-product-id="<?php echo esc_attr((int) ($cart_item['product_id'] ?? 0)); ?>"
+                data-variation-id="<?php echo esc_attr((int) ($cart_item['variation_id'] ?? 0)); ?>"
+            >
                 <div class="mt-side-cart-item-media">
                     <?php if ($product_permalink) : ?>
                         <a href="<?php echo esc_url($product_permalink); ?>">
@@ -291,6 +296,7 @@ function meditrendy_side_cart_ajax_add() {
     $product_id = apply_filters('woocommerce_add_to_cart_product_id', $product_id);
     $variation_id = isset($_POST['variation_id']) ? absint(wp_unslash($_POST['variation_id'])) : 0;
     $quantity = empty($_POST['quantity']) ? 1 : wc_stock_amount(wp_unslash($_POST['quantity']));
+    $client_existing_quantity = isset($_POST['mt_side_cart_existing_quantity']) ? max(0, wc_stock_amount(wp_unslash($_POST['mt_side_cart_existing_quantity']))) : null;
     $variation = [];
 
     if (isset($_POST['woosb_ids']) && wc_clean(wp_unslash($_POST['woosb_ids'])) === '') {
@@ -320,6 +326,10 @@ function meditrendy_side_cart_ajax_add() {
     if (empty($variation_id) && $product->is_type('variable')) {
         wc_add_notice(sprintf(__('Pasirinkite produkto „%s“ variantą.', 'meditrendy-core'), $product->get_name()), 'error');
         meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
+    }
+
+    if ($client_existing_quantity !== null && meditrendy_side_cart_existing_quantity($product_id, $variation_id) > $client_existing_quantity) {
+        meditrendy_side_cart_send_existing_cart_response();
     }
 
     $cart_item_key = WC()->cart->add_to_cart($product_id, $quantity, $variation_id, $variation);

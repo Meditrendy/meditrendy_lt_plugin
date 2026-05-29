@@ -1,4 +1,10 @@
 (() => {
+  if (window.meditrendySideCartReady) {
+    return;
+  }
+
+  window.meditrendySideCartReady = true;
+
   const settings = window.MeditrendySideCart || {};
   const cartSelector = '[data-mt-side-cart]';
   const triggerSelector = settings.cartTriggerSelector || 'header .x-anchor.xoo-wsc-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]';
@@ -8,6 +14,7 @@
   let inner = null;
   let isRequesting = false;
   let activeAddForm = null;
+  let activeAddRequestKey = '';
 
   const parseCount = (value) => {
     const count = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
@@ -42,6 +49,29 @@
 
     if (window.jQuery) {
       window.jQuery(document.body).trigger('meditrendy_side_cart_updated', [data]);
+    }
+  };
+
+  const stripHtml = (value) => {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = String(value || '');
+
+    return (wrapper.textContent || wrapper.innerText || '').replace(/\s+/g, ' ').trim();
+  };
+
+  const readResponsePayload = async (response) => {
+    const text = await response.text();
+
+    try {
+      return JSON.parse(text);
+    } catch (error) {
+      const message = stripHtml(text);
+
+      throw new Error(
+        message && message.length < 220
+          ? message
+          : 'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.'
+      );
     }
   };
 
@@ -89,7 +119,7 @@
         credentials: 'same-origin',
         body: formData,
       });
-      const payload = await response.json();
+      const payload = await readResponsePayload(response);
 
       if (payload && payload.success && payload.data) {
         replaceContent(payload.data);
@@ -151,6 +181,38 @@
     return Math.max(0, parseInt(input ? input.value : '1', 10) || 1);
   };
 
+  const readCartItemQuantity = (item) => {
+    if (!item) return 0;
+
+    const input = item.querySelector('[data-mt-side-cart-quantity] input');
+    const single = item.querySelector('.mt-side-cart-single-qty');
+    const value = input ? input.value : single ? single.textContent : '0';
+
+    return Math.max(0, parseInt(value, 10) || 0);
+  };
+
+  const getKnownCartQuantity = (formData) => {
+    const productId = String(formData.get('product_id') || formData.get('add-to-cart') || '');
+    const variationId = String(formData.get('variation_id') || '0');
+    let quantity = 0;
+
+    document.querySelectorAll('[data-mt-side-cart] [data-product-id]').forEach((item) => {
+      const itemProductId = String(item.dataset.productId || '');
+      const itemVariationId = String(item.dataset.variationId || '0');
+
+      if (variationId !== '0' && itemVariationId === variationId) {
+        quantity += readCartItemQuantity(item);
+        return;
+      }
+
+      if (variationId === '0' && itemProductId === productId && itemVariationId === '0') {
+        quantity += readCartItemQuantity(item);
+      }
+    });
+
+    return quantity;
+  };
+
   const setQuantity = async (item, quantity) => {
     if (!item || isRequesting) return;
 
@@ -187,17 +249,14 @@
     return form.querySelector('[name="add-to-cart"], [name="product_id"], [name="variation_id"], [name="woosb_ids"]') ? form : null;
   };
 
-  const handleAddToCartSubmit = async (event) => {
-    const form = getAddToCartForm(event.target);
+  const canHandleAddToCartForm = (form) => {
+    return form &&
+      !isRequesting &&
+      (!form.classList.contains('variations_form') || !form.querySelector('.wc-variation-selection-needed'));
+  };
 
-    if (event.defaultPrevented || !form || isRequesting || form.classList.contains('variations_form') && form.querySelector('.wc-variation-selection-needed')) {
-      return;
-    }
-
-    event.preventDefault();
-
+  const submitAddToCartForm = async (form, submitter = null) => {
     const formData = new window.FormData(form);
-    const submitter = event.submitter || document.activeElement;
 
     if (submitter && submitter.name && !formData.has(submitter.name)) {
       formData.append(submitter.name, submitter.value || '');
@@ -209,6 +268,20 @@
       formData.append(addToCart.name, addToCart.value || '');
     }
 
+    formData.set('mt_side_cart_existing_quantity', getKnownCartQuantity(formData));
+
+    const requestKey = [
+      formData.get('add-to-cart') || formData.get('product_id') || '',
+      formData.get('variation_id') || '',
+      formData.get('quantity') || '1',
+      formData.get('woosb_ids') || '',
+    ].join('|');
+
+    if (activeAddRequestKey === requestKey) {
+      return;
+    }
+
+    activeAddRequestKey = requestKey;
     activeAddForm = form;
     setAddFormLoading(form, true);
 
@@ -217,6 +290,42 @@
     if (data) {
       open(false);
     }
+
+    activeAddRequestKey = '';
+  };
+
+  const takeOverAddToCartEvent = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+  };
+
+  const handleAddToCartClick = (event) => {
+    const button = event.target && event.target.closest
+      ? event.target.closest('.single_add_to_cart_button, button[name="add-to-cart"]')
+      : null;
+    const form = button ? getAddToCartForm(button) : null;
+
+    if (event.defaultPrevented || !button || !form || !canHandleAddToCartForm(form)) {
+      return;
+    }
+
+    takeOverAddToCartEvent(event);
+    submitAddToCartForm(form, button);
+  };
+
+  const handleAddToCartSubmit = async (event) => {
+    const form = getAddToCartForm(event.target);
+
+    if (event.defaultPrevented || !canHandleAddToCartForm(form)) {
+      return;
+    }
+
+    takeOverAddToCartEvent(event);
+    await submitAddToCartForm(form, event.submitter || document.activeElement);
   };
 
   const handleDrawerClick = (event) => {
@@ -302,8 +411,9 @@
 
     if (!drawer || !inner) return;
 
+    window.addEventListener('click', handleAddToCartClick, true);
+    window.addEventListener('submit', handleAddToCartSubmit, true);
     document.addEventListener('click', handleTriggerClick, true);
-    document.addEventListener('submit', handleAddToCartSubmit);
     document.addEventListener('click', handleDrawerClick);
     document.addEventListener('change', handleQuantityChange);
     document.addEventListener('keydown', (event) => {
