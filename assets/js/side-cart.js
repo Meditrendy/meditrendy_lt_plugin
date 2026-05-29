@@ -327,3 +327,138 @@
 
   window.addEventListener('load', bindWooEvents, { once: true });
 })();
+
+/************************
+ *  Swipe gesture
+ ************************/
+
+document.addEventListener('DOMContentLoaded', function () {
+    'use strict';
+
+    const sideCart = document.querySelector('.mt-side-cart');
+
+    if (!sideCart) {
+        return;
+    }
+
+    const panel = sideCart.querySelector('.mt-side-cart-panel');
+
+    if (!panel) {
+        return;
+    }
+
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let isHorizontalSwipe = false;
+
+    const minSwipeDistance = 80;
+    const maxVerticalMovement = 90;
+
+    function isCartOpen() {
+        return sideCart.classList.contains('is-open');
+    }
+
+    function closeSideCart() {
+        const closeButton = sideCart.querySelector('.mt-side-cart-close');
+
+        if (closeButton) {
+            closeButton.click();
+            return;
+        }
+
+        sideCart.classList.remove('is-open');
+        document.body.classList.remove('mt-side-cart-open');
+    }
+
+    function resetPanelPosition() {
+        panel.style.transition = '';
+        panel.style.transform = '';
+    }
+
+    function startDrag(event) {
+        if (!isCartOpen()) {
+            return;
+        }
+
+        if (!event.touches || event.touches.length !== 1) {
+            return;
+        }
+
+        startX = event.touches[0].clientX;
+        startY = event.touches[0].clientY;
+        currentX = startX;
+        currentY = startY;
+
+        isDragging = true;
+        isHorizontalSwipe = false;
+    }
+
+    function moveDrag(event) {
+        if (!isDragging || !event.touches || event.touches.length !== 1) {
+            return;
+        }
+
+        currentX = event.touches[0].clientX;
+        currentY = event.touches[0].clientY;
+
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+
+        if (!isHorizontalSwipe) {
+            isHorizontalSwipe = Math.abs(diffX) > 12 && Math.abs(diffX) > Math.abs(diffY);
+        }
+
+        if (!isHorizontalSwipe) {
+            return;
+        }
+
+        if (diffX <= 0) {
+            return;
+        }
+
+        event.preventDefault();
+
+        panel.style.transition = 'none';
+        panel.style.transform = 'translateX(' + diffX + 'px)';
+    }
+
+    function endDrag() {
+        if (!isDragging) {
+            return;
+        }
+
+        const diffX = currentX - startX;
+        const diffY = currentY - startY;
+
+        isDragging = false;
+
+        if (
+            isHorizontalSwipe &&
+            diffX > minSwipeDistance &&
+            Math.abs(diffY) < maxVerticalMovement
+        ) {
+            panel.style.transition = 'transform 180ms ease';
+            panel.style.transform = 'translateX(100%)';
+
+            setTimeout(function () {
+                closeSideCart();
+                resetPanelPosition();
+            }, 170);
+
+            return;
+        }
+
+        panel.style.transition = 'transform 180ms ease';
+        panel.style.transform = 'translateX(0)';
+
+        setTimeout(resetPanelPosition, 180);
+    }
+
+    panel.addEventListener('touchstart', startDrag, { passive: true });
+    panel.addEventListener('touchmove', moveDrag, { passive: false });
+    panel.addEventListener('touchend', endDrag);
+    panel.addEventListener('touchcancel', endDrag);
+});
