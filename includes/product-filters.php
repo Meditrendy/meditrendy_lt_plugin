@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 const MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION = 'meditrendy_native_filters_cache_version';
 const MEDITRENDY_NATIVE_FILTERS_CACHE_TTL = 30 * MINUTE_IN_SECONDS;
-const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260527-price-placeholders';
+const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260529-counts-fix';
 
 function meditrendy_native_filters_cache_version() {
     $version = (string) get_option(MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION, '');
@@ -551,14 +551,17 @@ function meditrendy_native_filter_term_product_counts_query($filter, $terms, $co
         "p.post_status = 'publish'",
         'filter_rel.term_taxonomy_id IN (' . implode(',', array_fill(0, count($term_taxonomy_ids), '%d')) . ')',
     ];
-    $values = $term_taxonomy_ids;
+
+    $join_values = [];
+    $where_values = $term_taxonomy_ids;
+    $price_values = [];
 
     if (!empty($context['taxonomy']) && !empty($context['term']) && taxonomy_exists($context['taxonomy'])) {
         $context_term = get_term_by('slug', $context['term'], $context['taxonomy']);
 
         if ($context_term && !is_wp_error($context_term) && !empty($context_term->term_taxonomy_id)) {
             $joins[] = "INNER JOIN {$wpdb->term_relationships} context_rel ON context_rel.object_id = p.ID AND context_rel.term_taxonomy_id = %d";
-            $values[] = absint($context_term->term_taxonomy_id);
+            $join_values[] = absint($context_term->term_taxonomy_id);
         }
     }
 
@@ -568,7 +571,7 @@ function meditrendy_native_filter_term_product_counts_query($filter, $terms, $co
         if (!empty($visibility_terms['outofstock'])) {
             $joins[] = "LEFT JOIN {$wpdb->term_relationships} stock_rel ON stock_rel.object_id = p.ID AND stock_rel.term_taxonomy_id = %d";
             $where[] = 'stock_rel.object_id IS NULL';
-            $values[] = absint($visibility_terms['outofstock']);
+            $join_values[] = absint($visibility_terms['outofstock']);
         }
     }
 
@@ -580,12 +583,12 @@ function meditrendy_native_filter_term_product_counts_query($filter, $terms, $co
 
         if ($min_price !== '') {
             $where[] = 'CAST(price_meta.meta_value AS DECIMAL(10,2)) >= %f';
-            $values[] = (float) $min_price;
+            $price_values[] = (float) $min_price;
         }
 
         if ($max_price !== '') {
             $where[] = 'CAST(price_meta.meta_value AS DECIMAL(10,2)) <= %f';
-            $values[] = (float) $max_price;
+            $price_values[] = (float) $max_price;
         }
     }
 
@@ -597,6 +600,7 @@ function meditrendy_native_filter_term_product_counts_query($filter, $terms, $co
         GROUP BY filter_rel.term_taxonomy_id
     ";
 
+    $values = array_merge($join_values, $where_values, $price_values);
     $rows = $wpdb->get_results($wpdb->prepare($sql, $values));
     $counts = array_fill_keys(array_map('absint', array_values($term_taxonomy_id_to_term_id)), 0);
 
