@@ -52,6 +52,20 @@
     broadcastUpdate(data);
   };
 
+  const isSoftBundleAddError = (action, formData, message) => {
+    if (action !== 'meditrendy_side_cart_add' || !(formData instanceof window.FormData)) return false;
+
+    const hasBundleIds = String(formData.get('woosb_ids') || '').trim() !== '';
+    const text = String(message || '').toLowerCase();
+
+    return hasBundleIds && (
+      text.includes('un-purchasable') ||
+      text.includes('unpurchasable') ||
+      text.includes('not purchasable') ||
+      text.includes('cannot be purchased')
+    );
+  };
+
   const request = async (action, body = {}) => {
     if (!ajaxUrl || !nonce) return null;
 
@@ -83,6 +97,10 @@
       }
 
       if (payload && payload.data && payload.data.message) {
+        if (isSoftBundleAddError(action, formData, payload.data.message)) {
+          return await request('meditrendy_side_cart_get');
+        }
+
         throw new Error(payload.data.message);
       }
     } catch (error) {

@@ -314,18 +314,18 @@ function meditrendy_side_cart_ajax_add() {
     $passed_validation = apply_filters('woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variation);
 
     if (!$passed_validation) {
-        meditrendy_side_cart_send_add_error($product_id, $variation_id);
+        meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
     if (empty($variation_id) && $product->is_type('variable')) {
         wc_add_notice(sprintf(__('Pasirinkite produkto „%s“ variantą.', 'meditrendy-core'), $product->get_name()), 'error');
-        meditrendy_side_cart_send_add_error($product_id, $variation_id);
+        meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
     $cart_item_key = WC()->cart->add_to_cart($product_id, $quantity, $variation_id, $variation);
 
     if (false === $cart_item_key) {
-        meditrendy_side_cart_send_add_error($product_id, $variation_id);
+        meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
     do_action('woocommerce_ajax_added_to_cart', $product_id);
@@ -335,6 +335,27 @@ function meditrendy_side_cart_ajax_add() {
     wc_clear_notices();
 
     wp_send_json_success(meditrendy_side_cart_response());
+}
+
+function meditrendy_side_cart_is_soft_bundle_notice($message) {
+    $message = function_exists('mb_strtolower') ? mb_strtolower((string) $message, 'UTF-8') : strtolower((string) $message);
+
+    $needles = [
+        'un-purchasable',
+        'unpurchasable',
+        'not purchasable',
+        'cannot be purchased',
+        'negalima įsigyti',
+        'neparduodama',
+    ];
+
+    foreach ($needles as $needle) {
+        if (strpos($message, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 function meditrendy_side_cart_is_existing_stock_notice($message) {
@@ -357,7 +378,7 @@ function meditrendy_side_cart_is_existing_stock_notice($message) {
     return false;
 }
 
-function meditrendy_side_cart_send_add_error($product_id = 0, $variation_id = 0) {
+function meditrendy_side_cart_send_add_error($product_id = 0, $variation_id = 0, $is_bundle_request = false) {
     $notices = wc_get_notices('error');
     $message = __('Nepavyko įdėti prekės į krepšelį.', 'meditrendy-core');
 
@@ -372,6 +393,15 @@ function meditrendy_side_cart_send_add_error($product_id = 0, $variation_id = 0)
     }
 
     if (meditrendy_side_cart_existing_quantity($product_id, $variation_id) > 0 && meditrendy_side_cart_is_existing_stock_notice($message)) {
+        meditrendy_side_cart_send_existing_cart_response();
+    }
+
+    /*
+     * Some WOOSB / set products add the parent set correctly, but still leave
+     * a child-product notice like: "{child product}" is un-purchasable.
+     * In that case the customer should see the refreshed side cart, not an alert.
+     */
+    if ($is_bundle_request && meditrendy_side_cart_is_soft_bundle_notice($message)) {
         meditrendy_side_cart_send_existing_cart_response();
     }
 
