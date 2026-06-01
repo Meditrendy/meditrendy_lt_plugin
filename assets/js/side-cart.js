@@ -15,6 +15,7 @@
   let isRequesting = false;
   let activeAddForm = null;
   let activeAddRequestKey = '';
+  let lastSessionRefresh = 0;
 
   const parseCount = (value) => {
     const count = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
@@ -96,7 +97,10 @@
     );
   };
 
-  const request = async (action, body = {}) => {
+  const hasCartCookie = () => /(?:^|;\s*)woocommerce_items_in_cart=1(?:;|$)/.test(document.cookie || '') ||
+    /(?:^|;\s*)woocommerce_cart_hash=([^;]+)/.test(document.cookie || '');
+
+  const request = async (action, body = {}, options = {}) => {
     if (!ajaxUrl || !nonce) return null;
 
     isRequesting = true;
@@ -138,7 +142,7 @@
         window.console.warn('Meditrendy side cart request failed.', error);
       }
 
-      if (error && error.message) {
+      if (!options.silent && error && error.message) {
         window.alert(error.message);
       }
     } finally {
@@ -179,6 +183,23 @@
   const readQuantity = (item) => {
     const input = item ? item.querySelector('[data-mt-side-cart-quantity] input') : null;
     return Math.max(0, parseInt(input ? input.value : '1', 10) || 1);
+  };
+
+  const refreshFromSession = async (options = {}) => {
+    if (!hasCartCookie() || isRequesting) {
+      return null;
+    }
+
+    const now = Date.now();
+    const minInterval = options.force ? 0 : 5000;
+
+    if (now - lastSessionRefresh < minInterval) {
+      return null;
+    }
+
+    lastSessionRefresh = now;
+
+    return request('meditrendy_side_cart_get', {}, { silent: true });
   };
 
   const readCartItemQuantity = (item) => {
@@ -236,7 +257,7 @@
       event.stopImmediatePropagation();
     }
 
-    open(false);
+    open(true);
   };
 
   const getAddToCartForm = (target) => {
@@ -424,6 +445,8 @@
 
     bindWooEvents();
 
+    refreshFromSession();
+
     if (settings.openOnLoad) {
       open(true);
     }
@@ -436,6 +459,9 @@
   }
 
   window.addEventListener('load', bindWooEvents, { once: true });
+  window.addEventListener('pageshow', () => {
+    refreshFromSession({ force: true });
+  });
 })();
 
 /************************
