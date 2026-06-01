@@ -8,7 +8,7 @@
     let renderQueued = false;
 
     function parseCount(value) {
-        const count = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
+        const count = parseInt(String(value ?? '').replace(/[^\d]/g, ''), 10);
 
         return Number.isFinite(count) ? count : null;
     }
