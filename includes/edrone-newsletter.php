@@ -41,7 +41,29 @@ function meditrendy_edrone_newsletter_enqueue_assets() {
         );
     }
 }
-add_action( 'wp_enqueue_scripts', 'meditrendy_edrone_newsletter_enqueue_assets' );
+
+function meditrendy_edrone_newsletter_should_enqueue_assets() {
+    if ( is_admin() ) {
+        return false;
+    }
+
+    if ( is_singular() ) {
+        $post = get_post();
+
+        if ( $post && has_shortcode( $post->post_content, 'meditrendy_edrone_newsletter' ) ) {
+            return true;
+        }
+    }
+
+    return (bool) apply_filters( 'meditrendy_edrone_newsletter_should_enqueue_assets', false );
+}
+
+function meditrendy_edrone_newsletter_maybe_enqueue_assets() {
+    if ( meditrendy_edrone_newsletter_should_enqueue_assets() ) {
+        meditrendy_edrone_newsletter_enqueue_assets();
+    }
+}
+add_action( 'wp_enqueue_scripts', 'meditrendy_edrone_newsletter_maybe_enqueue_assets' );
 
 function meditrendy_edrone_newsletter_shortcode( $atts ) {
     $atts = shortcode_atts(
