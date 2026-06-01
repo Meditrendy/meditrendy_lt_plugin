@@ -254,7 +254,7 @@ function meditrendy_complete_set_shortcode() {
                     <?php echo esc_html($matched_product->get_name()); ?>
                 </a>
                 <?php if ($color) : ?>
-                    <div class="mt-complete-set-color"><?php echo esc_html($color); ?></div>
+                    <div class="mt-complete-set-color"><span><?php echo esc_html__('Spalva:', 'meditrendy-core'); ?></span> <?php echo esc_html($color); ?></div>
                 <?php endif; ?>
             </div>
         </div>
