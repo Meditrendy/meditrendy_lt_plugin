@@ -34,7 +34,7 @@
     form.classList.toggle('mt-side-cart-add-loading', !!state);
     form.setAttribute('aria-busy', state ? 'true' : 'false');
 
-    const submit = form.querySelector('[type="submit"], button[name="add-to-cart"]');
+    const submit = form.querySelector('[data-mt-side-cart-upsell-add], [type="submit"], button[name="add-to-cart"]');
 
     if (submit) {
       submit.disabled = !!state;
@@ -186,7 +186,7 @@
 
       if (payload && payload.data && payload.data.message) {
         if (isSoftBundleAddError(action, formData, payload.data.message)) {
-          return await request('meditrendy_side_cart_get');
+          return await request('meditrendy_side_cart_get', { include_upsells: 1 });
         }
 
         throw new Error(payload.data.message);
@@ -220,7 +220,7 @@
     document.documentElement.classList.add('mt-side-cart-is-open');
 
     if (shouldRefresh && !isRequesting) {
-      await request('meditrendy_side_cart_get');
+      await request('meditrendy_side_cart_get', { include_upsells: 1 });
     }
   };
 
@@ -280,7 +280,11 @@
 
     lastSessionRefresh = now;
 
-    return request('meditrendy_side_cart_get', {}, { silent: true });
+    return request(
+      'meditrendy_side_cart_get',
+      { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 },
+      { silent: true }
+    );
   };
 
   const readCartItemQuantity = (item) => {
@@ -589,7 +593,7 @@
 
   const handleAddToCartClick = (event) => {
     const button = event.target && event.target.closest
-      ? event.target.closest('.single_add_to_cart_button, button[name="add-to-cart"]')
+      ? event.target.closest('[data-mt-side-cart-upsell-add], .single_add_to_cart_button, button[name="add-to-cart"]')
       : null;
     const form = button ? getAddToCartForm(button) : null;
 
@@ -612,7 +616,7 @@
 
     if (form && shouldHandleUpsellForm(form)) {
       takeOverAddToCartEvent(event);
-      await submitAddToCartForm(form, event.submitter || form.querySelector('[type="submit"], button[name="add-to-cart"]'));
+      await submitAddToCartForm(form, event.submitter || form.querySelector('[data-mt-side-cart-upsell-add], [type="submit"], button[name="add-to-cart"]'));
       return;
     }
 
@@ -642,6 +646,19 @@
     }
 
     if (isRequesting) {
+      return;
+    }
+
+    const upsellAdd = closestElement(event.target, '[data-mt-side-cart-upsell-add]');
+
+    if (upsellAdd) {
+      const form = getAddToCartForm(upsellAdd);
+
+      if (form) {
+        event.preventDefault();
+        submitAddToCartForm(form, upsellAdd);
+      }
+
       return;
     }
 
@@ -734,12 +751,12 @@
     window.meditrendySideCartWooEventsReady = true;
 
     window.jQuery(document.body).on('added_to_cart', async () => {
-      await request('meditrendy_side_cart_get');
+      await request('meditrendy_side_cart_get', { include_upsells: 1 });
       open(false);
     });
 
     window.jQuery(document.body).on('removed_from_cart updated_cart_totals wc_fragments_refreshed wc_fragments_loaded', () => {
-      request('meditrendy_side_cart_get');
+      request('meditrendy_side_cart_get', { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 });
     });
   };
 
