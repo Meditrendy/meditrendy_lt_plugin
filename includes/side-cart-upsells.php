@@ -801,7 +801,7 @@ function meditrendy_side_cart_upsells_tile($product) {
     ?>
     <article class="mt-side-cart-upsell" data-mt-side-cart-upsell>
         <div class="mt-side-cart-upsell-image">
-            <?php echo $product->get_image('woocommerce_thumbnail', ['loading' => 'lazy']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php echo $product->get_image('woocommerce_single', ['loading' => 'lazy']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
         <div class="mt-side-cart-upsell-body">
             <h3><?php echo esc_html($product->get_name()); ?></h3>

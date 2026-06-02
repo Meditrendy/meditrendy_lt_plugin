@@ -187,11 +187,10 @@ function meditrendy_side_cart_content_html($include_upsells = false) {
     </div>
 
     <div class="mt-side-cart-footer">
-        <?php echo meditrendy_side_cart_totals_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-
         <?php if (function_exists('WC') && WC()->cart && !WC()->cart->is_empty()) : ?>
             <a class="mt-side-cart-checkout" href="<?php echo esc_url(wc_get_checkout_url()); ?>">
-                <?php esc_html_e('Pereiti prie apmokėjimo', 'meditrendy-core'); ?>
+                <span><?php echo wp_kses_post(WC()->cart->get_cart_subtotal()); ?></span>
+                <span><?php esc_html_e('Pereiti prie apmokėjimo', 'meditrendy-core'); ?></span>
             </a>
         <?php endif; ?>
     </div>
