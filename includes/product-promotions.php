@@ -533,6 +533,8 @@ function meditrendy_product_promotions_render($product_id = 0, $display = '') {
     }
 
     ob_start();
+    $copy_icon_url = get_stylesheet_directory_uri() . '/assets/copy.svg';
+    $copied_icon_url = get_stylesheet_directory_uri() . '/assets/copied.svg';
     ?>
     <div class="<?php echo esc_attr(implode(' ', $classes)); ?>" data-mt-pdp-promotions>
         <?php foreach ($coupons as $coupon) : ?>
@@ -544,10 +546,18 @@ function meditrendy_product_promotions_render($product_id = 0, $display = '') {
                 </div>
                 <div class="mt-pdp-promotion-meta">
                     <span><?php echo esc_html(sprintf(__('Galioja iki: %s', 'meditrendy-core'), meditrendy_product_promotions_expiry_label($coupon))); ?></span>
-                    <button type="button" class="mt-pdp-promotion-copy" data-mt-copy-coupon="<?php echo esc_attr($coupon->get_code()); ?>">
-                        <?php esc_html_e('Kopijuoti kodą', 'meditrendy-core'); ?>
-                    </button>
                 </div>
+                    <button
+                        type="button"
+                        class="mt-pdp-promotion-copy"
+                        data-mt-copy-coupon="<?php echo esc_attr(strtoupper($coupon->get_code())); ?>"
+                        data-mt-copy-label="<?php esc_attr_e('Kopijuoti kodą', 'meditrendy-core'); ?>"
+                        data-mt-copied-label="<?php esc_attr_e('Nukopijuota', 'meditrendy-core'); ?>"
+                        aria-label="<?php esc_attr_e('Kopijuoti kodą', 'meditrendy-core'); ?>"
+                    >
+                        <img class="mt-pdp-promotion-copy-icon mt-pdp-promotion-copy-icon-default" src="<?php echo esc_url($copy_icon_url); ?>" alt="" aria-hidden="true" loading="lazy">
+                        <img class="mt-pdp-promotion-copy-icon mt-pdp-promotion-copy-icon-copied" src="<?php echo esc_url($copied_icon_url); ?>" alt="" aria-hidden="true" loading="lazy">
+                    </button>
             </div>
         <?php endforeach; ?>
     </div>

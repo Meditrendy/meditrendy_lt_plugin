@@ -1,6 +1,4 @@
 (function () {
-  const copiedLabel = 'Nukopijuota';
-
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
@@ -27,13 +25,16 @@
     }
 
     const code = button.getAttribute('data-mt-copy-coupon');
-    const originalLabel = button.textContent;
+    const originalLabel = button.getAttribute('data-mt-copy-label') || 'Kopijuoti kodą';
+    const copiedLabel = button.getAttribute('data-mt-copied-label') || 'Nukopijuota';
 
     copyText(code).then(function () {
-      button.textContent = copiedLabel;
+      button.classList.add('is-copied');
+      button.setAttribute('aria-label', copiedLabel);
 
       window.setTimeout(function () {
-        button.textContent = originalLabel;
+        button.classList.remove('is-copied');
+        button.setAttribute('aria-label', originalLabel);
       }, 1600);
     });
   });
