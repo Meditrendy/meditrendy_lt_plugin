@@ -181,6 +181,9 @@ function meditrendy_side_cart_content_html() {
 
     <div class="mt-side-cart-content">
         <?php echo meditrendy_side_cart_items_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php if (function_exists('meditrendy_side_cart_upsells_html')) : ?>
+            <?php echo meditrendy_side_cart_upsells_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        <?php endif; ?>
     </div>
 
     <div class="mt-side-cart-footer">

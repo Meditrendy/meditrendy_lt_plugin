@@ -80,7 +80,61 @@
     if (!inner || !data || typeof data.html !== 'string') return;
 
     inner.innerHTML = data.html;
+
+    try {
+      initDynamicCartContent();
+      collapseUpsellLabels(inner);
+    } catch (error) {
+      if (window.console) {
+        window.console.warn('Meditrendy side cart content initialization failed.', error);
+      }
+    }
+
     broadcastUpdate(data);
+  };
+
+  const prepareSingleOptionUpsellSelects = (root) => {
+    const scope = root || document;
+
+    scope.querySelectorAll('[data-mt-side-cart-upsell] select[name^="attribute_"]').forEach((select) => {
+      const options = Array.from(select.options || []).filter((option) => option.value);
+
+      if (options.length !== 1) {
+        return;
+      }
+
+      select.value = options[0].value;
+
+      const row = select.closest('label, .variation, tr');
+
+      if (row) {
+        row.hidden = true;
+      }
+    });
+  };
+
+  const initDynamicCartContent = () => {
+    if (!inner) return;
+
+    prepareSingleOptionUpsellSelects(inner);
+
+    if (!window.jQuery) return;
+
+    const $ = window.jQuery;
+
+    if ($.fn.wc_variation_form) {
+      $(inner).find('.variations_form').each(function () {
+        const form = $(this);
+
+        if (!form.data('product_variations_ready')) {
+          form.wc_variation_form();
+          form.data('product_variations_ready', true);
+        }
+      });
+    }
+
+    $(document.body).trigger('woosb_init');
+    $(document.body).trigger('woosb_update');
   };
 
   const isSoftBundleAddError = (action, formData, message) => {
@@ -179,10 +233,37 @@
   };
 
   const closestCartItem = (target) => target && target.closest ? target.closest('[data-cart-item-key]') : null;
+  const closestElement = (target, selector) => target && target.closest ? target.closest(selector) : null;
 
   const readQuantity = (item) => {
     const input = item ? item.querySelector('[data-mt-side-cart-quantity] input') : null;
     return Math.max(0, parseInt(input ? input.value : '1', 10) || 1);
+  };
+
+  const waitForIdle = (timeout = 2500) => {
+    if (!isRequesting) {
+      return Promise.resolve(true);
+    }
+
+    const started = Date.now();
+
+    return new Promise((resolve) => {
+      const check = () => {
+        if (!isRequesting) {
+          resolve(true);
+          return;
+        }
+
+        if (Date.now() - started >= timeout) {
+          resolve(false);
+          return;
+        }
+
+        window.setTimeout(check, 50);
+      };
+
+      check();
+    });
   };
 
   const refreshFromSession = async (options = {}) => {
@@ -234,11 +315,21 @@
     return quantity;
   };
 
-  const setQuantity = async (item, quantity) => {
-    if (!item || isRequesting) return;
+  const setQuantity = async (item, quantity, options = {}) => {
+    if (!item) return;
+
+    const cartItemKey = item.dataset.cartItemKey || '';
+
+    if (!cartItemKey) return;
+
+    if (isRequesting) {
+      if (!options.defer || !(await waitForIdle())) {
+        return;
+      }
+    }
 
     await request('meditrendy_side_cart_update', {
-      cart_item_key: item.dataset.cartItemKey || '',
+      cart_item_key: cartItemKey,
       quantity: Math.max(0, quantity),
     });
   };
@@ -276,7 +367,179 @@
       (!form.classList.contains('variations_form') || !form.querySelector('.wc-variation-selection-needed'));
   };
 
+  const shouldHandleUpsellForm = (form) => {
+    return !!(form && form.closest && form.closest('[data-mt-side-cart-upsell]'));
+  };
+
+  const getUpsellVariationBox = (form) => form ? form.querySelector('.mt-side-cart-upsell-variations') : null;
+
+  const isUpsellChoiceForm = (form) => !!(form && form.classList.contains('mt-side-cart-upsell-form') && getUpsellVariationBox(form));
+
+  const readUpsellVariationData = (box) => {
+    if (!box) return [];
+
+    try {
+      return JSON.parse(box.getAttribute('data-product_variations') || '[]');
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const readUpsellSelectedAttributes = (box) => {
+    const selected = {};
+    let complete = true;
+
+    box.querySelectorAll('select[name^="attribute_"]').forEach((select) => {
+      const options = Array.from(select.options || []).filter((option) => option.value);
+
+      if (!select.value && options.length === 1) {
+        select.value = options[0].value;
+      }
+
+      selected[select.name] = select.value || '';
+
+      if (!select.value) {
+        complete = false;
+      }
+    });
+
+    return { selected, complete };
+  };
+
+  const normalizeAttributeKey = (key) => String(key || '').replace(/^attribute_/, '').replace(/[_\s]+/g, '-').toLowerCase();
+
+  const selectedAttributeValue = (selected, key) => {
+    if (Object.prototype.hasOwnProperty.call(selected, key)) {
+      return selected[key];
+    }
+
+    const wanted = normalizeAttributeKey(key);
+    const match = Object.entries(selected).find(([selectedKey]) => normalizeAttributeKey(selectedKey) === wanted);
+
+    return match ? match[1] : '';
+  };
+
+  const updateUpsellVariation = (form) => {
+    const box = getUpsellVariationBox(form);
+
+    if (!box) return true;
+
+    const { selected, complete } = readUpsellSelectedAttributes(box);
+    const variationInput = form.querySelector('input.variation_id');
+
+    if (!complete) {
+      if (variationInput) variationInput.value = '0';
+      return false;
+    }
+
+    const purchasableVariations = readUpsellVariationData(box).filter((variation) => {
+      if (!variation || !variation.is_purchasable || !variation.is_in_stock) return false;
+
+      return true;
+    });
+
+    const match = purchasableVariations.find((variation) => {
+      const attributes = variation.attributes || {};
+
+      if (!Object.keys(attributes).length) {
+        return true;
+      }
+
+      return Object.entries(attributes).every(([key, value]) => {
+        return !value || selectedAttributeValue(selected, key) === value;
+      });
+    }) || (purchasableVariations.length === 1 ? purchasableVariations[0] : null);
+
+    if (variationInput) {
+      variationInput.value = match && match.variation_id ? String(match.variation_id) : '0';
+    }
+
+    return !!match;
+  };
+
+  const showUpsellTooltip = (button, message = 'Pasirinkite dydį') => {
+    if (!button) return;
+
+    const existing = button.parentElement ? button.parentElement.querySelector('.mt-side-cart-upsell-tooltip') : null;
+
+    if (existing) {
+      existing.remove();
+    }
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'mt-side-cart-upsell-tooltip';
+    tooltip.textContent = message;
+    button.insertAdjacentElement('afterend', tooltip);
+
+    window.setTimeout(() => {
+      tooltip.remove();
+    }, 2200);
+  };
+
+  const isInteractiveUpsellTarget = (target) => {
+    return target && target.closest && target.closest('select, input, button, a, label');
+  };
+
+  const expandUpsellTile = (tile) => {
+    if (!tile) return;
+
+    tile.classList.add('is-expanded');
+    tile.querySelectorAll('[data-mt-side-cart-upsell-add]').forEach((button) => {
+      if (button.dataset.mtAddLabel) {
+        button.textContent = button.dataset.mtAddLabel;
+      }
+    });
+    tile.querySelectorAll('select[name^="attribute_"]').forEach((select) => {
+      select.style.display = 'block';
+      select.removeAttribute('aria-hidden');
+      select.removeAttribute('tabindex');
+    });
+
+    const firstSelect = tile.querySelector('select[name^="attribute_"]');
+
+    if (firstSelect) {
+      firstSelect.focus({ preventScroll: true });
+    }
+  };
+
+  const allBundleSelectionsComplete = (container) => {
+    const selects = container ? Array.from(container.querySelectorAll('.woosb_variations_form select[name^="attribute_"]')) : [];
+
+    return selects.length > 0 && selects.every((select) => !!select.value);
+  };
+
+  const collapseUpsellLabels = (root) => {
+    const scope = root || document;
+
+    scope.querySelectorAll('[data-mt-side-cart-upsell]:not(.is-expanded) [data-mt-side-cart-upsell-add]').forEach((button) => {
+      const form = button.closest('form');
+
+      if (form && getUpsellVariationBox(form) && button.dataset.mtChooseLabel) {
+        button.textContent = button.dataset.mtChooseLabel;
+      }
+    });
+  };
+
   const submitAddToCartForm = async (form, submitter = null) => {
+    const upsellTile = form.closest ? form.closest('[data-mt-side-cart-upsell]') : null;
+
+    if (isUpsellChoiceForm(form) && upsellTile && !upsellTile.classList.contains('is-expanded')) {
+      expandUpsellTile(upsellTile);
+      return;
+    }
+
+    if (isUpsellChoiceForm(form) && !updateUpsellVariation(form)) {
+      expandUpsellTile(upsellTile);
+      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'));
+      return;
+    }
+
+    if (upsellTile && upsellTile.querySelector('.woosb-wrap') && !allBundleSelectionsComplete(upsellTile)) {
+      expandUpsellTile(upsellTile);
+      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'));
+      return;
+    }
+
     const formData = new window.FormData(form);
 
     if (submitter && submitter.name && !formData.has(submitter.name)) {
@@ -330,6 +593,12 @@
       : null;
     const form = button ? getAddToCartForm(button) : null;
 
+    if (button && form && shouldHandleUpsellForm(form)) {
+      takeOverAddToCartEvent(event);
+      submitAddToCartForm(form, button);
+      return;
+    }
+
     if (event.defaultPrevented || !button || !form || !canHandleAddToCartForm(form)) {
       return;
     }
@@ -340,6 +609,12 @@
 
   const handleAddToCartSubmit = async (event) => {
     const form = getAddToCartForm(event.target);
+
+    if (form && shouldHandleUpsellForm(form)) {
+      takeOverAddToCartEvent(event);
+      await submitAddToCartForm(form, event.submitter || form.querySelector('[type="submit"], button[name="add-to-cart"]'));
+      return;
+    }
 
     if (event.defaultPrevented || !canHandleAddToCartForm(form)) {
       return;
@@ -352,9 +627,17 @@
   const handleDrawerClick = (event) => {
     if (!drawer || !drawer.contains(event.target)) return;
 
-    if (event.target.closest('[data-mt-side-cart-close]')) {
+    if (closestElement(event.target, '[data-mt-side-cart-close]')) {
       event.preventDefault();
       close();
+      return;
+    }
+
+    const remove = closestElement(event.target, '[data-mt-side-cart-remove]');
+
+    if (remove) {
+      event.preventDefault();
+      setQuantity(closestCartItem(remove), 0, { defer: true });
       return;
     }
 
@@ -362,15 +645,7 @@
       return;
     }
 
-    const remove = event.target.closest('[data-mt-side-cart-remove]');
-
-    if (remove) {
-      event.preventDefault();
-      setQuantity(closestCartItem(remove), 0);
-      return;
-    }
-
-    const quantityButton = event.target.closest('[data-mt-side-cart-qty]');
+    const quantityButton = closestElement(event.target, '[data-mt-side-cart-qty]');
 
     if (quantityButton) {
       event.preventDefault();
@@ -391,10 +666,52 @@
       }
 
       setQuantity(item, next);
+      return;
+    }
+
+    const prev = closestElement(event.target, '[data-mt-upsell-prev]');
+    const next = closestElement(event.target, '[data-mt-upsell-next]');
+
+    if (prev || next) {
+      event.preventDefault();
+
+      const section = closestElement(event.target, '[data-mt-side-cart-upsells]');
+      const track = section ? section.querySelector('[data-mt-upsell-track]') : null;
+
+      if (!track) return;
+
+      const tile = track.querySelector('.mt-side-cart-upsell');
+      const distance = tile ? tile.getBoundingClientRect().width + 12 : 220;
+
+      track.scrollBy({
+        left: prev ? -distance : distance,
+        behavior: 'smooth',
+      });
+      return;
+    }
+
+    const upsellTile = closestElement(event.target, '[data-mt-side-cart-upsell]');
+
+    if (upsellTile && !isInteractiveUpsellTarget(event.target)) {
+      event.preventDefault();
+      expandUpsellTile(upsellTile);
     }
   };
 
   const handleQuantityChange = (event) => {
+    const upsellSelect = event.target.closest ? event.target.closest('.mt-side-cart-upsell-form select[name^="attribute_"]') : null;
+
+    if (upsellSelect) {
+      updateUpsellVariation(upsellSelect.closest('form'));
+      return;
+    }
+
+    const bundleSelect = event.target.closest ? event.target.closest('[data-mt-side-cart-upsell] .woosb_variations_form select[name^="attribute_"]') : null;
+
+    if (bundleSelect) {
+      return;
+    }
+
     const input = event.target.closest ? event.target.closest('[data-mt-side-cart-quantity] input') : null;
 
     if (!input || isRequesting) return;
@@ -431,6 +748,9 @@
     inner = drawer ? drawer.querySelector('[data-mt-side-cart-inner]') : null;
 
     if (!drawer || !inner) return;
+
+    initDynamicCartContent();
+    collapseUpsellLabels(inner);
 
     window.addEventListener('click', handleAddToCartClick, true);
     window.addEventListener('submit', handleAddToCartSubmit, true);
@@ -516,6 +836,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function startDrag(event) {
         if (!isCartOpen()) {
+            return;
+        }
+
+        if (event.target && event.target.closest && event.target.closest('[data-mt-side-cart-upsells]')) {
             return;
         }
 

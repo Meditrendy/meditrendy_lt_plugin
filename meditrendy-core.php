@@ -20,6 +20,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/performance.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-attribute-labels.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/side-cart-upsells.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-subcategories.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/brand-products-shortcode.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/blog-archive.php';
