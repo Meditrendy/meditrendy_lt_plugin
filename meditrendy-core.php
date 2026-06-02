@@ -33,6 +33,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-complete-set.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-promotions.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-invoice-fields.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/checkout-translations.php';
 
 /* ======================================================
    ACF +SHOP MAMAGER
