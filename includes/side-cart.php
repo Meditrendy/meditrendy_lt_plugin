@@ -60,6 +60,19 @@ function meditrendy_side_cart_item_image($product) {
     ]);
 }
 
+function meditrendy_side_cart_item_price_html($cart_item, $cart_item_key) {
+    $product = $cart_item['data'] ?? null;
+
+    if (!$product || !is_a($product, 'WC_Product') || !function_exists('WC') || !WC()->cart) {
+        return '';
+    }
+
+    $quantity = max(1, (int) ($cart_item['quantity'] ?? 1));
+    $subtotal = WC()->cart->get_product_subtotal($product, $quantity);
+
+    return apply_filters('woocommerce_cart_item_subtotal', $subtotal, $cart_item, $cart_item_key);
+}
+
 function meditrendy_side_cart_items_html() {
     if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) {
         return '<div class="mt-side-cart-empty">' . esc_html__('Jūsų krepšelis tuščias.', 'meditrendy-core') . '</div>';
@@ -140,7 +153,7 @@ function meditrendy_side_cart_items_html() {
                         <?php endif; ?>
 
                         <div class="mt-side-cart-item-price">
-                            <?php echo wp_kses_post(WC()->cart->get_product_subtotal($product, $quantity)); ?>
+                            <?php echo wp_kses_post(meditrendy_side_cart_item_price_html($cart_item, $cart_item_key)); ?>
                         </div>
                     </div>
                 </div>
