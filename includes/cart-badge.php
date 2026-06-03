@@ -18,6 +18,10 @@ function meditrendy_cart_badge_enqueue_assets() {
         return;
     }
 
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
+        return;
+    }
+
     $script_path = MEDITRENDY_CORE_DIR . 'assets/js/cart-badge.js';
     $style_path = MEDITRENDY_CORE_DIR . 'assets/css/cart-badge.css';
 

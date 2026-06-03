@@ -223,6 +223,10 @@ function meditrendy_side_cart_render_shell() {
     if (is_admin() || !function_exists('WC')) {
         return;
     }
+
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
+        return;
+    }
     ?>
     <div class="mt-side-cart" data-mt-side-cart aria-hidden="true">
         <button class="mt-side-cart-backdrop" type="button" data-mt-side-cart-close tabindex="-1" aria-label="<?php esc_attr_e('Uždaryti krepšelį', 'meditrendy-core'); ?>"></button>
@@ -285,6 +289,10 @@ function meditrendy_side_cart_send_existing_cart_response($message = '') {
 function meditrendy_side_cart_ajax_get() {
     meditrendy_side_cart_verify_request();
 
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
+        wp_send_json_error(['message' => __('Cart module is disabled.', 'meditrendy-core')], 403);
+    }
+
     $include_upsells = !empty($_POST['include_upsells']);
 
     wp_send_json_success(meditrendy_side_cart_response($include_upsells));
@@ -292,6 +300,10 @@ function meditrendy_side_cart_ajax_get() {
 
 function meditrendy_side_cart_ajax_add() {
     meditrendy_side_cart_verify_request();
+
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
+        wp_send_json_error(['message' => __('Cart module is disabled.', 'meditrendy-core')], 403);
+    }
 
     $product_id = 0;
     $has_bundle_ids = isset($_POST['woosb_ids']) && wc_clean(wp_unslash($_POST['woosb_ids'])) !== '';
@@ -439,6 +451,10 @@ function meditrendy_side_cart_send_add_error($product_id = 0, $variation_id = 0,
 function meditrendy_side_cart_ajax_update() {
     meditrendy_side_cart_verify_request();
 
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
+        wp_send_json_error(['message' => __('Cart module is disabled.', 'meditrendy-core')], 403);
+    }
+
     $cart_item_key = isset($_POST['cart_item_key']) ? sanitize_text_field(wp_unslash($_POST['cart_item_key'])) : '';
     $quantity = isset($_POST['quantity']) ? wc_stock_amount(wp_unslash($_POST['quantity'])) : 1;
 
@@ -454,6 +470,10 @@ function meditrendy_side_cart_ajax_update() {
 
 function meditrendy_side_cart_enqueue_assets() {
     if (is_admin()) {
+        return;
+    }
+
+    if (function_exists('meditrendy_cart_module_enabled') && !meditrendy_cart_module_enabled()) {
         return;
     }
 

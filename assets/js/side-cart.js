@@ -16,6 +16,8 @@
   let activeAddForm = null;
   let activeAddRequestKey = '';
   let lastSessionRefresh = 0;
+  let isUpsellsLoading = false;
+  let cartMutationVersion = 0;
 
   const parseCount = (value) => {
     const count = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
@@ -74,6 +76,31 @@
           : 'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.'
       );
     }
+  };
+
+  const setUpsellsLoading = (state) => {
+    if (!inner) return;
+
+    isUpsellsLoading = !!state;
+
+    let section = inner.querySelector('[data-mt-side-cart-upsells]');
+
+    if (!section && state) {
+      const content = inner.querySelector('.mt-side-cart-content');
+
+      if (!content) return;
+
+      section = document.createElement('section');
+      section.className = 'mt-side-cart-upsells';
+      section.setAttribute('data-mt-side-cart-upsells', '');
+      section.innerHTML = '<div class="mt-side-cart-upsells-header"><h2>Jums taip pat gali patikti</h2></div>';
+      content.appendChild(section);
+    }
+
+    if (!section) return;
+
+    section.classList.toggle('is-loading', !!state);
+    section.setAttribute('aria-busy', state ? 'true' : 'false');
   };
 
   const replaceContent = (data) => {
@@ -157,8 +184,19 @@
   const request = async (action, body = {}, options = {}) => {
     if (!ajaxUrl || !nonce) return null;
 
-    isRequesting = true;
-    setLoading(true);
+    const blocking = options.blocking !== false;
+    const upsellsLoading = !!options.upsellsLoading;
+    const requestMutationVersion = cartMutationVersion;
+
+    if (blocking) {
+      cartMutationVersion += 1;
+      isRequesting = true;
+      setLoading(true);
+    }
+
+    if (upsellsLoading) {
+      setUpsellsLoading(true);
+    }
 
     const formData = body instanceof window.FormData ? body : new window.FormData();
 
@@ -180,7 +218,10 @@
       const payload = await readResponsePayload(response);
 
       if (payload && payload.success && payload.data) {
-        replaceContent(payload.data);
+        if (blocking || requestMutationVersion === cartMutationVersion) {
+          replaceContent(payload.data);
+        }
+
         return payload.data;
       }
 
@@ -200,10 +241,16 @@
         window.alert(error.message);
       }
     } finally {
-      isRequesting = false;
-      setLoading(false);
+      if (blocking) {
+        isRequesting = false;
+        setLoading(false);
+      }
 
-      if (activeAddForm) {
+      if (upsellsLoading) {
+        setUpsellsLoading(false);
+      }
+
+      if (blocking && activeAddForm) {
         setAddFormLoading(activeAddForm, false);
         activeAddForm = null;
       }
@@ -220,7 +267,13 @@
     document.documentElement.classList.add('mt-side-cart-is-open');
 
     if (shouldRefresh && !isRequesting) {
-      await request('meditrendy_side_cart_get', { include_upsells: 1 });
+      if (!isUpsellsLoading) {
+        request('meditrendy_side_cart_get', { include_upsells: 1 }, {
+          blocking: false,
+          silent: true,
+          upsellsLoading: true,
+        });
+      }
     }
   };
 
