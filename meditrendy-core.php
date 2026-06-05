@@ -31,6 +31,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-labels.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-complete-set.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-price-block.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-promotions.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-invoice-fields.php';

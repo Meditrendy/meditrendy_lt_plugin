@@ -562,6 +562,65 @@
   margin: 0;
 }
 
+#products-wrapper .mt-product-card-price-shortcode {
+  display: grid;
+  gap: 2px;
+  color: #000000;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+#products-wrapper .mt-product-card-price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#products-wrapper .mt-product-card-price-current {
+  color: #000000;
+  font-weight: 700;
+}
+
+#products-wrapper .mt-product-card-price-regular {
+  color: #808080;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+#products-wrapper .mt-product-card-price-omnibus {
+  display: block;
+  color: #808080;
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+#products-wrapper .mt-product-card-price-omnibus .wc-price-history-shortcode,
+#products-wrapper .mt-product-card-price-omnibus .wc-price-history-lowest-inner,
+#products-wrapper .mt-product-card-price-omnibus .wc-price-history.prior-price.lowest {
+  display: inline;
+  width: auto;
+  margin: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+}
+
+#products-wrapper .mt-product-card-price-omnibus .woocommerce-Price-amount,
+#products-wrapper .mt-product-card-price-omnibus .wc-price-history.prior-price-value,
+#products-wrapper .mt-product-card-price-omnibus .wc-price-history-lowest-raw-value {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+}
+
 .mt-native-filters-submit {
   position: relative;
   overflow: hidden;
