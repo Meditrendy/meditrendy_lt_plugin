@@ -527,7 +527,29 @@
 }
 
 #products-wrapper .product-cart {
+  position: relative;
   margin-bottom: 14px;
+}
+
+#products-wrapper .mt-product-card-sale-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 6px;
+  border-radius: 0;
+  background: #000000;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
 #products-wrapper .product-cart .x-image,

@@ -55,6 +55,18 @@ function meditrendy_product_card_price_text($product) {
     return trim(wp_strip_all_tags($product->get_price_html()));
 }
 
+function meditrendy_product_card_price_html($product) {
+    if (!$product) {
+        return '';
+    }
+
+    if (shortcode_exists('mt_product_card_price')) {
+        return do_shortcode('[mt_product_card_price id="' . absint($product->get_id()) . '"]');
+    }
+
+    return wp_kses_post($product->get_price_html());
+}
+
 function meditrendy_render_product_card($product) {
     if (!$product) {
         return '';
@@ -63,7 +75,8 @@ function meditrendy_render_product_card($product) {
     $url = $product->get_permalink();
     $image_url = meditrendy_product_card_image_url($product);
     $image_alt = meditrendy_product_card_image_alt($product);
-    $price_text = meditrendy_product_card_price_text($product);
+    $price_html = meditrendy_product_card_price_html($product);
+    $is_on_sale = $product->is_on_sale();
 
     ob_start();
     ?>
@@ -72,6 +85,9 @@ function meditrendy_render_product_card($product) {
             <div class="x-bg" aria-hidden="true">
                 <div class="x-bg-layer-upper-custom"></div>
             </div>
+            <?php if ($is_on_sale) : ?>
+                <span class="mt-product-card-sale-badge"><?php echo esc_html__('AKCIJA!', 'meditrendy-core'); ?></span>
+            <?php endif; ?>
             <a class="<?php echo esc_attr(meditrendy_product_card_classes('link')); ?>" data-x-effect="{&quot;durationBase&quot;:&quot;300ms&quot;}" href="<?php echo esc_url($url); ?>">
                 <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" loading="lazy">
             </a>
@@ -86,7 +102,7 @@ function meditrendy_render_product_card($product) {
         <div class="<?php echo esc_attr(meditrendy_product_card_classes('price_wrap')); ?>">
             <div class="x-text-content">
                 <div class="x-text-content-text">
-                    <span class="x-text-content-text-primary"><?php echo esc_html($price_text); ?></span>
+                    <span class="x-text-content-text-primary"><?php echo wp_kses_post($price_html); ?></span>
                 </div>
             </div>
         </div>
