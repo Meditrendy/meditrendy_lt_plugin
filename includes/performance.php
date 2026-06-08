@@ -24,6 +24,10 @@ function meditrendy_is_product_archive_context() {
         && (is_shop() || is_product_taxonomy() || is_product_category() || is_product_tag());
 }
 
+function meditrendy_is_cart_or_checkout_context() {
+    return (function_exists('is_cart') && is_cart()) || (function_exists('is_checkout') && is_checkout());
+}
+
 function meditrendy_dequeue_unused_frontend_assets() {
     if (is_admin()) {
         return;
@@ -34,7 +38,7 @@ function meditrendy_dequeue_unused_frontend_assets() {
         wp_deregister_style('wc-blocks-style');
     }
 
-    if (!function_exists('is_product') || !is_product()) {
+    if ((!function_exists('is_product') || !is_product()) && !meditrendy_is_cart_or_checkout_context()) {
         wp_dequeue_style('woosb-blocks');
         wp_deregister_style('woosb-blocks');
     }
