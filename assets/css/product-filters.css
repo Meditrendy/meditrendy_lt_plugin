@@ -545,11 +545,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 24px;
+  min-height: 20px;
   padding: 0 6px;
   border-radius: 0;
   color: #ffffff;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -559,7 +559,7 @@
 #products-wrapper .mt-card-badge-sale,
 #products-wrapper .mt-card-badge-new,
 #products-wrapper .mt-card-badge-bestseller {
-  background: #000000;
+  background: #000;
 }
 
 #products-wrapper .product-cart .x-image,
