@@ -4,44 +4,6 @@
   var countTimers = new WeakMap();
   var filterStates = new WeakMap();
   const productRequests = new WeakMap();
-  var debugEnabled = false;
-
-  function debugPanel() {
-    return null;
-  }
-
-  function debugLog(message, detail) {
-    if (!debugEnabled) return;
-
-    var payload = detail || {};
-
-    if (window.console && console.log) {
-      console.log('[Meditrendy filters] ' + message, payload);
-    }
-
-    var panel = debugPanel();
-    var list = panel && panel.querySelector('ol');
-
-    if (!list) return;
-
-    var item = document.createElement('li');
-    var text = message;
-
-    try {
-      if (detail !== undefined) {
-        text += ' ' + JSON.stringify(detail);
-      }
-    } catch (error) {
-      text += ' [detail not serializable]';
-    }
-
-    item.textContent = text;
-    list.appendChild(item);
-
-    while (list.children.length > 16) {
-      list.removeChild(list.firstElementChild);
-    }
-  }
 
   function ensureFormId(form) {
     if (!form.id) {
@@ -57,14 +19,6 @@
 
     panel.querySelectorAll('input, select, button').forEach(function (control) {
       control.setAttribute('form', formId);
-    });
-  }
-
-  function formControls(form, selector) {
-    ensureFormId(form);
-
-    return Array.prototype.filter.call(document.querySelectorAll(selector), function (control) {
-      return control.form === form;
     });
   }
 
@@ -88,14 +42,6 @@
 
     controls = controls.filter(function (control) {
       return control.name;
-    });
-
-    debugLog('controls collected', {
-      selector: controlSelector,
-      count: controls.length,
-      names: controls.map(function (control) {
-        return control.name + '=' + control.value + (control.checked ? ':checked' : '');
-      })
     });
 
     return controls;
@@ -373,8 +319,6 @@
     window.dispatchEvent(new CustomEvent('meditrendy:filters-error', {
       detail: { reason: reason, detail: detail || null }
     }));
-
-    debugLog('ERROR ' + reason, detail || {});
   }
 
   function labels() {
@@ -407,7 +351,6 @@
   function submitForm(form, options) {
     var url = buildFilterUrl(form);
 
-    debugLog('submitForm', { url: url.toString() });
     loadFilteredProducts(form, url, options || {});
   }
 
@@ -457,7 +400,6 @@
       url.searchParams.append(entry[0], entry[1]);
     });
 
-    debugLog('built filter URL', { url: url.toString() });
     return url;
   }
 
@@ -530,27 +472,12 @@
       var explicitWrapper = document.querySelector('#products-wrapper');
 
       if (explicitWrapper) {
-        debugLog('product grid lookup explicit wrapper', {
-          found: true,
-          foundTag: explicitWrapper.tagName,
-          foundClass: explicitWrapper.className,
-          repeatedCards: productCardCount(explicitWrapper)
-        });
-
         return explicitWrapper;
       }
     }
 
     var candidates = Array.prototype.slice.call(root.querySelectorAll('ul.products, .products'));
     var grid = candidates.find(isProductGrid) || findRepeatedProductWrapper(root);
-
-    debugLog('product grid lookup', {
-      candidates: candidates.length,
-      found: !!grid,
-      foundTag: grid ? grid.tagName : '',
-      foundClass: grid ? grid.className : '',
-      repeatedCards: grid ? productCardCount(grid) : 0
-    });
 
     return grid;
   }
@@ -623,24 +550,6 @@
     }
 
     return !!link.closest(paginationSelector());
-  }
-
-  function cleanupGeneratedPagination(nativePagination) {
-    if (!nativePagination || nativePagination.matches('.woocommerce-pagination')) {
-      return;
-    }
-
-    document.querySelectorAll('.woocommerce-pagination').forEach(function (pagination) {
-      if (pagination === nativePagination || pagination.contains(nativePagination) || nativePagination.contains(pagination)) {
-        return;
-      }
-
-      if (pagination.closest(selector) || pagination.closest('.mt-native-filters-panel')) {
-        return;
-      }
-
-      pagination.remove();
-    });
   }
 
   function replaceOrRemove(current, next) {
@@ -878,13 +787,6 @@
 
     var targets = productTargets();
 
-    debugLog('loadFilteredProducts start', {
-      ajaxUrl: ajaxUrl(form),
-      hasFetch: !!window.fetch,
-      hasProductsTarget: !!targets.products,
-      url: url.toString()
-    });
-
     if (!window.fetch || !ajaxUrl(form)) {
       clearLoading(form);
       filterError(form, 'missing_ajax');
@@ -916,8 +818,6 @@
       }
     });
 
-    debugLog('AJAX payload', Array.from(data.entries()));
-
     fetch(ajaxUrl(form), {
       method: 'POST',
       credentials: 'same-origin',
@@ -929,12 +829,6 @@
           return null;
         }
 
-        debugLog('AJAX HTTP response', {
-          ok: response.ok,
-          status: response.status,
-          statusText: response.statusText
-        });
-
         if (!response.ok) {
           throw new Error('Filter request failed');
         }
@@ -945,14 +839,6 @@
         if (!response || productRequests.get(form) !== request) {
           return;
         }
-
-        debugLog('AJAX JSON response', {
-          success: !!(response && response.success),
-          hasData: !!(response && response.data),
-          count: response && response.data ? response.data.count : null,
-          productsHtmlLength: response && response.data && response.data.productsHtml ? response.data.productsHtml.length : 0,
-          serverDebug: response && response.data ? response.data.debug : null
-        });
 
         if (!response || !response.success || !response.data) {
           filterError(form, 'bad_response', response);
@@ -995,11 +881,6 @@
           scrollToTop();
         }
         setProductsLoadedText(form);
-        debugLog('products replaced', {
-          count: response.data.count,
-          nextProductsClass: nextProducts.className,
-          nextChildren: nextProducts.children.length
-        });
 
         if (!options.replaceHistory) {
           window.history.pushState({ mtNativeFilters: true }, '', url.toString());
@@ -1240,7 +1121,6 @@
 
   function requestCount(form) {
     if (!ajaxUrl(form) || !window.fetch) {
-      debugLog('count skipped', { ajaxUrl: ajaxUrl(form), hasFetch: !!window.fetch });
       return;
     }
 
@@ -1261,14 +1141,9 @@
       })()
     })
       .then(function (response) {
-        debugLog('count HTTP response', { ok: response.ok, status: response.status });
         return response.json();
       })
       .then(function (response) {
-        debugLog('count JSON response', {
-          success: !!(response && response.success),
-          count: response && response.data ? response.data.count : null
-        });
 
         if (!response || !response.success || !response.data) return;
 
@@ -1292,11 +1167,6 @@
     if (form.dataset.nativeFiltersReady === '1') return;
 
     form.dataset.nativeFiltersReady = '1';
-    debugLog('setup form', {
-      action: form.getAttribute('action'),
-      ajaxUrl: ajaxUrl(form),
-      hasNonce: !!ajaxNonce(form)
-    });
 
     var trigger = form.querySelector('.mt-native-filters-trigger');
     var close = form.querySelector('.mt-native-filters-close');
@@ -1428,11 +1298,6 @@
   }
 
   function boot() {
-    debugLog('boot', {
-      readyState: document.readyState,
-      forms: document.querySelectorAll(selector).length,
-      productGrids: document.querySelectorAll('ul.products, .products').length
-    });
     document.querySelectorAll(selector).forEach(setup);
   }
 
@@ -1449,12 +1314,6 @@
 
     if (!form) return;
 
-    debugLog('delegated change', {
-      name: event.target.name,
-      value: event.target.value,
-      checked: event.target.checked,
-      formFound: !!form
-    });
 
     setControlState(form, event.target);
     updateActiveRows(form);
@@ -1473,8 +1332,6 @@
     if (!form) return;
 
     event.preventDefault();
-    debugLog('delegated submit click', { formFound: !!form });
-
     if (isMobile()) {
       if (!form.classList.contains('is-loading')) {
         closeMobilePanel(form);

@@ -17,6 +17,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Keep business logic independent from Cornerstone wherever possible.
 - Before adding plugin logic for a Cornerstone/Pro element, check whether the same result can be achieved by adding a class, changing element settings, or editing content in the editor.
 - Avoid adding third-party dependencies unless the user explicitly approves them.
+- Prefer shortcode-based customization for Cornerstone output over JavaScript DOM rewriting when the behavior can be expressed server-side.
 - Prefer WooCommerce APIs and WordPress APIs over direct SQL, except where direct SQL is already part of the local feature and is carefully scoped.
 - Keep changes focused and avoid unrelated refactors.
 - Always consider the user experience when making changes.
@@ -43,6 +44,7 @@ Use existing feature files when possible:
 
 - Use `const` and `let` in new JavaScript.
 - Keep frontend JavaScript scoped to plugin-owned markup.
+- Use JavaScript for Cornerstone customizations only when a shortcode, template setting, or CSS cannot reasonably solve the problem.
 - Do not depend on generated Cornerstone classes when a plugin-owned class can be used.
 - Prefer CSS custom properties for reusable values.
 - Prefer CSS over JavaScript for styling.
