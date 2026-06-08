@@ -84,6 +84,8 @@ function meditrendy_reapply_checkout_block_translations() {
 add_action('wp_enqueue_scripts', 'meditrendy_reapply_checkout_block_translations', 100);
 
 function meditrendy_add_checkout_block_translation_script($handle) {
+    static $fallback_added = false;
+
     wp_enqueue_script('wp-i18n');
 
     if (!wp_script_is($handle, 'registered') && !wp_script_is($handle, 'enqueued')) {
@@ -99,6 +101,86 @@ function meditrendy_add_checkout_block_translation_script($handle) {
     wp_add_inline_script(
         $handle,
         'window.wp && window.wp.i18n && window.wp.i18n.setLocaleData(' . wp_json_encode($translations) . ', "woocommerce");',
+        'after'
+    );
+
+    if ($fallback_added) {
+        return;
+    }
+
+    $fallback_added = true;
+
+    wp_add_inline_script(
+        $handle,
+        <<<'JS'
+(function () {
+    if (window.meditrendyCheckoutVatTranslationReady) {
+        return;
+    }
+
+    window.meditrendyCheckoutVatTranslationReady = true;
+
+    const translateVatText = (root) => {
+        if (!root) {
+            return;
+        }
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes = [];
+
+        while (walker.nextNode()) {
+            nodes.push(walker.currentNode);
+        }
+
+        nodes.forEach((node) => {
+            const text = node.nodeValue || '';
+
+            if (/^Including\s+(.+?)\s+VAT$/i.test(text.trim())) {
+                node.nodeValue = text.replace(/Including\s+(.+?)\s+VAT/i, '\u012eskaitant $1 PVM');
+            }
+        });
+    };
+
+    const run = () => translateVatText(document.body);
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
+    }
+
+    const startObserver = () => {
+        if (!document.body) {
+            return;
+        }
+
+        let scheduled = false;
+        const observer = new MutationObserver(() => {
+            if (scheduled) {
+                return;
+            }
+
+            scheduled = true;
+            window.requestAnimationFrame(() => {
+                scheduled = false;
+                run();
+            });
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    };
+
+    if (document.body) {
+        startObserver();
+    } else {
+        document.addEventListener('DOMContentLoaded', startObserver);
+    }
+})();
+JS,
         'after'
     );
 }
