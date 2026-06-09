@@ -1,64 +1,226 @@
 (function () {
   'use strict';
 
-  var toggleSelector = '[data-meditrendy-invoice-toggle]';
-  var dependentSelector = '[data-meditrendy-invoice-dependent]';
-  var billingAddressLabels = ['Billing address', 'Pirk\u0117jo adresas'];
-  var invoiceAddressLabel = 'Adresas s\u0105skaitai';
+  const settings = window.meditrendyCheckoutInvoice || {};
+  const blockClass = 'meditrendy-checkout-invoice-fields';
+  const billingAddressLabels = ['Billing address', 'Pirk\u0117jo adresas'];
+  const labels = Object.assign({
+    invoiceRequired: 'Reikia s\u0105skaitos fakt\u016bros \u012fmonei',
+    companyName: '\u012emon\u0117s pavadinimas (neb\u016btina)',
+    companyCode: '\u012emon\u0117s kodas (neb\u016btina)',
+    invoiceAddress: 'Adresas s\u0105skaitai'
+  }, settings.labels || {});
 
-  function getFieldWrap(input) {
-    return input.closest(
-      '.wc-block-components-text-input, .wc-block-components-checkbox, .components-base-control'
-    ) || input.parentElement;
+  let saveTimer = null;
+  let lastPayload = '';
+  let saving = null;
+  let replayingSubmit = false;
+
+  function createTextInput(id, label, value, autocomplete) {
+    const wrap = document.createElement('div');
+    wrap.className = 'meditrendy-checkout-invoice-fields__field';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = id;
+    input.name = id;
+    input.value = value || '';
+    input.autocomplete = autocomplete || 'off';
+
+    const labelElement = document.createElement('label');
+    labelElement.htmlFor = id;
+    labelElement.textContent = label;
+
+    wrap.append(labelElement, input);
+
+    return wrap;
   }
 
-  function triggerReactInput(input) {
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+  function createInvoiceBlock() {
+    const block = document.createElement('div');
+    block.className = blockClass;
+
+    const checkboxWrap = document.createElement('label');
+    checkboxWrap.className = 'wc-block-components-checkbox meditrendy-checkout-invoice-fields__toggle';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'meditrendy_invoice_required';
+    checkbox.name = 'meditrendy_invoice_required';
+    checkbox.checked = !!settings.invoiceRequired;
+
+    const checkboxText = document.createElement('span');
+    checkboxText.textContent = labels.invoiceRequired;
+
+    checkboxWrap.append(checkbox, checkboxText);
+
+    const fields = document.createElement('div');
+    fields.className = 'meditrendy-checkout-invoice-fields__details';
+    fields.append(
+      createTextInput('meditrendy_company_name', labels.companyName, settings.companyName, 'organization'),
+      createTextInput('meditrendy_company_code', labels.companyCode, settings.companyCode, 'off')
+    );
+
+    block.append(checkboxWrap, fields);
+
+    return block;
   }
 
-  function syncInvoiceFields() {
-    var toggle = document.querySelector(toggleSelector);
-    var showFields = !!(toggle && toggle.checked);
+  function findCheckoutEndTarget() {
+    const form = document.querySelector('.wc-block-checkout__form, form.wc-block-checkout__form');
 
-    document.querySelectorAll(dependentSelector).forEach(function (input) {
-      var wrap = getFieldWrap(input);
+    if (!form) {
+      return null;
+    }
 
-      if (!wrap) {
+    return {
+      container: form,
+      before: form.querySelector('.wc-block-checkout__actions')
+    };
+  }
+
+  function syncInvoiceBlockVisibility(block) {
+    const checkbox = block.querySelector('#meditrendy_invoice_required');
+    const details = block.querySelector('.meditrendy-checkout-invoice-fields__details');
+
+    if (!checkbox || !details) {
+      return;
+    }
+
+    details.hidden = !checkbox.checked;
+  }
+
+  function getPayload(block) {
+    const checkbox = block.querySelector('#meditrendy_invoice_required');
+    const companyName = block.querySelector('#meditrendy_company_name');
+    const companyCode = block.querySelector('#meditrendy_company_code');
+    const payload = new URLSearchParams();
+
+    payload.set('action', 'meditrendy_save_checkout_invoice_fields');
+    payload.set('nonce', settings.nonce || '');
+    payload.set('invoice_required', checkbox && checkbox.checked ? '1' : '');
+    payload.set('company_name', companyName ? companyName.value : '');
+    payload.set('company_code', companyCode ? companyCode.value : '');
+
+    return payload;
+  }
+
+  function saveInvoiceFields(block, immediate) {
+    if (!settings.ajaxUrl || !settings.nonce || !block) {
+      return Promise.resolve();
+    }
+
+    window.clearTimeout(saveTimer);
+
+    const run = function () {
+      const payload = getPayload(block);
+      const serialized = payload.toString();
+
+      if (serialized === lastPayload) {
+        return Promise.resolve();
+      }
+
+      lastPayload = serialized;
+      saving = window.fetch(settings.ajaxUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: serialized
+      }).catch(function () {
+        lastPayload = '';
+      });
+
+      return saving;
+    };
+
+    if (immediate) {
+      return run();
+    }
+
+    saveTimer = window.setTimeout(run, 250);
+    return Promise.resolve();
+  }
+
+  function bindInvoiceBlock(block) {
+    if (block.dataset.meditrendyInvoiceReady === '1') {
+      return;
+    }
+
+    block.dataset.meditrendyInvoiceReady = '1';
+    syncInvoiceBlockVisibility(block);
+    saveInvoiceFields(block, true);
+
+    block.addEventListener('change', function () {
+      syncInvoiceBlockVisibility(block);
+      saveInvoiceFields(block, true);
+    });
+
+    block.addEventListener('input', function () {
+      saveInvoiceFields(block, false);
+    });
+
+    document.addEventListener('click', function (event) {
+      const submitButton = event.target.closest('.wc-block-components-checkout-place-order-button, button[type="submit"]');
+
+      if (!submitButton || replayingSubmit) {
         return;
       }
 
-      wrap.hidden = !showFields;
+      const payload = getPayload(block).toString();
 
-      if (!showFields && input.value) {
-        input.value = '';
-        triggerReactInput(input);
+      if (payload === lastPayload) {
+        return;
       }
-    });
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      saveInvoiceFields(block, true).finally(function () {
+        replayingSubmit = true;
+        submitButton.click();
+        replayingSubmit = false;
+      });
+    }, true);
+  }
+
+  function ensureInvoiceBlock() {
+    const target = findCheckoutEndTarget();
+
+    if (!target) {
+      return;
+    }
+
+    let block = document.querySelector(`.${blockClass}`);
+
+    if (!block) {
+      block = createInvoiceBlock();
+    }
+
+    if (block.parentElement !== target.container || (target.before && block.nextElementSibling !== target.before)) {
+      target.container.insertBefore(block, target.before || null);
+    }
+
+    bindInvoiceBlock(block);
   }
 
   function syncBillingAddressLabel() {
     document.querySelectorAll('.wc-block-checkout__billing-fields h2, .wc-block-checkout__billing-fields legend, .wc-block-checkout__billing-fields .wc-block-components-title').forEach(function (element) {
-      var label = element.textContent.trim();
+      const label = element.textContent.trim();
 
       if (billingAddressLabels.indexOf(label) !== -1) {
-        element.textContent = invoiceAddressLabel;
+        element.textContent = labels.invoiceAddress;
       }
     });
   }
 
   function syncCheckoutInvoiceUi() {
-    syncInvoiceFields();
+    ensureInvoiceBlock();
     syncBillingAddressLabel();
   }
 
-  document.addEventListener('change', function (event) {
-    if (event.target && event.target.matches(toggleSelector)) {
-      syncCheckoutInvoiceUi();
-    }
-  });
-
-  var observer = new MutationObserver(syncCheckoutInvoiceUi);
+  const observer = new MutationObserver(syncCheckoutInvoiceUi);
 
   function init() {
     syncCheckoutInvoiceUi();
