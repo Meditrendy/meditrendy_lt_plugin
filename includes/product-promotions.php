@@ -497,6 +497,70 @@ function meditrendy_product_promotions_for_product($product_id) {
     return $matched;
 }
 
+function meditrendy_product_promotions_sale_data($product_id) {
+    $product = wc_get_product($product_id);
+
+    if (!$product instanceof WC_Product || !$product->is_on_sale()) {
+        return null;
+    }
+
+    $regular_price = meditrendy_product_price_block_raw_price($product, 'regular');
+    $current_price = meditrendy_product_price_block_raw_price($product, 'current');
+
+    if (!is_numeric($regular_price) || !is_numeric($current_price) || (float) $regular_price <= (float) $current_price) {
+        return null;
+    }
+
+    $saving = (float) $regular_price - (float) $current_price;
+
+    if ($saving <= 0) {
+        return null;
+    }
+
+    $display_saving = wc_get_price_to_display($product, ['price' => $saving]);
+    $ends_at = meditrendy_product_promotions_sale_end_timestamp($product);
+
+    return [
+        'saving'  => $display_saving,
+        'ends_at' => $ends_at,
+    ];
+}
+
+function meditrendy_product_promotions_sale_end_timestamp($product) {
+    if (!$product instanceof WC_Product) {
+        return 0;
+    }
+
+    $timestamps = [];
+    $date = $product->get_date_on_sale_to();
+
+    if ($date) {
+        $timestamps[] = $date->getTimestamp();
+    }
+
+    if ($product->is_type('variable')) {
+        foreach ($product->get_children() as $child_id) {
+            $variation = wc_get_product($child_id);
+
+            if (!$variation instanceof WC_Product || !$variation->is_on_sale()) {
+                continue;
+            }
+
+            $variation_date = $variation->get_date_on_sale_to();
+
+            if ($variation_date) {
+                $timestamps[] = $variation_date->getTimestamp();
+            }
+        }
+    }
+
+    $timestamps = array_values(array_filter($timestamps, function($timestamp) {
+        return $timestamp > time();
+    }));
+
+    return $timestamps ? min($timestamps) : 0;
+}
+
 function meditrendy_product_promotions_enqueue_assets() {
     $path = MEDITRENDY_CORE_DIR . 'assets/js/product-promotions.js';
 
@@ -516,9 +580,10 @@ function meditrendy_product_promotions_render($product_id = 0, $display = '') {
         $product_id = get_queried_object_id();
     }
 
+    $sale_data = meditrendy_product_promotions_sale_data($product_id);
     $coupons = meditrendy_product_promotions_for_product($product_id);
 
-    if (!$coupons) {
+    if (!$sale_data && !$coupons) {
         return '';
     }
 
@@ -537,6 +602,22 @@ function meditrendy_product_promotions_render($product_id = 0, $display = '') {
     $copied_icon_url = get_stylesheet_directory_uri() . '/assets/copied.svg';
     ?>
     <div class="<?php echo esc_attr(implode(' ', $classes)); ?>" data-mt-pdp-promotions>
+        <?php if ($sale_data) : ?>
+            <div class="mt-pdp-promotion mt-pdp-promotion-sale">
+                <div class="mt-pdp-promotion-main">
+                    <span class="mt-pdp-promotion-label"><?php esc_html_e('Produktui taikoma nuolaida', 'meditrendy-core'); ?></span>
+                    <span class="mt-pdp-promotion-discount"><?php echo esc_html(sprintf(__('Sutaupote %s', 'meditrendy-core'), wp_strip_all_tags(wc_price($sale_data['saving'])))); ?></span>
+                </div>
+                <?php if (!empty($sale_data['ends_at'])) : ?>
+                    <div class="mt-pdp-promotion-meta">
+                        <span>
+                            <?php esc_html_e('Baigiasi už:', 'meditrendy-core'); ?>
+                            <span data-mt-promo-countdown="<?php echo esc_attr($sale_data['ends_at']); ?>"></span>
+                        </span>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
         <?php foreach ($coupons as $coupon) : ?>
             <div class="mt-pdp-promotion">
                 <div class="mt-pdp-promotion-main">
