@@ -55,6 +55,67 @@
     }
   };
 
+  const emitAddToCartTracking = (tracking, trigger = null) => {
+    if (!tracking || tracking.event !== 'add_to_cart') {
+      return;
+    }
+
+    const ecommerce = {
+      currency: tracking.currency || '',
+      value: Number(tracking.value || 0),
+      items: Array.isArray(tracking.items) ? tracking.items : [],
+    };
+
+    if (typeof window.gtm4wp_push_ecommerce === 'function') {
+      window.gtm4wp_push_ecommerce('add_to_cart', ecommerce.items, {
+        currency: ecommerce.currency,
+        value: ecommerce.value,
+      });
+    } else {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ ecommerce: null });
+      window.dataLayer.push({
+        event: 'add_to_cart',
+        ecommerce,
+      });
+    }
+
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'add_to_cart', ecommerce);
+    }
+
+    if (typeof window.fbq === 'function' && tracking.meta) {
+      window.fbq('track', 'AddToCart', tracking.meta);
+    }
+
+    if (window.jQuery) {
+      const $trigger = trigger ? window.jQuery(trigger) : window.jQuery();
+
+      if (tracking.product_id) {
+        $trigger
+          .attr('data-product_id', tracking.product_id)
+          .data('product_id', tracking.product_id);
+      }
+
+      if (tracking.quantity) {
+        $trigger
+          .attr('data-quantity', tracking.quantity)
+          .data('quantity', tracking.quantity);
+      }
+
+      window.jQuery(document.body).trigger('adding_to_cart', [$trigger, {
+        product_id: tracking.product_id || '',
+        quantity: tracking.quantity || 1,
+      }]);
+
+      window.jQuery(document.body).trigger('added_to_cart', [{}, '', $trigger]);
+    }
+
+    document.dispatchEvent(new CustomEvent('meditrendy_add_to_cart_tracked', {
+      detail: tracking,
+    }));
+  };
+
   const stripHtml = (value) => {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = String(value || '');
@@ -236,6 +297,8 @@
       const payload = await readResponsePayload(response);
 
       if (payload && payload.success && payload.data) {
+        emitAddToCartTracking(payload.data.tracking, options.trigger || null);
+
         if (blocking || requestMutationVersion === cartMutationVersion) {
           replaceContent(payload.data);
         }
@@ -658,7 +721,7 @@
     activeAddForm = form;
     setAddFormLoading(form, true);
 
-    const data = await request('meditrendy_side_cart_add', formData);
+    const data = await request('meditrendy_side_cart_add', formData, { trigger: submitter || form.querySelector('[type="submit"], button[name="add-to-cart"]') });
 
     if (data) {
       open(false);
