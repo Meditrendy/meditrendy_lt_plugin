@@ -249,6 +249,63 @@ function meditrendy_side_cart_tracking_item_attributes($cart_item) {
     return implode(' / ', array_filter($attributes));
 }
 
+function meditrendy_side_cart_tracking_line_value($cart_item) {
+    if (!is_array($cart_item)) {
+        return 0.0;
+    }
+
+    $line_total = isset($cart_item['line_total']) ? (float) $cart_item['line_total'] : 0.0;
+    $line_tax = isset($cart_item['line_tax']) ? (float) $cart_item['line_tax'] : 0.0;
+    $line_subtotal = isset($cart_item['line_subtotal']) ? (float) $cart_item['line_subtotal'] : 0.0;
+    $line_subtotal_tax = isset($cart_item['line_subtotal_tax']) ? (float) $cart_item['line_subtotal_tax'] : 0.0;
+    $line_value = $line_total + $line_tax;
+
+    if ($line_value <= 0 && ($line_subtotal + $line_subtotal_tax) > 0) {
+        $line_value = $line_subtotal + $line_subtotal_tax;
+    }
+
+    return max(0.0, $line_value);
+}
+
+function meditrendy_side_cart_tracking_cart_value($cart_item_key, $quantity, $product) {
+    if (!function_exists('WC') || !WC()->cart || empty(WC()->cart->cart_contents[$cart_item_key])) {
+        return 0.0;
+    }
+
+    $cart_item = WC()->cart->cart_contents[$cart_item_key];
+    $value = meditrendy_side_cart_tracking_line_value($cart_item);
+
+    if ($value <= 0) {
+        $cart_product_id = (string) ($cart_item['product_id'] ?? '');
+
+        foreach (WC()->cart->cart_contents as $child_item) {
+            $child_parent_id = (string) ($child_item['woosb_parent_id'] ?? '');
+
+            if ($child_parent_id !== (string) $cart_item_key && $child_parent_id !== $cart_product_id) {
+                continue;
+            }
+
+            $value += meditrendy_side_cart_tracking_line_value($child_item);
+        }
+    }
+
+    $product_value = 0.0;
+
+    if ($product instanceof WC_Product) {
+        $product_value = (float) wc_get_price_to_display($product) * max(1, (int) $quantity);
+    }
+
+    if ($value <= 0 && $product_value > 0) {
+        $value = $product_value;
+    }
+
+    if ($value > 0 && $product_value > 0 && $value > ($product_value * 1.2)) {
+        $value = $product_value;
+    }
+
+    return (float) wc_format_decimal($value, wc_get_price_decimals());
+}
+
 function meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity) {
     if (!function_exists('WC') || !WC()->cart || empty(WC()->cart->cart_contents[$cart_item_key])) {
         return [];
@@ -262,7 +319,8 @@ function meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $var
     }
 
     $quantity = max(1, (int) $quantity);
-    $price = (float) wc_get_price_to_display($product);
+    $value = meditrendy_side_cart_tracking_cart_value($cart_item_key, $quantity, $product);
+    $price = $value > 0 ? (float) wc_format_decimal($value / $quantity, wc_get_price_decimals()) : (float) wc_get_price_to_display($product);
     $item_id = $product->get_sku() ?: (string) ($variation_id ?: $product_id);
     $item_name = $product->get_name();
     $item_variant = meditrendy_side_cart_tracking_item_attributes($cart_item);
@@ -284,14 +342,14 @@ function meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $var
         'variation_id' => (int) $variation_id,
         'quantity' => $quantity,
         'currency' => get_woocommerce_currency(),
-        'value'    => $price * $quantity,
+        'value'    => $value,
         'items'    => [$ga4_item],
         'meta'     => [
             'content_ids'  => [$item_id],
             'content_name' => $item_name,
             'content_type' => 'product',
             'currency'     => get_woocommerce_currency(),
-            'value'        => $price * $quantity,
+            'value'        => $value,
         ],
     ];
 }
