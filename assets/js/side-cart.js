@@ -178,8 +178,26 @@
     );
   };
 
+  const isAddToCartAction = (action) => action === 'meditrendy_side_cart_add';
+
   const hasCartCookie = () => /(?:^|;\s*)woocommerce_items_in_cart=1(?:;|$)/.test(document.cookie || '') ||
     /(?:^|;\s*)woocommerce_cart_hash=([^;]+)/.test(document.cookie || '');
+
+  const recoverAddedCartFromSession = async (action, options = {}) => {
+    if (!isAddToCartAction(action) || !hasCartCookie()) {
+      return null;
+    }
+
+    return request(
+      'meditrendy_side_cart_get',
+      { include_upsells: options.includeUpsells === false ? 0 : 1 },
+      {
+        blocking: false,
+        silent: true,
+        upsellsLoading: true,
+      }
+    );
+  };
 
   const request = async (action, body = {}, options = {}) => {
     if (!ajaxUrl || !nonce) return null;
@@ -225,6 +243,14 @@
         return payload.data;
       }
 
+      if (payload && payload.success && isAddToCartAction(action)) {
+        const recoveredData = await recoverAddedCartFromSession(action, options);
+
+        if (recoveredData) {
+          return recoveredData;
+        }
+      }
+
       if (payload && payload.data && payload.data.message) {
         if (isSoftBundleAddError(action, formData, payload.data.message)) {
           return await request('meditrendy_side_cart_get', { include_upsells: 1 });
@@ -235,6 +261,12 @@
     } catch (error) {
       if (window.console) {
         window.console.warn('Meditrendy side cart request failed.', error);
+      }
+
+      const recoveredData = await recoverAddedCartFromSession(action, options);
+
+      if (recoveredData) {
+        return recoveredData;
       }
 
       if (!options.silent && error && error.message) {
