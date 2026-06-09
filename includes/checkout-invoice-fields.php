@@ -165,7 +165,7 @@ add_action('wp_enqueue_scripts', function() {
             'labels'          => [
                 'invoiceRequired' => 'Reikia sąskaitos faktūros įmonei',
                 'companyName'     => 'Įmonės pavadinimas (nebūtina)',
-                'companyCode'     => 'Įmonės kodas (nebūtina)',
+                'companyCode'     => 'PVM mokėtojo kodas (nebūtina)',
                 'invoiceAddress'  => 'Adresas sąskaitai',
             ],
         ]

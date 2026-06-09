@@ -7,7 +7,7 @@
   const labels = Object.assign({
     invoiceRequired: 'Reikia s\u0105skaitos fakt\u016bros \u012fmonei',
     companyName: '\u012emon\u0117s pavadinimas (neb\u016btina)',
-    companyCode: '\u012emon\u0117s kodas (neb\u016btina)',
+    companyCode: 'PVM mok\u0117tojo kodas (neb\u016btina)',
     invoiceAddress: 'Adresas s\u0105skaitai'
   }, settings.labels || {});
 
