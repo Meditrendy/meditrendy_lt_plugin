@@ -3,6 +3,8 @@
 
   var toggleSelector = '[data-meditrendy-invoice-toggle]';
   var dependentSelector = '[data-meditrendy-invoice-dependent]';
+  var billingAddressLabels = ['Billing address', 'Pirk\u0117jo adresas'];
+  var invoiceAddressLabel = 'Adresas s\u0105skaitai';
 
   function getFieldWrap(input) {
     return input.closest(
@@ -35,16 +37,31 @@
     });
   }
 
+  function syncBillingAddressLabel() {
+    document.querySelectorAll('.wc-block-checkout__billing-fields h2, .wc-block-checkout__billing-fields legend, .wc-block-checkout__billing-fields .wc-block-components-title').forEach(function (element) {
+      var label = element.textContent.trim();
+
+      if (billingAddressLabels.indexOf(label) !== -1) {
+        element.textContent = invoiceAddressLabel;
+      }
+    });
+  }
+
+  function syncCheckoutInvoiceUi() {
+    syncInvoiceFields();
+    syncBillingAddressLabel();
+  }
+
   document.addEventListener('change', function (event) {
     if (event.target && event.target.matches(toggleSelector)) {
-      syncInvoiceFields();
+      syncCheckoutInvoiceUi();
     }
   });
 
-  var observer = new MutationObserver(syncInvoiceFields);
+  var observer = new MutationObserver(syncCheckoutInvoiceUi);
 
   function init() {
-    syncInvoiceFields();
+    syncCheckoutInvoiceUi();
 
     if (document.body) {
       observer.observe(document.body, {

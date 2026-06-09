@@ -13,6 +13,18 @@ add_filter('pre_option_woocommerce_checkout_company_field', function() {
     return 'hidden';
 });
 
+add_filter('gettext', function($translation, $text, $domain) {
+    if ($domain !== 'woocommerce' || !function_exists('is_checkout') || !is_checkout()) {
+        return $translation;
+    }
+
+    if ($text === 'Billing address' || $translation === 'Pirkėjo adresas') {
+        return 'Adresas sąskaitai';
+    }
+
+    return $translation;
+}, 20, 3);
+
 function meditrendy_register_checkout_invoice_fields() {
     static $registered = false;
 
