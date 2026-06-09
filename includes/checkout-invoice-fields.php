@@ -68,7 +68,7 @@ function meditrendy_register_checkout_invoice_fields() {
     woocommerce_register_additional_checkout_field([
         'id'            => 'meditrendy/company_name',
         'label'         => 'Įmonės pavadinimas',
-        'optionalLabel' => 'Įmonės pavadinimas (nebūtina)',
+        'optionalLabel' => 'Įmonės pavadinimas',
         'location'      => 'contact',
         'type'          => 'text',
         'required'      => false,
@@ -82,8 +82,8 @@ function meditrendy_register_checkout_invoice_fields() {
 
     woocommerce_register_additional_checkout_field([
         'id'            => 'meditrendy/company_code',
-        'label'         => 'Įmonės kodas',
-        'optionalLabel' => 'Įmonės kodas (nebūtina)',
+        'label'         => 'PVM mokėtojo kodas',
+        'optionalLabel' => 'PVM mokėtojo kodas',
         'location'      => 'contact',
         'type'          => 'text',
         'required'      => false,
