@@ -4,11 +4,14 @@
   const settings = window.meditrendyCheckoutInvoice || {};
   const blockClass = 'meditrendy-checkout-invoice-fields';
   const phoneClass = 'meditrendy-checkout-contact-phone';
+  const nameClass = 'meditrendy-checkout-contact-name';
   const billingAddressLabels = ['Billing address', 'Pirkėjo adresas'];
   const pickupLabels = ['atsiėmimas', 'atsiimimas', 'pickup', 'collection'];
   const billingToggleLabels = ['naudoti tą patį adresą', 'use same address', 'same address'];
   const labels = Object.assign({
     contactPhone: 'Telefonas',
+    firstName: 'Vardas',
+    lastName: 'Pavardė',
     invoiceRequired: 'Reikia sąskaitos faktūros įmonei',
     companyName: 'Įmonės pavadinimas',
     companyCode: 'PVM mokėtojo kodas',
@@ -54,6 +57,17 @@
     const field = createTextInput('meditrendy_contact_phone', labels.contactPhone, settings.contactPhone, 'tel', 'tel');
     field.classList.add(phoneClass);
     return field;
+  }
+
+  function createContactNameFields() {
+    const fields = document.createElement('div');
+    fields.className = `${nameClass} meditrendy-checkout-invoice-fields__row`;
+    fields.append(
+      createTextInput('meditrendy_contact_first_name', labels.firstName, '', 'given-name'),
+      createTextInput('meditrendy_contact_last_name', labels.lastName, '', 'family-name')
+    );
+
+    return fields;
   }
 
   function createInvoiceBlock() {
@@ -153,6 +167,16 @@
     return document.querySelector('#meditrendy_contact_phone');
   }
 
+  function getContactNameValues() {
+    const firstName = document.querySelector('#meditrendy_contact_first_name');
+    const lastName = document.querySelector('#meditrendy_contact_last_name');
+
+    return {
+      first_name: firstName && firstName.offsetParent !== null ? firstName.value || '' : '',
+      last_name: lastName && lastName.offsetParent !== null ? lastName.value || '' : ''
+    };
+  }
+
   function getPayload(block) {
     const checkbox = block.querySelector('#meditrendy_invoice_required');
     const companyName = block.querySelector('#meditrendy_company_name');
@@ -193,6 +217,45 @@
     return input ? input.value || '' : '';
   }
 
+  function isVisibleCustomerField(field) {
+    return !!field &&
+      field.offsetParent !== null &&
+      field.closest('[hidden]') === null &&
+      field.closest(`.${blockClass}`) === null &&
+      field.type !== 'hidden';
+  }
+
+  function getFieldLabelText(field) {
+    const label = field.id ? document.querySelector(`label[for="${field.id}"]`) : null;
+    const wrapper = findFieldWrapper(field);
+
+    return [
+      label ? label.textContent : '',
+      wrapper ? wrapper.textContent : '',
+      field.placeholder || '',
+      field.getAttribute('aria-label') || '',
+      field.autocomplete || '',
+      field.name || '',
+      field.id || ''
+    ].join(' ').trim().replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function getInputValueByLabel(labelParts) {
+    const inputs = Array.from(document.querySelectorAll('input, select, textarea'));
+    const field = inputs.find(function (input) {
+      if (!isVisibleCustomerField(input)) {
+        return false;
+      }
+
+      const text = getFieldLabelText(input);
+      return labelParts.some(function (labelPart) {
+        return text.indexOf(labelPart) !== -1;
+      });
+    });
+
+    return field ? field.value || '' : '';
+  }
+
   function getWooStore(store) {
     if (!window.wp || !window.wp.data || !window.wc || !window.wc.wcBlocksData || !window.wc.wcBlocksData[store]) {
       return null;
@@ -205,15 +268,44 @@
   }
 
   function getVisibleShippingAddress() {
+    const contactName = getContactNameValues();
+    const firstName = contactName.first_name || getInputValue('input[autocomplete*="given-name"], input[name*="first_name"], input[id*="first_name"]') || getInputValueByLabel(['vardas', 'first name', 'given name']);
+    const lastName = contactName.last_name || getInputValue('input[autocomplete*="family-name"], input[name*="last_name"], input[id*="last_name"]') || getInputValueByLabel(['pavardė', 'pavarde', 'last name', 'surname', 'family name']);
+
     return {
-      first_name: getInputValue('input[autocomplete*="given-name"], input[name*="first_name"]'),
-      last_name: getInputValue('input[autocomplete*="family-name"], input[name*="last_name"]'),
+      first_name: firstName,
+      last_name: lastName,
       address_1: getInputValue('input[autocomplete*="address-line1"]'),
       address_2: getInputValue('input[autocomplete*="address-line2"]'),
       city: getInputValue('input[autocomplete*="address-level2"]'),
       postcode: getInputValue('input[autocomplete*="postal-code"]'),
       country: getInputValue('select[autocomplete*="country"], input[autocomplete*="country"]'),
       state: ''
+    };
+  }
+
+  function getScopedInputValue(container, selectors) {
+    if (!container) {
+      return '';
+    }
+
+    const input = Array.from(container.querySelectorAll(selectors)).find(isVisibleCustomerField);
+    return input ? input.value || '' : '';
+  }
+
+  function getVisibleBillingAddress() {
+    const section = document.querySelector('.wc-block-checkout__billing-fields');
+
+    return {
+      first_name: getScopedInputValue(section, 'input[autocomplete*="given-name"], input[name*="first_name"], input[id*="first_name"]'),
+      last_name: getScopedInputValue(section, 'input[autocomplete*="family-name"], input[name*="last_name"], input[id*="last_name"]'),
+      company: getScopedInputValue(section, 'input[autocomplete*="organization"], input[name*="company"], input[id*="company"]'),
+      address_1: getScopedInputValue(section, 'input[autocomplete*="address-line1"]'),
+      address_2: getScopedInputValue(section, 'input[autocomplete*="address-line2"]'),
+      city: getScopedInputValue(section, 'input[autocomplete*="address-level2"]'),
+      postcode: getScopedInputValue(section, 'input[autocomplete*="postal-code"]'),
+      country: getScopedInputValue(section, 'select[autocomplete*="country"], input[autocomplete*="country"]'),
+      state: getScopedInputValue(section, 'input[autocomplete*="address-level1"], select[autocomplete*="address-level1"], input[name*="_state"], select[name*="_state"]')
     };
   }
 
@@ -228,6 +320,15 @@
       city: block && block.querySelector('#meditrendy_invoice_city') ? block.querySelector('#meditrendy_invoice_city').value : '',
       postcode: block && block.querySelector('#meditrendy_invoice_postcode') ? block.querySelector('#meditrendy_invoice_postcode').value : ''
     };
+  }
+
+  function getPickupAddressFallback() {
+    return compactAddress(Object.assign({
+      address_1: 'Verkių g. 42, D81',
+      city: 'Vilnius',
+      postcode: 'LT-09117',
+      country: 'LT'
+    }, settings.pickupAddress || {}));
   }
 
   function compactAddress(address) {
@@ -258,12 +359,31 @@
     const currentBilling = compactAddress(cartData.billingAddress || {});
     const visibleShipping = getVisibleShippingAddress();
     const invoice = getInvoiceAddress();
+    const pickup = isPickupSelected();
     const contactPhone = getPhoneField() ? getPhoneField().value : '';
     const email = getInputValue('#email, input[type="email"], input[autocomplete="email"]') || currentBilling.email || '';
-    const mergedShipping = compactAddress(Object.assign({}, currentShipping, {
-      phone: contactPhone || currentShipping.phone
-    }));
-    const baseBilling = compactAddress(Object.assign({}, currentBilling, currentShipping, visibleShipping, {
+    const mergedShipping = compactAddress(Object.assign(
+      {},
+      currentShipping,
+      {
+        first_name: visibleShipping.first_name || currentShipping.first_name,
+        last_name: visibleShipping.last_name || currentShipping.last_name,
+        phone: contactPhone || currentShipping.phone
+      }
+    ));
+    const baseBilling = pickup ? compactAddress(Object.assign({}, currentBilling, {
+      first_name: visibleShipping.first_name || currentShipping.first_name || currentBilling.first_name,
+      last_name: visibleShipping.last_name || currentShipping.last_name || currentBilling.last_name,
+      company: currentBilling.company,
+      address_1: '',
+      address_2: '',
+      city: '',
+      state: '',
+      postcode: '',
+      country: currentBilling.country || 'LT',
+      phone: contactPhone || currentBilling.phone || currentShipping.phone,
+      email: email
+    })) : compactAddress(Object.assign({}, currentBilling, currentShipping, visibleShipping, {
       first_name: visibleShipping.first_name || currentShipping.first_name || currentBilling.first_name,
       last_name: visibleShipping.last_name || currentShipping.last_name || currentBilling.last_name,
       country: visibleShipping.country || currentShipping.country || currentBilling.country || 'LT',
@@ -321,13 +441,57 @@
       const hidden = field.hidden || field.closest('[hidden]') !== null || field.offsetParent === null;
       const value = Object.prototype.hasOwnProperty.call(values, field.name) ? values[field.name] : '';
 
-      if (value && field.value !== value) {
-        field.value = value;
-        field.dispatchEvent(new Event('input', { bubbles: true }));
-        field.dispatchEvent(new Event('change', { bubbles: true }));
+      if (hidden) {
+        if (value && field.value !== value) {
+          field.value = value;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          field.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        if (field.required) {
+          field.dataset.meditrendyWasRequired = '1';
+        }
+
+        if (!field.disabled) {
+          field.dataset.meditrendyWasDisabled = '1';
+        }
+
+        field.required = false;
+        field.setAttribute('aria-required', 'false');
+        field.disabled = true;
+      } else {
+        if (field.dataset.meditrendyWasRequired === '1') {
+          field.required = true;
+          field.removeAttribute('aria-required');
+          delete field.dataset.meditrendyWasRequired;
+        }
+
+        if (field.dataset.meditrendyWasDisabled === '1') {
+          field.disabled = false;
+          delete field.dataset.meditrendyWasDisabled;
+        }
+      }
+    });
+  }
+
+  function syncHiddenPickupShippingFields() {
+    const pickup = isPickupSelected();
+
+    document.querySelectorAll('.wc-block-components-address-form input, .wc-block-components-address-form select, .wc-block-components-address-form textarea').forEach(function (field) {
+      if (field.type === 'checkbox' || field.type === 'radio' || field.type === 'hidden') {
+        return;
       }
 
-      if (hidden) {
+      const meta = ((field.autocomplete || '') + ' ' + (field.name || '') + ' ' + (field.id || '')).toLowerCase();
+      const isAddressField = meta.indexOf('address-line') !== -1 || meta.indexOf('address-level') !== -1 || meta.indexOf('postal-code') !== -1 || meta.indexOf('postcode') !== -1 || meta.indexOf('country') !== -1 || meta.indexOf('state') !== -1;
+
+      if (!isAddressField) {
+        return;
+      }
+
+      const hidden = field.hidden || field.closest('[hidden]') !== null || field.offsetParent === null;
+
+      if (pickup && hidden) {
         if (field.required) {
           field.dataset.meditrendyWasRequired = '1';
         }
@@ -335,12 +499,137 @@
         field.required = false;
         field.setAttribute('aria-required', 'false');
         field.disabled = true;
-      } else if (field.dataset.meditrendyWasRequired === '1') {
+      } else if (!pickup && field.dataset.meditrendyWasRequired === '1') {
         field.required = true;
         field.removeAttribute('aria-required');
         field.disabled = false;
       }
     });
+  }
+
+  function patchCheckoutPayloadForPickup(payload) {
+    if (!payload || !isPickupSelected()) {
+      return payload;
+    }
+
+    const pickupAddress = getPickupAddressFallback();
+    const invoice = getInvoiceAddress();
+    const visibleShipping = getVisibleShippingAddress();
+    const visibleBilling = getVisibleBillingAddress();
+    const currentBilling = compactAddress(payload.billing_address || {});
+    const currentShipping = compactAddress(payload.shipping_address || {});
+    const contactPhone = getPhoneField() ? getPhoneField().value : '';
+    const firstName = currentBilling.first_name || visibleBilling.first_name || currentShipping.first_name || visibleShipping.first_name;
+    const lastName = currentBilling.last_name || visibleBilling.last_name || currentShipping.last_name || visibleShipping.last_name;
+    const phone = contactPhone || currentShipping.phone || currentBilling.phone;
+    const email = currentBilling.email || getInputValue('#email, input[type="email"], input[autocomplete="email"]');
+    const invoiceAddress = invoice.invoiceRequired ? {
+      company: invoice.company || visibleBilling.company || currentBilling.company,
+      address_1: invoice.address_1 || visibleBilling.address_1 || currentBilling.address_1,
+      address_2: '',
+      city: invoice.city || visibleBilling.city || currentBilling.city,
+      postcode: invoice.postcode || visibleBilling.postcode || currentBilling.postcode,
+      country: visibleBilling.country || currentBilling.country || pickupAddress.country,
+      state: visibleBilling.state || currentBilling.state
+    } : visibleBilling;
+
+    payload.shipping_address = compactAddress(Object.assign({}, currentShipping, pickupAddress, {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone
+    }));
+
+    payload.billing_address = compactAddress(Object.assign({}, currentBilling, invoiceAddress, {
+      first_name: firstName,
+      last_name: lastName,
+      country: invoiceAddress.country || currentBilling.country || pickupAddress.country,
+      phone: phone,
+      email: email
+    }));
+
+    return payload;
+  }
+
+  function getPickupCheckoutPayload() {
+    if (!isPickupSelected()) {
+      return null;
+    }
+
+    const store = getWooStore('cartStore');
+
+    if (!store || !store.select || typeof store.select.getCartData !== 'function') {
+      return null;
+    }
+
+    const cartData = store.select.getCartData() || {};
+    return patchCheckoutPayloadForPickup({
+      billing_address: cartData.billingAddress || {},
+      shipping_address: cartData.shippingAddress || {}
+    });
+  }
+
+  function preparePickupAddressForFinalRequest() {
+    const payload = getPickupCheckoutPayload();
+
+    if (!payload) {
+      return;
+    }
+
+    lastComputedBillingAddress = payload.billing_address;
+  }
+
+  function installCheckoutRequestPatch() {
+    if (!window.fetch || window.fetch.__meditrendyCheckoutPayloadPatched) {
+      return;
+    }
+
+    const originalFetch = window.fetch;
+
+    const patchCheckoutJsonBody = function (body) {
+      try {
+        const payload = JSON.parse(body);
+        const patchedPayload = patchCheckoutPayloadForPickup(payload);
+        return JSON.stringify(patchedPayload);
+      } catch (error) {
+        return body;
+      }
+    };
+
+    window.fetch = function (input, init) {
+      const url = typeof input === 'string' ? input : input && input.url ? input.url : '';
+      const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+      const isCheckoutRequest = url.indexOf('/wc/store/') !== -1 && url.indexOf('/checkout') !== -1;
+      const fetchContext = this;
+
+      if (isCheckoutRequest && method === 'POST' && init && typeof init.body === 'string') {
+        init = Object.assign({}, init, {
+          body: patchCheckoutJsonBody(init.body)
+        });
+      } else if (isCheckoutRequest && method === 'POST' && typeof Request !== 'undefined' && input instanceof Request && (!init || typeof init.body === 'undefined')) {
+        return input.clone().text().then(function (body) {
+          const patchedRequest = new Request(input, {
+            body: patchCheckoutJsonBody(body)
+          });
+          return originalFetch.call(fetchContext, patchedRequest, init);
+        }).catch(function () {
+          return originalFetch.call(fetchContext, input, init);
+        });
+      }
+
+      const request = originalFetch.call(this, input, init);
+
+      if (!isCheckoutRequest) {
+        return request;
+      }
+
+      return request.then(function (response) {
+        return response;
+      }).catch(function (error) {
+        throw error;
+      });
+    };
+
+    window.fetch.__meditrendyCheckoutPayloadPatched = true;
   }
 
   function saveInvoiceFields(block, immediate) {
@@ -392,12 +681,16 @@
 
     block.addEventListener('change', function () {
       syncInvoiceBlockVisibility(block);
-      syncWooCheckoutAddresses('invoice change');
+      if (!isPickupSelected()) {
+        syncWooCheckoutAddresses('invoice change');
+      }
       saveInvoiceFields(block, true);
     });
 
     block.addEventListener('input', function () {
-      syncWooCheckoutAddresses('invoice input');
+      if (!isPickupSelected()) {
+        syncWooCheckoutAddresses('invoice input');
+      }
       saveInvoiceFields(block, false);
     });
 
@@ -408,8 +701,30 @@
         return;
       }
 
-      syncWooCheckoutAddresses('place order click');
+      if (isPickupSelected()) {
+        preparePickupAddressForFinalRequest();
+      } else {
+        syncWooCheckoutAddresses('place order click');
+      }
       syncHiddenBillingNativeFields('place order click');
+      syncHiddenPickupShippingFields();
+      saveInvoiceFields(block, true);
+    }, true);
+
+    document.addEventListener('submit', function (event) {
+      const form = event.target.closest('.wc-block-checkout__form, form.wc-block-checkout__form');
+
+      if (!form) {
+        return;
+      }
+
+      if (isPickupSelected()) {
+        preparePickupAddressForFinalRequest();
+      } else {
+        syncWooCheckoutAddresses('place order submit');
+      }
+      syncHiddenBillingNativeFields('place order submit');
+      syncHiddenPickupShippingFields();
       saveInvoiceFields(block, true);
     }, true);
   }
@@ -422,14 +737,78 @@
     field.dataset.meditrendyPhoneReady = '1';
     field.addEventListener('input', function () {
       const block = document.querySelector(`.${blockClass}`);
-      syncWooCheckoutAddresses('phone input');
+      if (!isPickupSelected()) {
+        syncWooCheckoutAddresses('phone input');
+      }
       saveInvoiceFields(block, false);
     });
 
     field.addEventListener('change', function () {
       const block = document.querySelector(`.${blockClass}`);
-      syncWooCheckoutAddresses('phone change');
+      if (!isPickupSelected()) {
+        syncWooCheckoutAddresses('phone change');
+      }
       saveInvoiceFields(block, true);
+    });
+  }
+
+  function prefillContactNameFields(block) {
+    if (!block || !isPickupSelected()) {
+      return;
+    }
+
+    const firstName = block.querySelector('#meditrendy_contact_first_name');
+    const lastName = block.querySelector('#meditrendy_contact_last_name');
+
+    if (!firstName || !lastName || (firstName.value && lastName.value)) {
+      return;
+    }
+
+    const store = getWooStore('cartStore');
+    const cartData = store && store.select && typeof store.select.getCartData === 'function' ? store.select.getCartData() || {} : {};
+    const billing = compactAddress(cartData.billingAddress || {});
+    const shipping = compactAddress(cartData.shippingAddress || {});
+
+    if (!firstName.value) {
+      firstName.value = billing.first_name || shipping.first_name || '';
+    }
+
+    if (!lastName.value) {
+      lastName.value = billing.last_name || shipping.last_name || '';
+    }
+  }
+
+  function syncContactNameFieldsVisibility(block) {
+    if (!block) {
+      return;
+    }
+
+    const pickup = isPickupSelected();
+    block.hidden = !pickup;
+
+    block.querySelectorAll('input').forEach(function (input) {
+      input.required = pickup;
+      input.disabled = !pickup;
+      input.setAttribute('aria-required', pickup ? 'true' : 'false');
+    });
+
+    prefillContactNameFields(block);
+  }
+
+  function bindContactNameFields(block) {
+    if (block.dataset.meditrendyNameReady === '1') {
+      return;
+    }
+
+    block.dataset.meditrendyNameReady = '1';
+    block.addEventListener('input', function () {
+      syncWooCheckoutAddresses('contact name input');
+      syncHiddenBillingNativeFields('contact name input');
+    });
+
+    block.addEventListener('change', function () {
+      syncWooCheckoutAddresses('contact name change');
+      syncHiddenBillingNativeFields('contact name change');
     });
   }
 
@@ -455,6 +834,32 @@
     }
 
     bindContactPhone(field);
+  }
+
+  function ensureContactNameFields() {
+    const phone = getPhoneField();
+    const phoneWrap = phone ? phone.closest(`.${phoneClass}`) : null;
+    const target = phoneWrap && phoneWrap.parentElement ? {
+      container: phoneWrap.parentElement,
+      after: phoneWrap
+    } : findContactTarget();
+
+    if (!target || !target.container || !target.after) {
+      return;
+    }
+
+    let fields = document.querySelector(`.${nameClass}`);
+
+    if (!fields) {
+      fields = createContactNameFields();
+    }
+
+    if (fields.parentElement !== target.container || fields.previousElementSibling !== target.after) {
+      target.after.insertAdjacentElement('afterend', fields);
+    }
+
+    bindContactNameFields(fields);
+    syncContactNameFieldsVisibility(fields);
   }
 
   function ensureInvoiceBlock() {
@@ -561,7 +966,7 @@
     });
 
     document.querySelectorAll('.wc-block-checkout__billing-fields').forEach(function (section) {
-      section.hidden = true;
+      section.hidden = !pickup;
     });
 
     document.querySelectorAll('.wc-block-components-address-form').forEach(function (form) {
@@ -571,11 +976,14 @@
         return;
       }
 
+      const isBillingForm = form.closest('.wc-block-checkout__billing-fields') !== null;
+      const shouldHideAddressFields = pickup && !isBillingForm;
+
       form.querySelectorAll('[autocomplete*="address-line1"], [autocomplete*="address-line2"], [autocomplete*="postal-code"], [autocomplete*="address-level2"], [autocomplete*="country"]').forEach(function (input) {
         const wrapper = findFieldWrapper(input);
 
         if (wrapper) {
-          wrapper.hidden = pickup;
+          wrapper.hidden = shouldHideAddressFields;
         }
       });
     });
@@ -586,19 +994,26 @@
     ensureInvoiceBlock();
     syncBillingAddressLabel();
     hideNativeAddressFields();
-    syncWooCheckoutAddresses('ui sync');
+    if (!isPickupSelected()) {
+      syncWooCheckoutAddresses('ui sync');
+    }
     syncHiddenBillingNativeFields('ui sync');
+    syncHiddenPickupShippingFields();
   }
 
   const observer = new MutationObserver(syncCheckoutInvoiceUi);
 
   function init() {
+    installCheckoutRequestPatch();
     syncCheckoutInvoiceUi();
 
     document.addEventListener('change', function (event) {
       if (event.target && event.target.matches('input, select')) {
-        syncWooCheckoutAddresses('field change');
+        if (!isPickupSelected()) {
+          syncWooCheckoutAddresses('field change');
+        }
         syncHiddenBillingNativeFields('field change');
+        syncHiddenPickupShippingFields();
         window.setTimeout(syncCheckoutInvoiceUi, 50);
       }
     }, true);
@@ -607,8 +1022,11 @@
       if (event.target && event.target.matches('input, select, textarea')) {
         window.clearTimeout(addressSyncTimer);
         addressSyncTimer = window.setTimeout(function () {
-          syncWooCheckoutAddresses('document input');
+          if (!isPickupSelected()) {
+            syncWooCheckoutAddresses('document input');
+          }
           syncHiddenBillingNativeFields('document input');
+          syncHiddenPickupShippingFields();
         }, 50);
       }
     }, true);
