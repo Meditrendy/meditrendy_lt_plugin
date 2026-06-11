@@ -3,7 +3,7 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Meditrendy checkout translation overrides for WooCommerce Blocks.
+ * Meditrendy checkout and order email translation overrides for WooCommerce.
  */
 
 function meditrendy_checkout_translation_map() {
@@ -11,6 +11,44 @@ function meditrendy_checkout_translation_map() {
         'Coupon code "%s" has been applied to your cart.' => 'Nuolaidos kodas „%s“ pritaikytas jūsų krepšeliui.',
         'Coupon code "%s" has been removed from your cart.' => 'Nuolaidos kodas „%s“ pašalintas iš jūsų krepšelio.',
         'Including %s VAT' => 'Įskaitant %s PVM',
+        'VAT' => 'PVM',
+        '(includes %s)' => '(įskaičiuota %s)',
+        'Collection from <strong>%s</strong>:' => 'Atsiėmimas iš <strong>%s</strong>:',
+        'Collection from %s:' => 'Atsiėmimas iš %s:',
+        'Thank you for your order' => 'Dėkojame už užsakymą',
+        'Thanks for shopping with us.' => 'Ačiū, kad perkate pas mus.',
+        'Thanks again! If you need any help with your order, please contact us at %s.' => 'Dar kartą dėkojame! Jei reikia pagalbos dėl užsakymo, susisiekite su mumis: %s.',
+        'Thanks again! If you need any help with your order, please contact us at {store_email}.' => 'Dar kartą dėkojame! Jei reikia pagalbos dėl užsakymo, susisiekite su mumis: {store_email}.',
+        'If you need any help with your order, please contact us at {store_email}.' => 'Jei reikia pagalbos dėl užsakymo, susisiekite su mumis: {store_email}.',
+        'We look forward to fulfilling your order soon.' => 'Netrukus pradėsime vykdyti jūsų užsakymą.',
+        'Hi %s,' => 'Sveiki, %s,',
+        'Just to let you know &mdash; we’ve received your order, and it is now being processed.' => 'Informuojame, kad gavome jūsų užsakymą ir šiuo metu jį apdorojame.',
+        'Just to let you know — we’ve received your order, and it is now being processed.' => 'Informuojame, kad gavome jūsų užsakymą ir šiuo metu jį apdorojame.',
+        'Just to let you know &mdash; we\'ve received your order #%s, and it is now being processed:' => 'Informuojame, kad gavome jūsų užsakymą #%s ir šiuo metu jį apdorojame:',
+        'Just to let you know &mdash; we’ve received your order #%s, and it is now being processed:' => 'Informuojame, kad gavome jūsų užsakymą #%s ir šiuo metu jį apdorojame:',
+        'Just to let you know &mdash; we\'ve received your order #%s:' => 'Informuojame, kad gavome jūsų užsakymą #%s:',
+        'Just to let you know &mdash; we’ve received your order #%s:' => 'Informuojame, kad gavome jūsų užsakymą #%s:',
+        'Your order has been received and is now being processed. Your order details are shown below for your reference:' => 'Jūsų užsakymas gautas ir šiuo metu apdorojamas. Užsakymo informacija pateikta žemiau:',
+        'Order summary' => 'Užsakymo suvestinė',
+        'Order details' => 'Užsakymo informacija',
+        'Order #%s' => 'Užsakymas #%s',
+        'Order number:' => 'Užsakymo numeris:',
+        'Date:' => 'Data:',
+        'Product' => 'Produktas',
+        'Quantity' => 'Kiekis',
+        'Price' => 'Kaina',
+        'Subtotal:' => 'Suma:',
+        'Shipping:' => 'Pristatymas:',
+        'Payment method:' => 'Mokėjimo būdas:',
+        'Total:' => 'Viso:',
+        'Billing address' => 'Adresas sąskaitai',
+        'Shipping address' => 'Pristatymo adresas',
+        'Customer details' => 'Pirkėjo informacija',
+        'Email:' => 'El. paštas:',
+        'Telephone:' => 'Telefonas:',
+        'Note:' => 'Pastaba:',
+        'Customer note' => 'Pirkėjo pastaba',
+        'View order' => 'Peržiūrėti užsakymą',
     ];
 }
 
@@ -21,6 +59,34 @@ function meditrendy_translate_woocommerce_checkout_string($translation, $text, $
 }
 
 add_filter('gettext_woocommerce', 'meditrendy_translate_woocommerce_checkout_string', 20, 3);
+
+function meditrendy_translate_woocommerce_email_content($content) {
+    if (!is_string($content) || '' === $content) {
+        return $content;
+    }
+
+    $content = str_replace(
+        [
+            'Just to let you know — we’ve received your order, and it is now being processed.',
+            'Just to let you know &mdash; we’ve received your order, and it is now being processed.',
+        ],
+        'Informuojame, kad gavome jūsų užsakymą ir šiuo metu jį apdorojame.',
+        $content
+    );
+
+    $content = preg_replace(
+        '/Thanks again!\s*If you need any help with your order,\s*please contact us at ([^<.]+(?:\.[^<.]+)*?)\./u',
+        'Dar kartą dėkojame! Jei reikia pagalbos dėl užsakymo, susisiekite su mumis: $1.',
+        $content
+    );
+
+    $content = preg_replace('/Collection from\s+(<strong>)?(.+?)(<\/strong>)?:/u', 'Atsiėmimas iš $1$2$3:', $content);
+    $content = str_replace([' VAT)', ' VAT<', ' VAT '], [' PVM)', ' PVM<', ' PVM '], $content);
+
+    return $content;
+}
+
+add_filter('woocommerce_mail_content', 'meditrendy_translate_woocommerce_email_content', 30);
 
 function meditrendy_translate_price_display_suffix($value) {
     if (!is_string($value) || '' === trim($value)) {
