@@ -3,7 +3,7 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Checkout invoice fields.
+ * Checkout contact and invoice fields.
  *
  * These fields intentionally do not use WooCommerce Blocks Additional Checkout
  * Fields. Toggling an additional field refreshes checkout state on this site
@@ -13,6 +13,37 @@ if (!defined('ABSPATH')) exit;
 add_filter('pre_option_woocommerce_checkout_company_field', function() {
     return 'hidden';
 });
+
+add_filter('pre_option_woocommerce_checkout_phone_field', function() {
+    return 'hidden';
+});
+
+function meditrendy_hide_checkout_state_field($locale) {
+    if (!is_array($locale)) {
+        return $locale;
+    }
+
+    if (isset($locale['state']) && is_array($locale['state'])) {
+        $locale['state']['required'] = false;
+        $locale['state']['hidden']   = true;
+    }
+
+    return $locale;
+}
+add_filter('woocommerce_get_country_locale_default', 'meditrendy_hide_checkout_state_field', 20);
+add_filter('woocommerce_get_country_locale_base', 'meditrendy_hide_checkout_state_field', 20);
+
+add_filter('woocommerce_get_country_locale', function($locales) {
+    if (!is_array($locales)) {
+        return $locales;
+    }
+
+    foreach ($locales as $country => $locale) {
+        $locales[$country] = meditrendy_hide_checkout_state_field($locale);
+    }
+
+    return $locales;
+}, 20);
 
 add_filter('gettext', function($translation, $text, $domain) {
     if ($domain !== 'woocommerce' || !function_exists('is_checkout') || !is_checkout()) {
@@ -42,19 +73,27 @@ function meditrendy_get_checkout_invoice_session_data() {
     if (!function_exists('WC') || !WC()->session) {
         return [
             'invoiceRequired' => false,
+            'contactPhone'    => '',
             'companyName'     => '',
             'companyCode'     => '',
+            'invoiceStreet'   => '',
+            'invoiceCity'     => '',
+            'invoicePostcode' => '',
         ];
     }
 
     return [
         'invoiceRequired' => (bool) WC()->session->get('meditrendy_invoice_required', false),
+        'contactPhone'    => (string) WC()->session->get('meditrendy_contact_phone', ''),
         'companyName'     => (string) WC()->session->get('meditrendy_company_name', ''),
         'companyCode'     => (string) WC()->session->get('meditrendy_company_code', ''),
+        'invoiceStreet'   => (string) WC()->session->get('meditrendy_invoice_street', ''),
+        'invoiceCity'     => (string) WC()->session->get('meditrendy_invoice_city', ''),
+        'invoicePostcode' => (string) WC()->session->get('meditrendy_invoice_postcode', ''),
     ];
 }
 
-function meditrendy_set_checkout_invoice_session_data($invoice_required, $company_name, $company_code) {
+function meditrendy_set_checkout_invoice_session_data($invoice_required, $contact_phone, $company_name, $company_code, $invoice_street, $invoice_city, $invoice_postcode) {
     meditrendy_ensure_checkout_invoice_session();
 
     if (!function_exists('WC') || !WC()->session) {
@@ -62,43 +101,104 @@ function meditrendy_set_checkout_invoice_session_data($invoice_required, $compan
     }
 
     WC()->session->set('meditrendy_invoice_required', (bool) $invoice_required);
+    WC()->session->set('meditrendy_contact_phone', sanitize_text_field($contact_phone));
     WC()->session->set('meditrendy_company_name', sanitize_text_field($company_name));
     WC()->session->set('meditrendy_company_code', sanitize_text_field($company_code));
+    WC()->session->set('meditrendy_invoice_street', sanitize_text_field($invoice_street));
+    WC()->session->set('meditrendy_invoice_city', sanitize_text_field($invoice_city));
+    WC()->session->set('meditrendy_invoice_postcode', sanitize_text_field($invoice_postcode));
 }
 
 function meditrendy_save_checkout_invoice_fields_ajax() {
     check_ajax_referer('meditrendy_checkout_invoice_fields', 'nonce');
 
     $invoice_required = !empty($_POST['invoice_required']);
+    $contact_phone    = isset($_POST['contact_phone']) ? wp_unslash($_POST['contact_phone']) : '';
     $company_name     = isset($_POST['company_name']) ? wp_unslash($_POST['company_name']) : '';
     $company_code     = isset($_POST['company_code']) ? wp_unslash($_POST['company_code']) : '';
+    $invoice_street   = isset($_POST['invoice_street']) ? wp_unslash($_POST['invoice_street']) : '';
+    $invoice_city     = isset($_POST['invoice_city']) ? wp_unslash($_POST['invoice_city']) : '';
+    $invoice_postcode = isset($_POST['invoice_postcode']) ? wp_unslash($_POST['invoice_postcode']) : '';
 
-    meditrendy_set_checkout_invoice_session_data($invoice_required, $company_name, $company_code);
+    meditrendy_set_checkout_invoice_session_data($invoice_required, $contact_phone, $company_name, $company_code, $invoice_street, $invoice_city, $invoice_postcode);
 
     wp_send_json_success();
 }
 add_action('wp_ajax_meditrendy_save_checkout_invoice_fields', 'meditrendy_save_checkout_invoice_fields_ajax');
 add_action('wp_ajax_nopriv_meditrendy_save_checkout_invoice_fields', 'meditrendy_save_checkout_invoice_fields_ajax');
 
-function meditrendy_apply_checkout_invoice_fields_to_order($order) {
+function meditrendy_apply_checkout_invoice_fields_to_order($order, $request = null) {
     if (!$order instanceof WC_Order) {
         return;
     }
 
     $data = meditrendy_get_checkout_invoice_session_data();
 
+    if ($data['contactPhone']) {
+        $order->set_billing_phone($data['contactPhone']);
+        $order->set_shipping_phone($data['contactPhone']);
+    }
+
     if (!$data['invoiceRequired']) {
+        $order->set_billing_company('');
+
+        if ($order->get_shipping_first_name()) {
+            $order->set_billing_first_name($order->get_shipping_first_name());
+        }
+
+        if ($order->get_shipping_last_name()) {
+            $order->set_billing_last_name($order->get_shipping_last_name());
+        }
+
+        if ($order->get_shipping_country()) {
+            $order->set_billing_country($order->get_shipping_country());
+        }
+
+        if ($order->get_shipping_address_1()) {
+            $order->set_billing_address_1($order->get_shipping_address_1());
+        }
+
+        if ($order->get_shipping_city()) {
+            $order->set_billing_city($order->get_shipping_city());
+        }
+
+        if ($order->get_shipping_postcode()) {
+            $order->set_billing_postcode($order->get_shipping_postcode());
+        }
+
         $order->delete_meta_data('_meditrendy_invoice_required');
         $order->delete_meta_data('_meditrendy_company_name');
         $order->delete_meta_data('_meditrendy_company_code');
+        $order->delete_meta_data('_meditrendy_invoice_street');
+        $order->delete_meta_data('_meditrendy_invoice_city');
+        $order->delete_meta_data('_meditrendy_invoice_postcode');
         return;
     }
 
     $order->update_meta_data('_meditrendy_invoice_required', 'yes');
     $order->update_meta_data('_meditrendy_company_name', $data['companyName']);
     $order->update_meta_data('_meditrendy_company_code', $data['companyCode']);
+    $order->update_meta_data('_meditrendy_invoice_street', $data['invoiceStreet']);
+    $order->update_meta_data('_meditrendy_invoice_city', $data['invoiceCity']);
+    $order->update_meta_data('_meditrendy_invoice_postcode', $data['invoicePostcode']);
+
+    if ($data['companyName']) {
+        $order->set_billing_company($data['companyName']);
+    }
+
+    if ($data['invoiceStreet']) {
+        $order->set_billing_address_1($data['invoiceStreet']);
+    }
+
+    if ($data['invoiceCity']) {
+        $order->set_billing_city($data['invoiceCity']);
+    }
+
+    if ($data['invoicePostcode']) {
+        $order->set_billing_postcode($data['invoicePostcode']);
+    }
 }
-add_action('woocommerce_store_api_checkout_update_order_from_request', 'meditrendy_apply_checkout_invoice_fields_to_order', 20);
+add_action('woocommerce_store_api_checkout_update_order_from_request', 'meditrendy_apply_checkout_invoice_fields_to_order', 20, 2);
 
 add_action('woocommerce_checkout_update_order_meta', function($order_id) {
     $order = wc_get_order($order_id);
@@ -116,8 +216,12 @@ add_action('woocommerce_admin_order_data_after_billing_address', function($order
         return;
     }
 
-    $company_name = $order->get_meta('_meditrendy_company_name');
-    $company_code = $order->get_meta('_meditrendy_company_code');
+    $company_name     = $order->get_meta('_meditrendy_company_name');
+    $company_code     = $order->get_meta('_meditrendy_company_code');
+    $invoice_street   = $order->get_meta('_meditrendy_invoice_street');
+    $invoice_city     = $order->get_meta('_meditrendy_invoice_city');
+    $invoice_postcode = $order->get_meta('_meditrendy_invoice_postcode');
+    $invoice_address  = trim($invoice_street . ', ' . $invoice_city . ' ' . $invoice_postcode, ' ,');
 
     echo '<div class="meditrendy-admin-invoice-data">';
     echo '<p><strong>' . esc_html__('Invoice data', 'meditrendy-core') . '</strong></p>';
@@ -127,7 +231,11 @@ add_action('woocommerce_admin_order_data_after_billing_address', function($order
     }
 
     if ($company_code) {
-        echo '<p>' . esc_html__('Company code:', 'meditrendy-core') . ' ' . esc_html($company_code) . '</p>';
+        echo '<p>' . esc_html__('EU VAT number:', 'meditrendy-core') . ' ' . esc_html($company_code) . '</p>';
+    }
+
+    if ($invoice_address) {
+        echo '<p>' . esc_html__('Invoice address:', 'meditrendy-core') . ' ' . esc_html($invoice_address) . '</p>';
     }
 
     echo '</div>';
@@ -160,13 +268,21 @@ add_action('wp_enqueue_scripts', function() {
             'ajaxUrl'         => admin_url('admin-ajax.php'),
             'nonce'           => wp_create_nonce('meditrendy_checkout_invoice_fields'),
             'invoiceRequired' => $data['invoiceRequired'],
+            'contactPhone'    => $data['contactPhone'],
             'companyName'     => $data['companyName'],
             'companyCode'     => $data['companyCode'],
+            'invoiceStreet'   => $data['invoiceStreet'],
+            'invoiceCity'     => $data['invoiceCity'],
+            'invoicePostcode' => $data['invoicePostcode'],
             'labels'          => [
+                'contactPhone'    => 'Telefonas',
                 'invoiceRequired' => 'Reikia sąskaitos faktūros įmonei',
-                'companyName'     => 'Įmonės pavadinimas (nebūtina)',
-                'companyCode'     => 'PVM mokėtojo kodas (nebūtina)',
+                'companyName'     => 'Įmonės pavadinimas',
+                'companyCode'     => 'PVM mokėtojo kodas',
                 'invoiceAddress'  => 'Adresas sąskaitai',
+                'invoiceStreet'   => 'Gatvė, namo numeris',
+                'invoiceCity'     => 'Miestas',
+                'invoicePostcode' => 'Pašto kodas',
             ],
         ]
     );
