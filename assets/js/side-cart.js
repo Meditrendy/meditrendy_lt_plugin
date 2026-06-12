@@ -134,10 +134,6 @@
       window.gtag('event', 'add_to_cart', ecommerce);
     }
 
-    if (typeof window.fbq === 'function' && tracking.meta) {
-      window.fbq('track', 'AddToCart', tracking.meta);
-    }
-
     if (window.jQuery) {
       const $trigger = trigger ? window.jQuery(trigger) : window.jQuery();
 
