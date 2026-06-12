@@ -46,6 +46,7 @@ function meditrendy_admin_order_gross_prices_data($order) {
             'subtotal' => meditrendy_admin_order_gross_prices_amount($order, 0),
             'discount' => meditrendy_admin_order_gross_prices_amount($order, 0),
             'fees' => meditrendy_admin_order_gross_prices_amount($order, 0),
+            'feesRaw' => 0,
             'shipping' => meditrendy_admin_order_gross_prices_amount($order, 0),
         ],
         'labels' => [
@@ -97,10 +98,49 @@ function meditrendy_admin_order_gross_prices_data($order) {
     $data['summary']['subtotal'] = meditrendy_admin_order_gross_prices_amount($order, $items_subtotal_gross);
     $data['summary']['discount'] = meditrendy_admin_order_gross_prices_amount($order, (float) $order->get_discount_total() + (float) $order->get_discount_tax());
     $data['summary']['fees'] = meditrendy_admin_order_gross_prices_amount($order, $fees_gross);
+    $data['summary']['feesRaw'] = $fees_gross;
     $data['summary']['shipping'] = meditrendy_admin_order_gross_prices_amount($order, (float) $order->get_shipping_total() + (float) $order->get_shipping_tax());
 
     return $data;
 }
+
+function meditrendy_admin_order_gross_prices_fees_total($order) {
+    $fees_gross = 0.0;
+
+    foreach ($order->get_items('fee') as $item) {
+        $fees_gross += (float) $item->get_total() + meditrendy_admin_order_gross_prices_line_tax($item, 'total');
+    }
+
+    return $fees_gross;
+}
+
+function meditrendy_admin_order_gross_prices_render_fees_total($order_id) {
+    if (!function_exists('wc_get_order')) {
+        return;
+    }
+
+    $order = wc_get_order($order_id);
+
+    if (!$order instanceof WC_Order) {
+        return;
+    }
+
+    $fees_gross = meditrendy_admin_order_gross_prices_fees_total($order);
+
+    if ($fees_gross <= 0) {
+        return;
+    }
+    ?>
+    <tr>
+        <td class="label"><?php echo esc_html__('Mokėjimo mokestis:', 'meditrendy-core'); ?></td>
+        <td width="1%"></td>
+        <td class="total">
+            <?php echo wp_kses_post(meditrendy_admin_order_gross_prices_amount($order, $fees_gross)); ?>
+        </td>
+    </tr>
+    <?php
+}
+add_action('woocommerce_admin_order_totals_after_shipping', 'meditrendy_admin_order_gross_prices_render_fees_total', 20);
 
 function meditrendy_admin_order_gross_prices_footer() {
     if (!function_exists('wc_get_order')) {
@@ -131,6 +171,7 @@ function meditrendy_admin_order_gross_prices_footer() {
             const taxLabels = data.taxLabels || [];
 
             const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim();
+            let hasFeesRow = false;
 
             document.querySelectorAll('.woocommerce_order_items tr[data-order_item_id]').forEach((row) => {
                 const id = row.getAttribute('data-order_item_id');
@@ -165,6 +206,7 @@ function meditrendy_admin_order_gross_prices_footer() {
                 } else if (label === normalize(labels.discount)) {
                     total.innerHTML = summary.discount ? '-' + summary.discount : total.innerHTML;
                 } else if (label === normalize(labels.fees)) {
+                    hasFeesRow = true;
                     total.innerHTML = summary.fees || total.innerHTML;
                 } else if (label === normalize(labels.shipping)) {
                     total.innerHTML = summary.shipping || total.innerHTML;
@@ -172,6 +214,26 @@ function meditrendy_admin_order_gross_prices_footer() {
                     row.style.display = 'none';
                 }
             });
+
+            if (!hasFeesRow && Number(summary.feesRaw || 0) > 0) {
+                const totals = document.querySelector('.wc-order-totals-items .wc-order-totals');
+
+                if (totals) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td class="label">' + (labels.fees || 'Fees:') + '</td><td width="1%"></td><td class="total">' + (summary.fees || '') + '</td>';
+
+                    const shippingRow = Array.from(totals.querySelectorAll('tr')).find((existingRow) => {
+                        const label = normalize(existingRow.querySelector('.label') ? existingRow.querySelector('.label').textContent : '');
+                        return label === normalize(labels.shipping);
+                    });
+
+                    if (shippingRow) {
+                        totals.insertBefore(row, shippingRow);
+                    } else {
+                        totals.appendChild(row);
+                    }
+                }
+            }
         })();
     </script>
     <?php
