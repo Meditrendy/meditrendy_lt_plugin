@@ -216,6 +216,7 @@ function meditrendy_side_cart_response($include_upsells = false, $tracking = [])
     $response = [
         'count' => meditrendy_side_cart_count(),
         'html'  => meditrendy_side_cart_content_html($include_upsells),
+        'nonce' => wp_create_nonce('meditrendy_side_cart'),
     ];
 
     if (!empty($tracking)) {
@@ -223,6 +224,16 @@ function meditrendy_side_cart_response($include_upsells = false, $tracking = [])
     }
 
     return $response;
+}
+
+function meditrendy_side_cart_ajax_nonce() {
+    if (!function_exists('WC') || !WC()->cart) {
+        wp_send_json_error(['message' => __('KrepĹˇelis nepasiekiamas.', 'meditrendy-core')], 400);
+    }
+
+    wp_send_json_success([
+        'nonce' => wp_create_nonce('meditrendy_side_cart'),
+    ]);
 }
 
 function meditrendy_side_cart_tracking_item_attributes($cart_item) {
@@ -665,6 +676,8 @@ function meditrendy_side_cart_enqueue_assets() {
 
 add_action('wp_footer', 'meditrendy_side_cart_render_shell', 30);
 add_action('wp_enqueue_scripts', 'meditrendy_side_cart_enqueue_assets', 46);
+add_action('wp_ajax_meditrendy_side_cart_nonce', 'meditrendy_side_cart_ajax_nonce');
+add_action('wp_ajax_nopriv_meditrendy_side_cart_nonce', 'meditrendy_side_cart_ajax_nonce');
 add_action('wp_ajax_meditrendy_side_cart_get', 'meditrendy_side_cart_ajax_get');
 add_action('wp_ajax_nopriv_meditrendy_side_cart_get', 'meditrendy_side_cart_ajax_get');
 add_action('wp_ajax_meditrendy_side_cart_add', 'meditrendy_side_cart_ajax_add');

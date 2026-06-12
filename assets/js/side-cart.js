@@ -9,7 +9,7 @@
   const cartSelector = '[data-mt-side-cart]';
   const triggerSelector = settings.cartTriggerSelector || 'header .x-anchor.xoo-wsc-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]';
   const ajaxUrl = settings.ajaxUrl || '';
-  const nonce = settings.nonce || '';
+  let nonce = settings.nonce || '';
   let drawer = null;
   let inner = null;
   let isRequesting = false;
@@ -18,6 +18,56 @@
   let lastSessionRefresh = 0;
   let isUpsellsLoading = false;
   let cartMutationVersion = 0;
+  let isEmittingSyntheticAddedToCart = false;
+
+  const debugEnabled = (() => {
+    try {
+      return new URLSearchParams(window.location.search || '').get('mt_side_cart_debug') === '1';
+    } catch (error) {
+      return false;
+    }
+  })();
+
+  const debug = (message, data = {}) => {
+    if (!debugEnabled) return;
+
+    window.MeditrendySideCartDebug = window.MeditrendySideCartDebug || [];
+    window.MeditrendySideCartDebug.push({
+      time: new Date().toISOString(),
+      message,
+      data,
+    });
+
+    if (window.console) {
+      window.console.log('[Meditrendy side cart]', message, data);
+    }
+  };
+
+  const currentSettings = () => window.MeditrendySideCart || settings || {};
+
+  const currentAjaxUrl = () => {
+    const configured = currentSettings().ajaxUrl || ajaxUrl;
+
+    if (configured) {
+      return configured;
+    }
+
+    return `${window.location.origin}/wp-admin/admin-ajax.php`;
+  };
+
+  const currentNonce = () => {
+    if (nonce) {
+      return nonce;
+    }
+
+    const configured = currentSettings().nonce || '';
+
+    if (configured) {
+      nonce = configured;
+    }
+
+    return nonce;
+  };
 
   const parseCount = (value) => {
     const count = parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
@@ -103,12 +153,20 @@
           .data('quantity', tracking.quantity);
       }
 
-      window.jQuery(document.body).trigger('adding_to_cart', [$trigger, {
-        product_id: tracking.product_id || '',
-        quantity: tracking.quantity || 1,
-      }]);
+      isEmittingSyntheticAddedToCart = true;
 
-      window.jQuery(document.body).trigger('added_to_cart', [{}, '', $trigger]);
+      try {
+        window.jQuery(document.body).trigger('adding_to_cart', [$trigger, {
+          product_id: tracking.product_id || '',
+          quantity: tracking.quantity || 1,
+        }]);
+
+        window.jQuery(document.body).trigger('added_to_cart', [{}, '', $trigger]);
+      } finally {
+        window.setTimeout(() => {
+          isEmittingSyntheticAddedToCart = false;
+        }, 0);
+      }
     }
 
     document.dispatchEvent(new CustomEvent('meditrendy_add_to_cart_tracked', {
@@ -139,6 +197,46 @@
     }
   };
 
+  const isNonceFailure = (error) => {
+    const message = String(error && error.message ? error.message : '').trim().toLowerCase();
+
+    return message === '-1' || message.includes('nonce') || message.includes('security check');
+  };
+
+  const refreshNonce = async () => {
+    const nonceAjaxUrl = currentAjaxUrl();
+
+    if (!nonceAjaxUrl) {
+      return false;
+    }
+
+    const formData = new window.FormData();
+    formData.set('action', 'meditrendy_side_cart_nonce');
+
+    try {
+      const response = await window.fetch(nonceAjaxUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData,
+      });
+      const payload = await readResponsePayload(response);
+      const nextNonce = payload && payload.success && payload.data ? payload.data.nonce : '';
+
+      if (!nextNonce) {
+        return false;
+      }
+
+      nonce = nextNonce;
+      return true;
+    } catch (error) {
+      if (window.console) {
+        window.console.warn('Meditrendy side cart nonce refresh failed.', error);
+      }
+    }
+
+    return false;
+  };
+
   const setUpsellsLoading = (state) => {
     if (!inner) return;
 
@@ -165,7 +263,14 @@
   };
 
   const replaceContent = (data) => {
-    if (!inner || !data || typeof data.html !== 'string') return;
+    if (!inner || !data || typeof data.html !== 'string') {
+      debug('replace skipped', {
+        hasInner: !!inner,
+        hasData: !!data,
+        htmlType: typeof (data && data.html),
+      });
+      return;
+    }
 
     inner.innerHTML = data.html;
 
@@ -173,12 +278,26 @@
       initDynamicCartContent();
       collapseUpsellLabels(inner);
     } catch (error) {
+      debug('dynamic init failed after replace', {
+        message: error && error.message ? error.message : String(error),
+      });
+
       if (window.console) {
         window.console.warn('Meditrendy side cart content initialization failed.', error);
       }
     }
 
-    broadcastUpdate(data);
+    try {
+      broadcastUpdate(data);
+    } catch (error) {
+      debug('cart update broadcast failed', {
+        message: error && error.message ? error.message : String(error),
+      });
+
+      if (window.console) {
+        window.console.warn('Meditrendy side cart update broadcast failed.', error);
+      }
+    }
   };
 
   const prepareSingleOptionUpsellSelects = (root) => {
@@ -261,7 +380,15 @@
   };
 
   const request = async (action, body = {}, options = {}) => {
-    if (!ajaxUrl || !nonce) return null;
+    const requestAjaxUrl = currentAjaxUrl();
+
+    if (!requestAjaxUrl) {
+      return null;
+    }
+
+    if (!currentNonce() && !options.nonceRetry && !(await refreshNonce())) {
+      return null;
+    }
 
     const blocking = options.blocking !== false;
     const upsellsLoading = !!options.upsellsLoading;
@@ -286,21 +413,49 @@
     }
 
     formData.set('action', action);
-    formData.set('nonce', nonce);
+    formData.set('nonce', currentNonce());
 
     try {
-      const response = await window.fetch(ajaxUrl, {
+      const response = await window.fetch(requestAjaxUrl, {
         method: 'POST',
         credentials: 'same-origin',
         body: formData,
       });
       const payload = await readResponsePayload(response);
 
+      debug('request response', {
+        action,
+        status: response.status,
+        success: !!(payload && payload.success),
+        hasData: !!(payload && payload.data),
+        hasHtml: !!(payload && payload.data && payload.data.html),
+        count: payload && payload.data ? payload.data.count : null,
+        message: payload && payload.data ? payload.data.message : '',
+      });
+
       if (payload && payload.success && payload.data) {
-        emitAddToCartTracking(payload.data.tracking, options.trigger || null);
+        if (payload.data.nonce) {
+          nonce = payload.data.nonce;
+        }
 
         if (blocking || requestMutationVersion === cartMutationVersion) {
           replaceContent(payload.data);
+        }
+
+        if (action === 'meditrendy_side_cart_add') {
+          open(false);
+        }
+
+        try {
+          emitAddToCartTracking(payload.data.tracking, options.trigger || null);
+        } catch (error) {
+          debug('tracking failed after cart update', {
+            message: error && error.message ? error.message : String(error),
+          });
+
+          if (window.console) {
+            window.console.warn('Meditrendy add-to-cart tracking failed.', error);
+          }
         }
 
         return payload.data;
@@ -322,8 +477,20 @@
         throw new Error(payload.data.message);
       }
     } catch (error) {
+      debug('request failed', {
+        action,
+        message: error && error.message ? error.message : String(error),
+      });
+
       if (window.console) {
         window.console.warn('Meditrendy side cart request failed.', error);
+      }
+
+      if (!options.nonceRetry && isNonceFailure(error) && await refreshNonce()) {
+        return request(action, formData, {
+          ...options,
+          nonceRetry: true,
+        });
       }
 
       const recoveredData = await recoverAddedCartFromSession(action, options);
@@ -355,7 +522,12 @@
   };
 
   const open = async (shouldRefresh = false) => {
-    if (!drawer) return;
+    if (!drawer) {
+      debug('open skipped: missing drawer');
+      return;
+    }
+
+    debug('open', { shouldRefresh });
 
     drawer.classList.add('is-open');
     drawer.setAttribute('aria-hidden', 'false');
@@ -514,9 +686,27 @@
   };
 
   const canHandleAddToCartForm = (form) => {
-    return form &&
-      !isRequesting &&
-      (!form.classList.contains('variations_form') || !form.querySelector('.wc-variation-selection-needed'));
+    if (!form || isRequesting) {
+      return false;
+    }
+
+    if (!form.classList.contains('variations_form')) {
+      return true;
+    }
+
+    const variationInput = form.querySelector('input[name="variation_id"]');
+
+    if (variationInput && parseInt(variationInput.value || '0', 10) > 0) {
+      return true;
+    }
+
+    const requiredSelects = Array.from(form.querySelectorAll('select[name^="attribute_"]'));
+
+    if (requiredSelects.length && requiredSelects.every((select) => !!select.value)) {
+      return true;
+    }
+
+    return !form.querySelector('.single_add_to_cart_button.wc-variation-selection-needed, .single_add_to_cart_button.disabled');
   };
 
   const shouldHandleUpsellForm = (form) => {
@@ -674,6 +864,11 @@
 
   const submitAddToCartForm = async (form, submitter = null) => {
     const upsellTile = form.closest ? form.closest('[data-mt-side-cart-upsell]') : null;
+    debug('submit add form', {
+      formClass: form.className,
+      buttonClass: submitter ? submitter.className : '',
+      isUpsell: !!upsellTile,
+    });
 
     if (isUpsellChoiceForm(form) && upsellTile && !upsellTile.classList.contains('is-expanded')) {
       expandUpsellTile(upsellTile);
@@ -725,6 +920,10 @@
 
     if (data) {
       open(false);
+    } else {
+      debug('submit add form finished without data', {
+        hasCartCookie: hasCartCookie(),
+      });
     }
 
     activeAddRequestKey = '';
@@ -744,6 +943,16 @@
       ? event.target.closest('[data-mt-side-cart-upsell-add], .single_add_to_cart_button, button[name="add-to-cart"]')
       : null;
     const form = button ? getAddToCartForm(button) : null;
+
+    if (button) {
+      debug('add button click', {
+        defaultPrevented: event.defaultPrevented,
+        hasForm: !!form,
+        canHandle: !!form && canHandleAddToCartForm(form),
+        formClass: form ? form.className : '',
+        buttonClass: button.className,
+      });
+    }
 
     if (button && form && shouldHandleUpsellForm(form)) {
       takeOverAddToCartEvent(event);
@@ -899,18 +1108,39 @@
     window.meditrendySideCartWooEventsReady = true;
 
     window.jQuery(document.body).on('added_to_cart', async () => {
-      await request('meditrendy_side_cart_get', { include_upsells: 1 });
+      if (isEmittingSyntheticAddedToCart) {
+        debug('skip synthetic added_to_cart refresh');
+        return;
+      }
+
+      await request('meditrendy_side_cart_get', { include_upsells: 1 }, {
+        blocking: false,
+        silent: true,
+        upsellsLoading: true,
+      });
       open(false);
     });
 
     window.jQuery(document.body).on('removed_from_cart updated_cart_totals wc_fragments_refreshed wc_fragments_loaded', () => {
-      request('meditrendy_side_cart_get', { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 });
+      request('meditrendy_side_cart_get', { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 }, {
+        blocking: false,
+        silent: true,
+        upsellsLoading: !!(drawer && drawer.classList.contains('is-open')),
+      });
     });
   };
 
   const init = () => {
     drawer = document.querySelector(cartSelector);
     inner = drawer ? drawer.querySelector('[data-mt-side-cart-inner]') : null;
+
+    debug('init', {
+      hasDrawer: !!drawer,
+      hasInner: !!inner,
+      hasSettings: !!window.MeditrendySideCart,
+      hasAjaxUrl: !!currentAjaxUrl(),
+      hasNonce: !!currentNonce(),
+    });
 
     if (!drawer || !inner) return;
 
