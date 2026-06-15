@@ -193,6 +193,59 @@ function meditrendy_order_uses_pickup($order) {
     return meditrendy_checkout_session_uses_pickup();
 }
 
+function meditrendy_checkout_phone_digits($phone) {
+    return preg_replace('/\D+/', '', (string) $phone);
+}
+
+function meditrendy_checkout_phone_is_valid($phone) {
+    $digits = meditrendy_checkout_phone_digits($phone);
+    $length = strlen($digits);
+
+    return $length >= 8 && $length <= 15;
+}
+
+function meditrendy_validate_checkout_address_fields($errors, $fields, $group) {
+    if (!$errors instanceof WP_Error || !is_array($fields)) {
+        return;
+    }
+
+    $group = (string) $group;
+
+    if (
+        $group === 'shipping'
+        && function_exists('WC')
+        && WC()->cart
+        && WC()->cart->needs_shipping()
+        && !meditrendy_checkout_session_uses_pickup()
+        && empty(trim((string) ($fields['postcode'] ?? '')))
+    ) {
+        $errors->add(
+            'meditrendy_missing_shipping_postcode',
+            'Įveskite pašto kodą pristatymo adresui.',
+            ['key' => 'postcode']
+        );
+    }
+
+    if ($group === 'billing') {
+        $phone = trim((string) ($fields['phone'] ?? ''));
+
+        if ($phone === '') {
+            $errors->add(
+                'meditrendy_missing_phone',
+                'Įveskite telefono numerį.',
+                ['key' => 'phone']
+            );
+        } elseif (!meditrendy_checkout_phone_is_valid($phone)) {
+            $errors->add(
+                'meditrendy_invalid_phone',
+                'Įveskite teisingą telefono numerį.',
+                ['key' => 'phone']
+            );
+        }
+    }
+}
+add_action('woocommerce_blocks_validate_location_address_fields', 'meditrendy_validate_checkout_address_fields', 20, 3);
+
 function meditrendy_apply_pickup_address_to_order($order, $contact_phone = '') {
     if (!$order instanceof WC_Order) {
         return;

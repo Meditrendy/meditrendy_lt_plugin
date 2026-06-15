@@ -55,6 +55,15 @@
 
   function createContactPhoneField() {
     const field = createTextInput('meditrendy_contact_phone', labels.contactPhone, settings.contactPhone, 'tel', 'tel');
+    const input = field.querySelector('input');
+
+    if (input) {
+      input.required = true;
+      input.minLength = 8;
+      input.pattern = '[0-9+()\\s-]{8,}';
+      input.setAttribute('aria-required', 'true');
+    }
+
     field.classList.add(phoneClass);
     return field;
   }
@@ -365,9 +374,11 @@
     const mergedShipping = compactAddress(Object.assign(
       {},
       currentShipping,
+      visibleShipping,
       {
         first_name: visibleShipping.first_name || currentShipping.first_name,
         last_name: visibleShipping.last_name || currentShipping.last_name,
+        country: visibleShipping.country || currentShipping.country || 'LT',
         phone: contactPhone || currentShipping.phone
       }
     ));
