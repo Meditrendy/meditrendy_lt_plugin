@@ -25,7 +25,27 @@ function meditrendy_product_category_description_term($atts) {
     return ($term instanceof WP_Term && !is_wp_error($term)) ? $term : null;
 }
 
+function meditrendy_product_category_description_is_first_page() {
+    $paged = max(
+        1,
+        absint(get_query_var('paged')),
+        absint(get_query_var('page'))
+    );
+
+    foreach (['paged', 'product-page', 'mt_filter_paged'] as $key) {
+        if (isset($_GET[$key])) {
+            $paged = max($paged, absint(wp_unslash($_GET[$key])));
+        }
+    }
+
+    return $paged <= 1;
+}
+
 function meditrendy_product_category_description_shortcode($atts = []) {
+    if (!meditrendy_product_category_description_is_first_page()) {
+        return '';
+    }
+
     $term = meditrendy_product_category_description_term($atts);
 
     if (!$term) {
