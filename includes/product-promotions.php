@@ -156,8 +156,8 @@ add_action('wp_ajax_meditrendy_product_promotions_search_products', 'meditrendy_
 function meditrendy_product_promotions_admin_menu() {
     add_submenu_page(
         'meditrendy-settings',
-        __('PDP promotions', 'meditrendy-core'),
-        __('PDP promotions', 'meditrendy-core'),
+        __('PDP coupon codes', 'meditrendy-core'),
+        __('PDP coupon codes', 'meditrendy-core'),
         meditrendy_product_promotions_capability(),
         'meditrendy-product-promotions',
         'meditrendy_render_product_promotions_admin_page'
@@ -272,7 +272,7 @@ function meditrendy_render_product_promotions_admin_page() {
     ]) : [];
     ?>
     <div class="wrap meditrendy-product-promotions-admin">
-        <h1><?php esc_html_e('PDP promotions', 'meditrendy-core'); ?></h1>
+        <h1><?php esc_html_e('PDP coupon codes', 'meditrendy-core'); ?></h1>
 
         <?php if (isset($_GET['updated'])) : ?>
             <div class="notice notice-success is-dismissible">

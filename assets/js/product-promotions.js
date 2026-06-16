@@ -7,11 +7,11 @@
     const remainingSeconds = safeSeconds % 60;
 
     if (days > 0) {
-      return days + ' d. ' + String(hours).padStart(2, '0') + ' val. ' + String(minutes).padStart(2, '0') + ' min.';
+      return days + ' d. ' + String(hours).padStart(2, '0') + ' val. ' + String(minutes).padStart(2, '0') + ' min. ' + String(remainingSeconds).padStart(2, '0') + ' sek.';
     }
 
     if (hours > 0) {
-      return String(hours).padStart(2, '0') + ' val. ' + String(minutes).padStart(2, '0') + ' min.';
+      return String(hours).padStart(2, '0') + ' val. ' + String(minutes).padStart(2, '0') + ' min. ' + String(remainingSeconds).padStart(2, '0') + ' sek.';
     }
 
     return String(minutes).padStart(2, '0') + ' min. ' + String(remainingSeconds).padStart(2, '0') + ' sek.';
