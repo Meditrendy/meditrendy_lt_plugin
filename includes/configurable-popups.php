@@ -74,6 +74,11 @@ function meditrendy_popups_default_popup() {
         'cta_url'          => '',
         'starts_at'        => '',
         'ends_at'          => '',
+        'target_rule'      => 'all',
+        'url_contains'     => '',
+        'exact_url'        => '',
+        'url_excludes'     => '',
+        'exclude_homepage' => 0,
         'display_rule'     => 'delay',
         'delay_seconds'    => 5,
     ];
@@ -125,11 +130,16 @@ function meditrendy_popups_sanitize($input) {
         }
 
         $display_rule = sanitize_key($popup['display_rule'] ?? 'delay');
+        $target_rule = sanitize_key($popup['target_rule'] ?? 'all');
         $language = sanitize_key($popup['language'] ?? 'all');
         $allowed_languages = array_merge(['all'], array_keys(meditrendy_popups_languages()));
 
         if (!in_array($display_rule, ['delay', 'scroll', 'immediate'], true)) {
             $display_rule = 'delay';
+        }
+
+        if (!in_array($target_rule, ['all', 'product', 'url_contains', 'exact_url'], true)) {
+            $target_rule = 'all';
         }
 
         if (!in_array($language, $allowed_languages, true)) {
@@ -145,6 +155,11 @@ function meditrendy_popups_sanitize($input) {
             'cta_url'          => esc_url_raw($popup['cta_url'] ?? ''),
             'starts_at'        => meditrendy_popups_sanitize_datetime($popup['starts_at'] ?? ''),
             'ends_at'          => meditrendy_popups_sanitize_datetime($popup['ends_at'] ?? ''),
+            'target_rule'      => $target_rule,
+            'url_contains'     => sanitize_text_field($popup['url_contains'] ?? ''),
+            'exact_url'        => sanitize_text_field($popup['exact_url'] ?? ''),
+            'url_excludes'     => sanitize_text_field($popup['url_excludes'] ?? ''),
+            'exclude_homepage' => !empty($popup['exclude_homepage']) ? 1 : 0,
             'display_rule'     => $display_rule,
             'delay_seconds'    => max(0, absint($popup['delay_seconds'] ?? 0)),
         ];
@@ -313,7 +328,7 @@ function meditrendy_popups_render_rule($popup, $index) {
     $languages = meditrendy_popups_languages();
     $starts_at = meditrendy_popups_datetime_to_timestamp($popup['starts_at'] ?? '');
     $ends_at = meditrendy_popups_datetime_to_timestamp($popup['ends_at'] ?? '');
-    $now = current_time('timestamp');
+    $now = meditrendy_popups_current_timestamp();
     $status = 'Active now';
 
     if (empty($popup['enabled'])) {
@@ -374,6 +389,41 @@ function meditrendy_popups_render_rule($popup, $index) {
                     &nbsp;
                     <input type="datetime-local" name="<?php echo meditrendy_popups_field_name($index, 'ends_at'); ?>" value="<?php echo esc_attr($popup['ends_at']); ?>">
                     <p class="description">Leave dates empty for no schedule boundary. Uses the site timezone. Current site time: <?php echo esc_html(current_time('Y-m-d H:i')); ?>.</p>
+                </div>
+
+                <div class="mt-popup-field">
+                    <label>Page targeting</label>
+                    <select name="<?php echo meditrendy_popups_field_name($index, 'target_rule'); ?>">
+                        <option value="all" <?php selected($popup['target_rule'], 'all'); ?>>All storefront pages</option>
+                        <option value="product" <?php selected($popup['target_rule'], 'product'); ?>>Product pages only</option>
+                        <option value="url_contains" <?php selected($popup['target_rule'], 'url_contains'); ?>>Only URLs containing string</option>
+                        <option value="exact_url" <?php selected($popup['target_rule'], 'exact_url'); ?>>Exact URL only</option>
+                    </select>
+                </div>
+
+                <div class="mt-popup-field">
+                    <label>URL contains</label>
+                    <input class="large-text" type="text" name="<?php echo meditrendy_popups_field_name($index, 'url_contains'); ?>" value="<?php echo esc_attr($popup['url_contains']); ?>" placeholder="/akcijos/">
+                    <p class="description">Used when page targeting is set to “Only URLs containing string”. Matches the full URL, path, and query.</p>
+                </div>
+
+                <div class="mt-popup-field">
+                    <label>Exact URL</label>
+                    <input class="large-text" type="text" name="<?php echo meditrendy_popups_field_name($index, 'exact_url'); ?>" value="<?php echo esc_attr($popup['exact_url']); ?>" placeholder="https://meditrendy.lt/...">
+                    <p class="description">Used when page targeting is set to “Exact URL only”. You can use a full URL or a path like /shop/example/.</p>
+                </div>
+
+                <div class="mt-popup-field">
+                    <label>Exclude URLs containing</label>
+                    <input class="large-text" type="text" name="<?php echo meditrendy_popups_field_name($index, 'url_excludes'); ?>" value="<?php echo esc_attr($popup['url_excludes']); ?>" placeholder="/checkout/">
+                    <p class="description">Optional. If this string appears in the current URL, the popup will not show.</p>
+                </div>
+
+                <div class="mt-popup-field">
+                    <label>
+                        <input type="checkbox" name="<?php echo meditrendy_popups_field_name($index, 'exclude_homepage'); ?>" value="1" <?php checked(!empty($popup['exclude_homepage'])); ?>>
+                        Exclude homepage
+                    </label>
                 </div>
 
                 <div class="mt-popup-field">
@@ -441,6 +491,105 @@ function meditrendy_popups_datetime_to_timestamp($value) {
     }
 }
 
+function meditrendy_popups_current_timestamp() {
+    return function_exists('current_datetime') ? current_datetime()->getTimestamp() : time();
+}
+
+function meditrendy_popups_current_url() {
+    $scheme = is_ssl() ? 'https://' : 'http://';
+    $host = isset($_SERVER['HTTP_HOST']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_HOST'])) : wp_parse_url(home_url(), PHP_URL_HOST);
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])) : '/';
+
+    return $scheme . $host . $request_uri;
+}
+
+function meditrendy_popups_normalize_url_text($value) {
+    $value = rawurldecode(strtolower(trim((string) $value)));
+
+    return untrailingslashit($value);
+}
+
+function meditrendy_popups_current_url_parts() {
+    $current_url = meditrendy_popups_current_url();
+    $path = (string) wp_parse_url($current_url, PHP_URL_PATH);
+    $query = (string) wp_parse_url($current_url, PHP_URL_QUERY);
+    $path_query = $path . ($query !== '' ? '?' . $query : '');
+
+    return array_unique(array_filter([
+        meditrendy_popups_normalize_url_text($current_url),
+        meditrendy_popups_normalize_url_text($path),
+        meditrendy_popups_normalize_url_text($path_query),
+    ]));
+}
+
+function meditrendy_popups_url_contains($needle) {
+    $needle = meditrendy_popups_normalize_url_text($needle);
+
+    if ($needle === '') {
+        return false;
+    }
+
+    foreach (meditrendy_popups_current_url_parts() as $haystack) {
+        if (strpos($haystack, $needle) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function meditrendy_popups_exact_url_matches($configured_url) {
+    $configured_url = meditrendy_popups_normalize_url_text($configured_url);
+
+    if ($configured_url === '') {
+        return false;
+    }
+
+    $configured_parts = [$configured_url];
+    $configured_path = (string) wp_parse_url($configured_url, PHP_URL_PATH);
+    $configured_query = (string) wp_parse_url($configured_url, PHP_URL_QUERY);
+
+    if ($configured_path !== '') {
+        $configured_parts[] = meditrendy_popups_normalize_url_text($configured_path . ($configured_query !== '' ? '?' . $configured_query : ''));
+    }
+
+    $configured_parts = array_unique(array_filter($configured_parts));
+
+    foreach (meditrendy_popups_current_url_parts() as $current_part) {
+        if (in_array($current_part, $configured_parts, true)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function meditrendy_popups_target_matches($popup) {
+    if (!empty($popup['exclude_homepage']) && (is_front_page() || is_home())) {
+        return false;
+    }
+
+    if (!empty($popup['url_excludes']) && meditrendy_popups_url_contains($popup['url_excludes'])) {
+        return false;
+    }
+
+    $target_rule = $popup['target_rule'] ?? 'all';
+
+    if ($target_rule === 'product') {
+        return function_exists('is_product') && is_product();
+    }
+
+    if ($target_rule === 'url_contains') {
+        return meditrendy_popups_url_contains($popup['url_contains'] ?? '');
+    }
+
+    if ($target_rule === 'exact_url') {
+        return meditrendy_popups_exact_url_matches($popup['exact_url'] ?? '');
+    }
+
+    return true;
+}
+
 function meditrendy_popups_active_popup() {
     if (is_admin()) {
         return null;
@@ -455,7 +604,7 @@ function meditrendy_popups_active_popup() {
     }
 
     $settings = meditrendy_popups_settings();
-    $now = current_time('timestamp');
+    $now = meditrendy_popups_current_timestamp();
     $current_language = meditrendy_popups_current_language();
 
     foreach ($settings['popups'] as $index => $popup) {
@@ -475,6 +624,10 @@ function meditrendy_popups_active_popup() {
         }
 
         if ($ends_at && $now > $ends_at) {
+            continue;
+        }
+
+        if (!meditrendy_popups_target_matches($popup)) {
             continue;
         }
 
@@ -550,6 +703,11 @@ function meditrendy_popups_render() {
             'language'  => $popup['language'] ?? 'all',
             'starts_at' => $popup['starts_at'] ?? '',
             'ends_at'   => $popup['ends_at'] ?? '',
+            'target'    => $popup['target_rule'] ?? 'all',
+            'contains'  => $popup['url_contains'] ?? '',
+            'exact'     => $popup['exact_url'] ?? '',
+            'excludes'  => $popup['url_excludes'] ?? '',
+            'home'      => !empty($popup['exclude_homepage']) ? 1 : 0,
             'cta_url'   => $popup['cta_url'] ?? '',
             'desktop'   => $popup['desktop_image_id'] ?? 0,
             'mobile'    => $popup['mobile_image_id'] ?? 0,
