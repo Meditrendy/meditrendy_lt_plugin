@@ -91,6 +91,7 @@ function meditrendy_marketing_banner_find_banner(array $banners, $language) {
 function meditrendy_marketing_banner_default_banner() {
     return [
         'enabled'           => 0,
+        'sticky'            => 0,
         'background_color'  => '#0f5ea8',
         'starts_at'         => '',
         'ends_at'           => '',
@@ -172,6 +173,7 @@ function meditrendy_marketing_banner_sanitize($input) {
 
         $output['banners'][$language] = [
             'enabled'           => !empty($banner['enabled']) ? 1 : 0,
+            'sticky'            => !empty($banner['sticky']) ? 1 : 0,
             'background_color'  => meditrendy_marketing_banner_sanitize_color($banner['background_color'] ?? '#0f5ea8'),
             'starts_at'         => meditrendy_marketing_banner_sanitize_datetime($banner['starts_at'] ?? ''),
             'ends_at'           => meditrendy_marketing_banner_sanitize_datetime($banner['ends_at'] ?? ''),
@@ -299,6 +301,15 @@ function meditrendy_marketing_banner_render_admin_page() {
                             </td>
                         </tr>
                         <tr>
+                            <th scope="row">Sticky</th>
+                            <td>
+                                <label>
+                                    <input type="checkbox" name="<?php echo meditrendy_marketing_banner_field_name($language, 'sticky'); ?>" value="1" <?php checked(!empty($banner['sticky'])); ?>>
+                                    Keep banner pinned to the top while scrolling
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
                             <th scope="row">Background color</th>
                             <td>
                                 <input class="regular-text" type="text" name="<?php echo meditrendy_marketing_banner_field_name($language, 'background_color'); ?>" value="<?php echo esc_attr($banner['background_color'] ?? '#0f5ea8'); ?>" placeholder="#0f5ea8">
@@ -308,6 +319,7 @@ function meditrendy_marketing_banner_render_admin_page() {
                             <th scope="row">Information text</th>
                             <td>
                                 <textarea class="large-text" rows="3" name="<?php echo meditrendy_marketing_banner_field_name($language, 'message'); ?>"><?php echo esc_textarea($banner['message']); ?></textarea>
+                                <p class="description">Links are allowed. Example: &lt;a href="https://meditrendy.lt/shop/"&gt;Pirkti dabar&lt;/a&gt;</p>
                             </td>
                         </tr>
                         <tr>
@@ -516,8 +528,13 @@ function meditrendy_marketing_banner_render() {
     $coupon = strtoupper(trim((string) ($banner['coupon_code'] ?? '')));
     $countdown_timestamp = meditrendy_marketing_banner_datetime_to_timestamp($banner['countdown_ends_at'] ?? '');
     $background_color = meditrendy_marketing_banner_sanitize_color($banner['background_color'] ?? '#0f5ea8');
+    $banner_classes = 'mt-marketing-banner';
+
+    if (!empty($banner['sticky'])) {
+        $banner_classes .= ' mt-marketing-banner--sticky';
+    }
     ?>
-    <div class="mt-marketing-banner" data-mt-marketing-banner style="--mt-marketing-banner-bg: <?php echo esc_attr($background_color); ?>;">
+    <div class="<?php echo esc_attr($banner_classes); ?>" data-mt-marketing-banner style="--mt-marketing-banner-bg: <?php echo esc_attr($background_color); ?>;">
         <div class="mt-marketing-banner__inner">
             <?php if (trim(wp_strip_all_tags($banner['message'] ?? '')) !== '') : ?>
                 <div class="mt-marketing-banner__message"><?php echo wp_kses_post($banner['message']); ?></div>
