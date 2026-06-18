@@ -561,6 +561,32 @@
     return payload;
   }
 
+  function patchCheckoutPayload(payload) {
+    if (!payload) {
+      return payload;
+    }
+
+    if (isPickupSelected()) {
+      return patchCheckoutPayloadForPickup(payload);
+    }
+
+    const contactPhone = getPhoneField() ? getPhoneField().value : '';
+
+    if (!contactPhone) {
+      return payload;
+    }
+
+    payload.billing_address = compactAddress(Object.assign({}, payload.billing_address || {}, {
+      phone: contactPhone
+    }));
+
+    payload.shipping_address = compactAddress(Object.assign({}, payload.shipping_address || {}, {
+      phone: contactPhone
+    }));
+
+    return payload;
+  }
+
   function getPickupCheckoutPayload() {
     if (!isPickupSelected()) {
       return null;
@@ -599,7 +625,7 @@
     const patchCheckoutJsonBody = function (body) {
       try {
         const payload = JSON.parse(body);
-        const patchedPayload = patchCheckoutPayloadForPickup(payload);
+        const patchedPayload = patchCheckoutPayload(payload);
         return JSON.stringify(patchedPayload);
       } catch (error) {
         return body;

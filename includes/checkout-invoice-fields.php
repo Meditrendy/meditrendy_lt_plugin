@@ -193,17 +193,6 @@ function meditrendy_order_uses_pickup($order) {
     return meditrendy_checkout_session_uses_pickup();
 }
 
-function meditrendy_checkout_phone_digits($phone) {
-    return preg_replace('/\D+/', '', (string) $phone);
-}
-
-function meditrendy_checkout_phone_is_valid($phone) {
-    $digits = meditrendy_checkout_phone_digits($phone);
-    $length = strlen($digits);
-
-    return $length >= 8 && $length <= 15;
-}
-
 function meditrendy_validate_checkout_address_fields($errors, $fields, $group) {
     if (!$errors instanceof WP_Error || !is_array($fields)) {
         return;
@@ -228,17 +217,12 @@ function meditrendy_validate_checkout_address_fields($errors, $fields, $group) {
 
     if ($group === 'billing') {
         $phone = trim((string) ($fields['phone'] ?? ''));
+        $data = meditrendy_get_checkout_invoice_session_data();
 
-        if ($phone === '') {
+        if ($phone === '' && trim((string) $data['contactPhone']) === '') {
             $errors->add(
                 'meditrendy_missing_phone',
                 'Įveskite telefono numerį.',
-                ['key' => 'phone']
-            );
-        } elseif (!meditrendy_checkout_phone_is_valid($phone)) {
-            $errors->add(
-                'meditrendy_invalid_phone',
-                'Įveskite teisingą telefono numerį.',
                 ['key' => 'phone']
             );
         }
