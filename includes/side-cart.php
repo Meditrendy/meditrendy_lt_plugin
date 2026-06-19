@@ -652,6 +652,14 @@ function meditrendy_side_cart_enqueue_assets() {
     }
 
     $script_path = MEDITRENDY_CORE_DIR . 'assets/js/side-cart.js';
+    $style_path = MEDITRENDY_CORE_DIR . 'assets/css/side-cart.css';
+
+    wp_enqueue_style(
+        'meditrendy-side-cart',
+        MEDITRENDY_CORE_URL . 'assets/css/side-cart.css',
+        [],
+        file_exists($style_path) ? filemtime($style_path) : '1.0'
+    );
 
     wp_enqueue_script(
         'meditrendy-side-cart',
