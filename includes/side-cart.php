@@ -1,6 +1,132 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+function meditrendy_side_cart_language() {
+    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+    $locale = strtolower((string) $locale);
+
+    if (strpos($locale, 'pl') === 0) {
+        return 'pl';
+    }
+
+    if (strpos($locale, 'lt') === 0) {
+        return 'lt';
+    }
+
+    return substr($locale, 0, 2) ?: 'lt';
+}
+
+function meditrendy_side_cart_strings() {
+    return [
+        'lt' => [
+            'empty' => 'Jūsų krepšelis tuščias.',
+            'remove_item' => 'Pašalinti prekę',
+            'decrease_quantity' => 'Sumažinti kiekį',
+            'quantity' => 'Kiekis',
+            'increase_quantity' => 'Padidinti kiekį',
+            'subtotal' => 'Tarpinė suma:',
+            'tax_note' => 'Mokesčiai įskaičiuoti į kainą',
+            'title' => 'Krepšelis — %d',
+            'close' => 'Uždaryti krepšelį',
+            'checkout' => 'Pereiti prie apmokėjimo',
+            'cart_unavailable' => 'Krepšelis nepasiekiamas.',
+            'cart_disabled' => 'Cart module is disabled.',
+            'product_not_found' => 'Prekė nerasta.',
+            'choose_product_variant' => 'Pasirinkite produkto „%s“ variantą.',
+            'add_failed' => 'Nepavyko įdėti prekės į krepšelį.',
+            'cart_item_not_found' => 'Prekė nerasta krepšelyje.',
+            'upsells_title' => 'Jums taip pat gali patikti',
+            'refresh_failed' => 'Nepavyko atnaujinti krepšelio. Bandykite dar kartą.',
+            'choose_size' => 'Pasirinkite dydį',
+        ],
+        'pl' => [
+            'empty' => 'Twój koszyk jest pusty.',
+            'remove_item' => 'Usuń produkt',
+            'decrease_quantity' => 'Zmniejsz ilość',
+            'quantity' => 'Ilość',
+            'increase_quantity' => 'Zwiększ ilość',
+            'subtotal' => 'Suma częściowa:',
+            'tax_note' => 'Podatki są wliczone w cenę',
+            'title' => 'Koszyk — %d',
+            'close' => 'Zamknij koszyk',
+            'checkout' => 'Przejdź do płatności',
+            'cart_unavailable' => 'Koszyk jest niedostępny.',
+            'cart_disabled' => 'Moduł koszyka jest wyłączony.',
+            'product_not_found' => 'Nie znaleziono produktu.',
+            'choose_product_variant' => 'Wybierz wariant produktu „%s”.',
+            'add_failed' => 'Nie udało się dodać produktu do koszyka.',
+            'cart_item_not_found' => 'Nie znaleziono produktu w koszyku.',
+            'upsells_title' => 'Może Ci się spodobać',
+            'refresh_failed' => 'Nie udało się odświeżyć koszyka. Spróbuj ponownie.',
+            'choose_size' => 'Wybierz rozmiar',
+        ],
+    ];
+}
+
+function meditrendy_side_cart_text($key, ...$args) {
+    $strings = meditrendy_side_cart_strings();
+    $language = meditrendy_side_cart_language();
+    $source = $strings['lt'][$key] ?? $key;
+    $text = $source;
+
+    if (function_exists('pll__')) {
+        $translated = pll__($source);
+
+        if ($translated !== $source) {
+            $text = $translated;
+        }
+    }
+
+    if ($text === $source && $language !== 'lt') {
+        $text = $strings[$language][$key] ?? $source;
+    }
+
+    if (!empty($args)) {
+        return sprintf($text, ...$args);
+    }
+
+    return $text;
+}
+
+function meditrendy_side_cart_register_polylang_strings() {
+    if (!function_exists('pll_register_string')) {
+        return;
+    }
+
+    foreach (meditrendy_side_cart_strings()['lt'] as $key => $text) {
+        pll_register_string('meditrendy_side_cart_' . $key, $text, 'Meditrendy side cart');
+    }
+}
+add_action('init', 'meditrendy_side_cart_register_polylang_strings');
+
+function meditrendy_side_cart_translate_text($translation, $text, $domain) {
+    if ($domain !== 'meditrendy-core') {
+        return $translation;
+    }
+
+    $map = [
+        'Jūsų krepšelis tuščias.' => meditrendy_side_cart_text('empty'),
+        'Pašalinti prekę' => meditrendy_side_cart_text('remove_item'),
+        'Sumažinti kiekį' => meditrendy_side_cart_text('decrease_quantity'),
+        'Kiekis' => meditrendy_side_cart_text('quantity'),
+        'Padidinti kiekį' => meditrendy_side_cart_text('increase_quantity'),
+        'Tarpinė suma:' => meditrendy_side_cart_text('subtotal'),
+        'Mokesčiai įskaičiuoti į kainą' => meditrendy_side_cart_text('tax_note'),
+        'Krepšelis — %d' => meditrendy_side_cart_text('title'),
+        'Uždaryti krepšelį' => meditrendy_side_cart_text('close'),
+        'Pereiti prie apmokėjimo' => meditrendy_side_cart_text('checkout'),
+        'Krepšelis nepasiekiamas.' => meditrendy_side_cart_text('cart_unavailable'),
+        'Cart module is disabled.' => meditrendy_side_cart_text('cart_disabled'),
+        'Prekė nerasta.' => meditrendy_side_cart_text('product_not_found'),
+        'Pasirinkite produkto „%s“ variantą.' => meditrendy_side_cart_text('choose_product_variant'),
+        'Nepavyko įdėti prekės į krepšelį.' => meditrendy_side_cart_text('add_failed'),
+        'Prekė nerasta krepšelyje.' => meditrendy_side_cart_text('cart_item_not_found'),
+    ];
+
+    return $map[$text] ?? $translation;
+}
+add_filter('gettext_meditrendy-core', 'meditrendy_side_cart_translate_text', 20, 3);
+
 function meditrendy_side_cart_count() {
     if (!function_exists('WC') || !WC()->cart) {
         return 0;
@@ -670,6 +796,11 @@ function meditrendy_side_cart_enqueue_assets() {
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
             'cartTriggerSelector' => 'header .xoo-wsc-cart-trigger, header .custom-cart-icon, header .meditrendy-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]',
+            'labels' => [
+                'refreshFailed' => meditrendy_side_cart_text('refresh_failed'),
+                'upsellsTitle' => meditrendy_side_cart_text('upsells_title'),
+                'chooseSize' => meditrendy_side_cart_text('choose_size'),
+            ],
         ]
     );
 }

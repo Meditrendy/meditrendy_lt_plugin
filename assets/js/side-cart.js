@@ -6,6 +6,7 @@
   window.meditrendySideCartReady = true;
 
   const settings = window.MeditrendySideCart || {};
+  const labels = settings.labels || {};
   const cartSelector = '[data-mt-side-cart]';
   const triggerSelector = settings.cartTriggerSelector || 'header .x-anchor.xoo-wsc-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]';
   const ajaxUrl = settings.ajaxUrl || '';
@@ -42,6 +43,8 @@
       window.console.log('[Meditrendy side cart]', message, data);
     }
   };
+
+  const sideCartText = (key, fallback) => labels[key] || fallback;
 
   const currentSettings = () => window.MeditrendySideCart || settings || {};
 
@@ -188,7 +191,7 @@
       throw new Error(
         message && message.length < 220
           ? message
-          : 'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.'
+          : sideCartText('refreshFailed', 'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.')
       );
     }
   };
@@ -248,7 +251,7 @@
       section = document.createElement('section');
       section.className = 'mt-side-cart-upsells';
       section.setAttribute('data-mt-side-cart-upsells', '');
-      section.innerHTML = '<div class="mt-side-cart-upsells-header"><h2>Jums taip pat gali patikti</h2></div>';
+      section.innerHTML = '<div class="mt-side-cart-upsells-header"><h2>' + sideCartText('upsellsTitle', 'Jums taip pat gali patikti') + '</h2></div>';
       content.appendChild(section);
     }
 
@@ -873,13 +876,13 @@
 
     if (isUpsellChoiceForm(form) && !updateUpsellVariation(form)) {
       expandUpsellTile(upsellTile);
-      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'));
+      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'), sideCartText('chooseSize', 'Pasirinkite dydį'));
       return;
     }
 
     if (upsellTile && upsellTile.querySelector('.woosb-wrap') && !allBundleSelectionsComplete(upsellTile)) {
       expandUpsellTile(upsellTile);
-      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'));
+      showUpsellTooltip(submitter || form.querySelector('[type="submit"]'), sideCartText('chooseSize', 'Pasirinkite dydį'));
       return;
     }
 
