@@ -5,7 +5,8 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 ## Responsibility
 
 - Put custom WooCommerce behavior, filters, subcategory shortcodes, waitlist logic, AJAX product loading, admin settings, and reusable site features here.
-- Do not put theme-only visual changes here, limit the feature markup/CSS owned by the plugin to minimum required for the feature to work.
+- Plugin features must ship the core CSS needed for their markup to work correctly across sites: layout, positioning, visibility states, responsive structure, loading/disabled states, accessibility states, and basic component integrity.
+- Do not put theme-only visual changes here. Brand-specific styling such as colors, typography refinements, decorative spacing, and site-specific polish belongs in the active theme unless it is necessary for the plugin feature to function.
 - Do not edit WordPress core, WooCommerce core, the Pro parent theme, or third-party plugin files unless the user explicitly asks.
 - If a requested change can be made cleanly in Cornerstone, Pro, WordPress admin, WooCommerce settings, or another editor UI, prefer giving the user exact editor instructions instead of changing code.
 - Use plugin code for editor-controlled areas only when the editor cannot reasonably express the behavior, the change must be reusable/systematic, or the user explicitly asks for a code-level implementation.
@@ -48,6 +49,8 @@ Use existing feature files when possible:
 - Do not depend on generated Cornerstone classes when a plugin-owned class can be used.
 - Prefer CSS custom properties for reusable values.
 - Prefer CSS over JavaScript for styling.
+- Keep plugin CSS self-contained for plugin-owned components so installing `meditrendy-core` on another site does not require copying theme CSS just to make a feature usable.
+- Use theme CSS only for site-specific visual treatment layered over a working plugin baseline.
 - When writing JavaScript, use ES6 syntax and modern browser features.
 - When writing JavaScript, avoid jQuery and other third-party libraries.
 - When writing JavaScript take performance into account.
