@@ -1,0 +1,70 @@
+/* Side cart shell */
+.mt-side-cart {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.mt-side-cart.is-open {
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.mt-side-cart-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.mt-side-cart.is-open .mt-side-cart-backdrop {
+  opacity: 1;
+}
+
+.mt-side-cart-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(420px, 100vw);
+  height: 100%;
+  background: #fff;
+  box-shadow: -20px 0 40px rgba(0, 0, 0, 0.12);
+  transform: translateX(100%);
+  transition: transform 220ms ease;
+}
+
+.mt-side-cart.is-open .mt-side-cart-panel {
+  transform: translateX(0);
+}
+
+.mt-side-cart-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mt-side-cart-header,
+.mt-side-cart-footer {
+  flex: 0 0 auto;
+}
+
+.mt-side-cart-content {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.mt-side-cart[aria-hidden="true"] .mt-side-cart-panel {
+  transform: translateX(100%);
+}
+
+.mt-side-cart-is-open,
+.mt-side-cart-is-open body {
+  overflow: hidden;
+}
