@@ -27,6 +27,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Do not introduce English or Polish frontend strings unless the user explicitly approves them.
 - For user-facing strings, use Lithuanian wording and keep it consistent with WooCommerce context.
 - Always prepare for translations in the future.
+- For translation-only changes to WordPress, WooCommerce, theme, or plugin strings, prefer advising the user to change the string in Loco Translate (or the active translation plugin) instead of adding translation overrides in code. Add code-level translation filters only when the string cannot be translated reliably through the admin translation workflow, when the behavior must be dynamic, or when the user explicitly asks for a code fix.
 
 ## File Layout
 
