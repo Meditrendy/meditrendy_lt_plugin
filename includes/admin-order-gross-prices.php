@@ -140,8 +140,6 @@ function meditrendy_admin_order_gross_prices_render_fees_total($order_id) {
     </tr>
     <?php
 }
-add_action('woocommerce_admin_order_totals_after_shipping', 'meditrendy_admin_order_gross_prices_render_fees_total', 20);
-
 function meditrendy_admin_order_gross_prices_footer() {
     if (!function_exists('wc_get_order')) {
         return;
