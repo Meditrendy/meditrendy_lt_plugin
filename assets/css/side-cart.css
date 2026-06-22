@@ -222,33 +222,12 @@ header .meditrendy-cart-trigger {
 }
 
 .mt-side-cart-remove span {
-    position: relative;
     display: block;
-    width: 17px;
+    width: 18px;
     height: 18px;
-    border: 2px solid currentColor;
-    border-top: 0;
-}
-
-.mt-side-cart-remove span::before,
-.mt-side-cart-remove span::after {
-    content: "";
-    position: absolute;
-    background: currentColor;
-}
-
-.mt-side-cart-remove span::before {
-    top: -5px;
-    left: -2px;
-    width: 17px;
-    height: 2px;
-}
-
-.mt-side-cart-remove span::after {
-    top: -8px;
-    left: 4px;
-    width: 7px;
-    height: 2px;
+    background-color: currentColor;
+    mask: url("../bin.svg") center / contain no-repeat;
+    -webkit-mask: url("../bin.svg") center / contain no-repeat;
 }
 
 .mt-side-cart-remove:hover,
