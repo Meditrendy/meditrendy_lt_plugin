@@ -28,13 +28,38 @@ function meditrendy_product_category_description_term($atts) {
 function meditrendy_product_category_description_is_first_page() {
     $paged = max(
         1,
+        is_paged() ? 2 : 1,
         absint(get_query_var('paged')),
-        absint(get_query_var('page'))
+        absint(get_query_var('page')),
+        absint(get_query_var('product-page'))
     );
 
     foreach (['paged', 'product-page', 'mt_filter_paged'] as $key) {
         if (isset($_GET[$key])) {
             $paged = max($paged, absint(wp_unslash($_GET[$key])));
+        }
+    }
+
+    if (isset($_SERVER['REQUEST_URI'])) {
+        global $wp_rewrite;
+
+        $request_uri = esc_url_raw(wp_unslash($_SERVER['REQUEST_URI']));
+        $path = wp_parse_url($request_uri, PHP_URL_PATH);
+        $query = wp_parse_url($request_uri, PHP_URL_QUERY);
+        $pagination_base = !empty($wp_rewrite->pagination_base) ? $wp_rewrite->pagination_base : 'page';
+
+        if ($path && preg_match('~/' . preg_quote($pagination_base, '~') . '/([0-9]+)/?~', $path, $matches)) {
+            $paged = max($paged, absint($matches[1]));
+        }
+
+        if ($query) {
+            wp_parse_str($query, $request_query);
+
+            foreach (['paged', 'product-page', 'mt_filter_paged'] as $key) {
+                if (isset($request_query[$key])) {
+                    $paged = max($paged, absint($request_query[$key]));
+                }
+            }
         }
     }
 
