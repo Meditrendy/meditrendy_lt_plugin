@@ -800,7 +800,7 @@ function meditrendy_side_cart_enqueue_assets() {
         'MeditrendySideCart',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('meditrendy_side_cart'),
+            'nonce' => '',
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
             'cartTriggerSelector' => 'header .xoo-wsc-cart-trigger, header .custom-cart-icon, header .meditrendy-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]',

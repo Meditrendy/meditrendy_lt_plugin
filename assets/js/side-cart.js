@@ -10,7 +10,8 @@
   const cartSelector = '[data-mt-side-cart]';
   const triggerSelector = settings.cartTriggerSelector || 'header .x-anchor.xoo-wsc-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]';
   const ajaxUrl = settings.ajaxUrl || '';
-  let nonce = settings.nonce || '';
+  let nonce = '';
+  let nonceRefreshPromise = null;
   let drawer = null;
   let inner = null;
   let isRequesting = false;
@@ -46,6 +47,22 @@
 
   const sideCartText = (key, fallback) => labels[key] || fallback;
 
+  const cartRefreshErrorMessage = () => sideCartText(
+    'refreshFailed',
+    'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.'
+  );
+
+  const createPublicError = (message, details = {}) => {
+    const error = new Error(message);
+    error.publicMessage = message;
+
+    Object.entries(details).forEach(([key, value]) => {
+      error[key] = value;
+    });
+
+    return error;
+  };
+
   const currentSettings = () => window.MeditrendySideCart || settings || {};
 
   const currentAjaxUrl = () => {
@@ -58,18 +75,17 @@
     return `${window.location.origin}/wp-admin/admin-ajax.php`;
   };
 
-  const currentNonce = () => {
-    if (nonce) {
-      return nonce;
+  const currentNonce = () => nonce;
+
+  const withCacheBust = (url) => {
+    try {
+      const nextUrl = new URL(url, window.location.href);
+      nextUrl.searchParams.set('mt_side_cart_nonce', String(Date.now()));
+      return nextUrl.toString();
+    } catch (error) {
+      const separator = String(url).indexOf('?') === -1 ? '?' : '&';
+      return `${url}${separator}mt_side_cart_nonce=${Date.now()}`;
     }
-
-    const configured = currentSettings().nonce || '';
-
-    if (configured) {
-      nonce = configured;
-    }
-
-    return nonce;
   };
 
   const parseCount = (value) => {
@@ -182,17 +198,35 @@
 
   const readResponsePayload = async (response) => {
     const text = await response.text();
+    const trimmed = text.trim();
+
+    if (!trimmed) {
+      throw createPublicError(cartRefreshErrorMessage(), {
+        isInvalidJson: true,
+        responseStatus: response.status,
+      });
+    }
 
     try {
       return JSON.parse(text);
     } catch (error) {
-      const message = stripHtml(text);
+      const contentType = response.headers && response.headers.get ? response.headers.get('content-type') || '' : '';
+      const isHtmlResponse = /^</.test(trimmed) || /<!doctype|<html[\s>]/i.test(trimmed) || contentType.includes('text/html');
+      const responsePreview = (stripHtml(text) || trimmed).slice(0, 180);
 
-      throw new Error(
-        message && message.length < 220
-          ? message
-          : sideCartText('refreshFailed', 'Nepavyko atnaujinti krep\u0161elio. Bandykite dar kart\u0105.')
-      );
+      debug('invalid ajax response', {
+        status: response.status,
+        contentType,
+        isHtmlResponse,
+        preview: responsePreview,
+      });
+
+      throw createPublicError(cartRefreshErrorMessage(), {
+        isInvalidJson: true,
+        isHtmlResponse,
+        responseStatus: response.status,
+        responsePreview,
+      });
     }
   };
 
@@ -202,6 +236,8 @@
     return message === '-1' || message.includes('nonce') || message.includes('security check');
   };
 
+  const isNonceFailurePayload = (payload) => payload === -1 || payload === '-1';
+
   const refreshNonce = async () => {
     const nonceAjaxUrl = currentAjaxUrl();
 
@@ -209,31 +245,49 @@
       return false;
     }
 
-    const formData = new window.FormData();
-    formData.set('action', 'meditrendy_side_cart_nonce');
-
-    try {
-      const response = await window.fetch(nonceAjaxUrl, {
-        method: 'POST',
-        credentials: 'same-origin',
-        body: formData,
-      });
-      const payload = await readResponsePayload(response);
-      const nextNonce = payload && payload.success && payload.data ? payload.data.nonce : '';
-
-      if (!nextNonce) {
-        return false;
-      }
-
-      nonce = nextNonce;
-      return true;
-    } catch (error) {
-      if (window.console) {
-        window.console.warn('Meditrendy side cart nonce refresh failed.', error);
-      }
+    if (nonceRefreshPromise) {
+      return nonceRefreshPromise;
     }
 
-    return false;
+    const formData = new window.FormData();
+    formData.set('action', 'meditrendy_side_cart_nonce');
+    formData.set('_', String(Date.now()));
+
+    nonceRefreshPromise = (async () => {
+      try {
+        const response = await window.fetch(withCacheBust(nonceAjaxUrl), {
+          method: 'POST',
+          credentials: 'same-origin',
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache',
+          },
+          body: formData,
+        });
+        const payload = await readResponsePayload(response);
+        const nextNonce = payload && payload.success && payload.data ? payload.data.nonce : '';
+
+        if (!nextNonce) {
+          return false;
+        }
+
+        nonce = nextNonce;
+        debug('nonce refreshed');
+        return true;
+      } catch (error) {
+        if (window.console) {
+          window.console.warn('Meditrendy side cart nonce refresh failed.', error);
+        }
+      }
+
+      return false;
+    })();
+
+    try {
+      return await nonceRefreshPromise;
+    } finally {
+      nonceRefreshPromise = null;
+    }
   };
 
   const setUpsellsLoading = (state) => {
@@ -385,7 +439,7 @@
       return null;
     }
 
-    if (!currentNonce() && !options.nonceRetry && !(await refreshNonce())) {
+    if (!currentNonce() && !(await refreshNonce())) {
       return null;
     }
 
@@ -415,12 +469,20 @@
     formData.set('nonce', currentNonce());
 
     try {
-      const response = await window.fetch(requestAjaxUrl, {
+      const response = await window.fetch(withCacheBust(requestAjaxUrl), {
         method: 'POST',
         credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
         body: formData,
       });
       const payload = await readResponsePayload(response);
+
+      if (isNonceFailurePayload(payload)) {
+        throw new Error('-1');
+      }
 
       debug('request response', {
         action,
@@ -479,13 +541,22 @@
       debug('request failed', {
         action,
         message: error && error.message ? error.message : String(error),
+        isInvalidJson: !!(error && error.isInvalidJson),
+        isHtmlResponse: !!(error && error.isHtmlResponse),
+        responseStatus: error && error.responseStatus ? error.responseStatus : null,
       });
 
       if (window.console) {
         window.console.warn('Meditrendy side cart request failed.', error);
       }
 
-      if (!options.nonceRetry && isNonceFailure(error) && await refreshNonce()) {
+      if (!options.nonceRetry && isNonceFailure(error)) {
+        nonce = '';
+
+        if (!(await refreshNonce())) {
+          return null;
+        }
+
         return request(action, formData, {
           ...options,
           nonceRetry: true,
@@ -499,7 +570,7 @@
       }
 
       if (!options.silent && error && error.message) {
-        window.alert(error.message);
+        window.alert(error.publicMessage || error.message);
       }
     } finally {
       if (blocking) {
