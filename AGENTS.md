@@ -13,7 +13,8 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 
 ## Project Conventions
 
-- Frontend/customer-facing labels should stay Lithuanian by default.
+- Storefront/customer-facing strings must be translation-ready for Loco Translate or a similar WordPress translation plugin. Wrap PHP strings with the appropriate WordPress i18n helper (`__()`, `_e()`, `esc_html__()`, `esc_attr__()`, etc.) and use the plugin text domain. For JavaScript-facing strings, localize them from PHP or use the established WordPress i18n flow rather than hardcoding untranslatable text.
+- Prefer storefront labels and links to support Lithuanian, Polish, and English. Lithuanian remains the default storefront language unless the active multilingual/translation setup supplies Polish or English, but new frontend URLs, link text, slugs, and navigation-facing strings should be designed so Lithuanian, Polish, and English translations can be managed in Loco Translate or the active translation plugin.
 - Admin/editor-facing labels may be English or Polish.
 - Keep business logic independent from Cornerstone wherever possible.
 - Before adding plugin logic for a Cornerstone/Pro element, check whether the same result can be achieved by adding a class, changing element settings, or editing content in the editor.
@@ -24,9 +25,9 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 - Always consider the user experience when making changes.
 - Always consider website performance when making changes.
 - Changes that apply to products usually apply to product sets as well.
-- Do not introduce English or Polish frontend strings unless the user explicitly approves them.
-- For user-facing strings, use Lithuanian wording and keep it consistent with WooCommerce context.
-- Always prepare for translations in the future.
+- Do not introduce hardcoded frontend strings in any language. Use translatable strings with Lithuanian source text by default, unless the user explicitly asks for a different source language or the existing feature already uses another approved source language.
+- For user-facing strings, keep Lithuanian wording consistent with WooCommerce context and make Polish and English translations possible through the translation workflow.
+- Always prepare storefront text and links for Lithuanian, Polish, and English translations.
 - For translation-only changes to WordPress, WooCommerce, theme, or plugin strings, prefer advising the user to change the string in Loco Translate (or the active translation plugin) instead of adding translation overrides in code. Add code-level translation filters only when the string cannot be translated reliably through the admin translation workflow, when the behavior must be dynamic, or when the user explicitly asks for a code fix.
 
 ## File Layout
