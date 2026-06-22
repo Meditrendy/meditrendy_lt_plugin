@@ -2,6 +2,18 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_side_cart_language() {
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language) {
+            return $language;
+        }
+    }
+
+    if (defined('ICL_LANGUAGE_CODE') && ICL_LANGUAGE_CODE) {
+        return strtolower((string) ICL_LANGUAGE_CODE);
+    }
+
     $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
     $locale = strtolower((string) $locale);
 
