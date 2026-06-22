@@ -260,7 +260,10 @@
           credentials: 'same-origin',
           cache: 'no-store',
           headers: {
+            Accept: 'application/json, text/javascript, */*; q=0.01',
             'Cache-Control': 'no-cache',
+            Pragma: 'no-cache',
+            'X-Requested-With': 'XMLHttpRequest',
           },
           body: formData,
         });
@@ -474,7 +477,10 @@
         credentials: 'same-origin',
         cache: 'no-store',
         headers: {
+          Accept: 'application/json, text/javascript, */*; q=0.01',
           'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+          'X-Requested-With': 'XMLHttpRequest',
         },
         body: formData,
       });
