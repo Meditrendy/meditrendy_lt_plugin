@@ -652,3 +652,23 @@ msgstr ""
 #: includes/product-waitlist.php:321 includes/product-waitlist.php:325
 msgid "Ši prekė jau yra prekyboje."
 msgstr ""
+
+#: includes/checkout-terms-consent.php
+msgid "Sutinku su"
+msgstr ""
+
+#: includes/checkout-terms-consent.php
+msgid "bei"
+msgstr ""
+
+#: includes/checkout-terms-consent.php
+msgid "Taisyklėmis ir sąlygomis"
+msgstr ""
+
+#: includes/checkout-terms-consent.php
+msgid "Privatumo politika"
+msgstr ""
+
+#: includes/checkout-terms-consent.php
+msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
+msgstr ""

@@ -697,3 +697,23 @@ msgstr "Aizvērt filtrus"
 msgid "Aktyvus filtrai"
 msgstr "Aktīvie filtri"
 
+#: includes/checkout-terms-consent.php
+msgid "Sutinku su"
+msgstr "Es piekrītu"
+
+#: includes/checkout-terms-consent.php
+msgid "bei"
+msgstr "un"
+
+#: includes/checkout-terms-consent.php
+msgid "Taisyklėmis ir sąlygomis"
+msgstr "Noteikumiem un nosacījumiem"
+
+#: includes/checkout-terms-consent.php
+msgid "Privatumo politika"
+msgstr "Privātuma politikai"
+
+#: includes/checkout-terms-consent.php
+msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
+msgstr "Pirms pasūtījuma veikšanas jums jāpiekrīt noteikumiem un privātuma politikai."
+

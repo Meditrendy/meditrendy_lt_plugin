@@ -58,11 +58,16 @@
     const input = field.querySelector('input');
 
     if (input) {
-      input.required = true;
+      input.required = false;
       input.minLength = 8;
       input.pattern = '[0-9+()\\s-]{8,}';
       input.setAttribute('aria-required', 'true');
     }
+
+    const error = document.createElement('div');
+    error.className = 'meditrendy-checkout-invoice-fields__error';
+    error.hidden = true;
+    field.append(error);
 
     field.classList.add(phoneClass);
     return field;
@@ -174,6 +179,48 @@
 
   function getPhoneField() {
     return document.querySelector('#meditrendy_contact_phone');
+  }
+
+  function setPhoneError(message) {
+    const field = getPhoneField();
+    const wrap = field ? field.closest(`.${phoneClass}`) : null;
+    const error = wrap ? wrap.querySelector('.meditrendy-checkout-invoice-fields__error') : null;
+
+    if (!field || !error) {
+      return;
+    }
+
+    error.textContent = message || '';
+    error.hidden = !message;
+    field.setAttribute('aria-invalid', message ? 'true' : 'false');
+  }
+
+  function validateContactPhone() {
+    const field = getPhoneField();
+
+    if (!field) {
+      return true;
+    }
+
+    const value = (field.value || '').trim();
+    const phonePattern = /^[0-9+()\s-]{8,}$/;
+    let message = '';
+
+    if (!value) {
+      message = labels.phoneRequired || 'Įveskite telefono numerį.';
+    } else if (!phonePattern.test(value)) {
+      message = labels.phoneInvalid || 'Įveskite teisingą telefono numerį.';
+    }
+
+    setPhoneError(message);
+
+    if (message) {
+      field.focus({ preventScroll: true });
+      field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return false;
+    }
+
+    return true;
   }
 
   function getContactNameValues() {
@@ -738,6 +785,12 @@
         return;
       }
 
+      if (!validateContactPhone()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
       if (isPickupSelected()) {
         preparePickupAddressForFinalRequest();
       } else {
@@ -752,6 +805,12 @@
       const form = event.target.closest('.wc-block-checkout__form, form.wc-block-checkout__form');
 
       if (!form) {
+        return;
+      }
+
+      if (!validateContactPhone()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
         return;
       }
 
@@ -774,6 +833,7 @@
     field.dataset.meditrendyPhoneReady = '1';
     field.addEventListener('input', function () {
       const block = document.querySelector(`.${blockClass}`);
+      setPhoneError('');
       if (!isPickupSelected()) {
         syncWooCheckoutAddresses('phone input');
       }

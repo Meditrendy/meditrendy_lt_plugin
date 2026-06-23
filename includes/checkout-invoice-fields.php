@@ -501,6 +501,8 @@ add_action('wp_enqueue_scripts', function() {
                 'invoiceStreet'   => 'Gatvė, namo numeris',
                 'invoiceCity'     => 'Miestas',
                 'invoicePostcode' => 'Pašto kodas',
+                'phoneRequired'   => 'Įveskite telefono numerį.',
+                'phoneInvalid'    => 'Įveskite teisingą telefono numerį.',
             ],
         ]
     );

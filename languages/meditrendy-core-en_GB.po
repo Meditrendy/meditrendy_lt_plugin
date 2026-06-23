@@ -697,3 +697,23 @@ msgstr "Close filters"
 msgid "Aktyvus filtrai"
 msgstr "Active filters"
 
+#: includes/checkout-terms-consent.php
+msgid "Sutinku su"
+msgstr "I agree to"
+
+#: includes/checkout-terms-consent.php
+msgid "bei"
+msgstr "and"
+
+#: includes/checkout-terms-consent.php
+msgid "Taisyklėmis ir sąlygomis"
+msgstr "Terms and conditions"
+
+#: includes/checkout-terms-consent.php
+msgid "Privatumo politika"
+msgstr "Privacy Policy"
+
+#: includes/checkout-terms-consent.php
+msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
+msgstr "You must agree to the terms and privacy policy before placing your order."
+

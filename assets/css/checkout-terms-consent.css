@@ -1,0 +1,38 @@
+.meditrendy-checkout-terms-consent {
+    margin: 24px 0;
+    padding: 20px 0;
+    border-top: 1px solid #d8d8d8;
+    border-bottom: 1px solid #d8d8d8;
+}
+
+.meditrendy-checkout-terms-consent__label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    cursor: pointer;
+}
+
+.meditrendy-checkout-terms-consent__label input {
+    width: 18px;
+    height: 18px;
+    margin: 1px 0 0;
+    flex: 0 0 auto;
+}
+
+.meditrendy-checkout-terms-consent__text {
+    display: block;
+}
+
+.meditrendy-checkout-terms-consent__error {
+    margin-top: 8px;
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.meditrendy-checkout-terms-consent__native-copy {
+    display: none;
+}
