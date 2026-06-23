@@ -1,0 +1,638 @@
+msgid ""
+msgstr "Project-Id-Version: Meditrendy Core\\nReport-Msgid-Bugs-To: \\nPOT-Creation-Date: 2026-06-22 12:27+0000\\nPO-Revision-Date: 2026-06-23 00:00+0000\\nLast-Translator: Meditrendy\\nLanguage-Team: Meditrendy\\nLanguage: lv\\nPlural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2);\\nMIME-Version: 1.0\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\nX-Domain: meditrendy-core\\n"
+
+#: includes/product-size-charts.php:502
+#, php-format
+msgid "%s chart"
+msgstr "%s tabula"
+
+#: includes/product-size-charts.php:235
+msgid ", current"
+msgstr ", pašreizējā"
+
+#: includes/product-promotions.php:52
+msgid "Active"
+msgstr "Aktīvs"
+
+#: includes/side-cart-upsells.php:484
+msgid "Add rule"
+msgstr "Pievienot noteikumu"
+
+#: includes/product-badges.php:91
+msgid "AKCIJA"
+msgstr "AKCIJA"
+
+#: includes/configurable-popups.php:720
+msgid "Akcija"
+msgstr "Akcija"
+
+#: includes/product-waitlist.php:635
+msgid "All signups"
+msgstr "Visi pieteikumi"
+
+#: includes/product-size-charts.php:665
+msgid "Amerikietiški dydžiai – rinkitės mažesnį dydį"
+msgstr "Amerikāņu izmēri - izvēlieties mazāku izmēru"
+
+#: includes/side-cart-upsells.php:828
+msgid "Ankstesnės prekės"
+msgstr "Iepriekšējās preces"
+
+#: includes/side-cart-upsells.php:404
+msgid "Any cart"
+msgstr "Jebkurš grozs"
+
+#: includes/product-size-charts.php:493
+msgid "Attribute items"
+msgstr "Atribūta vienumi"
+
+#: includes/product-waitlist.php:280 includes/product-waitlist.php:350
+msgid "Ačiū. Informuosime jus el. paštu, kai prekė vėl bus prekyboje."
+msgstr "Paldies. Nosūtīsim jums e-pastu, kad prece atkal būs pieejama."
+
+#: includes/product-promotions.php:614
+msgid "Baigiasi už:"
+msgstr "Beidzas pēc:"
+
+#: includes/product-promotions.php:424
+msgid "Be galiojimo pabaigos"
+msgstr "Bez derīguma termiņa"
+
+#: includes/product-badges.php:114
+msgid "BESTSELLER"
+msgstr "BESTSELLER"
+
+#: includes/blog-archive.php:67
+msgid "Blog categories"
+msgstr "Bloga kategorijas"
+
+#: includes/blog-archive.php:151
+msgid "Blog pagination"
+msgstr "Bloga lapošana"
+
+#: includes/product-promotions.php:301
+msgid "Brands"
+msgstr "Zīmoli"
+
+#: includes/side-cart-upsells.php:422
+msgid "Cart brands"
+msgstr "Groza zīmoli"
+
+#: includes/side-cart-upsells.php:417
+msgid "Cart categories"
+msgstr "Groza kategorijas"
+
+#: includes/side-cart.php:593 includes/side-cart.php:605
+#: includes/side-cart.php:755
+msgid "Cart module is disabled."
+msgstr "Groza modulis ir atspējots."
+
+#: includes/side-cart-upsells.php:412
+msgid "Cart products"
+msgstr "Groza preces"
+
+#: includes/product-promotions.php:300
+msgid "Categories"
+msgstr "Kategorijas"
+
+#: includes/side-cart-upsells.php:430
+msgid "Choose exact products, or let the side cart pull random products from categories and brands."
+msgstr "Izvēlieties konkrētas preces vai ļaujiet sānu grozam nejauši atlasīt preces no kategorijām un zīmoliem."
+
+#: includes/side-cart-upsells.php:398
+msgid "Choose which cart contents activate this rule."
+msgstr "Izvēlieties, kurš groza saturs aktivizē šo noteikumu."
+
+#: includes/checkout-invoice-fields.php:444
+msgid "Company name:"
+msgstr "Uzņēmuma nosaukums:"
+
+#: includes/product-promotions.php:294
+msgid "Coupon"
+msgstr "Kupons"
+
+#. Description of the plugin
+msgid "Custom WooCommerce features for Meditrendy"
+msgstr "Pielāgotas WooCommerce funkcijas Meditrendy vajadzībām"
+
+#: includes/product-promotions.php:295
+msgid "Discount"
+msgstr "Atlaide"
+
+#: includes/product-size-charts.php:677 includes/product-size-charts.php:684
+msgid "Dydžių lentelė"
+msgstr "Izmēru tabula"
+
+#: includes/product-waitlist.php:277
+msgid "El. pašto adresas"
+msgstr "E-pasta adrese"
+
+#: includes/product-waitlist.php:687
+msgid "Email"
+msgstr "E-pasts"
+
+#: includes/side-cart-upsells.php:391
+msgid "Enabled"
+msgstr "Iespējots"
+
+#: includes/checkout-invoice-fields.php:448
+msgid "EU VAT number:"
+msgstr "ES PVN numurs:"
+
+#: includes/side-cart-upsells.php:440
+msgid "Exact upsell products"
+msgstr "Konkrētas papildu pārdošanas preces"
+
+#: includes/product-promotions.php:53
+msgid "Expired"
+msgstr "Beidzies"
+
+#: includes/product-promotions.php:296
+msgid "Expires"
+msgstr "Derīgs līdz"
+
+#: includes/side-cart-upsells.php:434
+msgid "First product"
+msgstr "Pirmā prece"
+
+#: includes/product-promotions.php:629
+#, php-format
+msgid "Galioja iki: %s"
+msgstr "Derīgs līdz: %s"
+
+#: includes/product-size-charts.php:500
+msgid "Generic fallback chart"
+msgstr "Vispārīgā rezerves tabula"
+
+#: includes/product-waitlist.php:278
+msgid "Informuokite mane"
+msgstr "Paziņot man"
+
+#: includes/product-waitlist.php:5
+msgid "Informuokite mane, kai bus prekyboje"
+msgstr "Paziņot man, kad būs pieejams"
+
+#: includes/product-size-charts.php:575
+msgid "Invalid product attribute."
+msgstr "Nederīgs preces atribūts."
+
+#: includes/checkout-invoice-fields.php:452
+msgid "Invoice address:"
+msgstr "Rēķina adrese:"
+
+#: includes/checkout-invoice-fields.php:441
+msgid "Invoice data"
+msgstr "Rēķina dati"
+
+#: includes/product-size-charts.php:498
+msgid "Item"
+msgstr "Vienums"
+
+#: includes/side-cart-upsells.php:826
+msgid "Jums taip pat gali patikti"
+msgstr "Jums varētu patikt arī"
+
+#: includes/side-cart.php:204
+msgid "Jūsų krepšelis tuščias."
+msgstr "Jūsu grozs ir tukšs."
+
+#: includes/product-category-description.php:89
+msgid "Kategorijos aprašymas"
+msgstr "Kategorijas apraksts"
+
+#: includes/side-cart.php:275
+msgid "Kiekis"
+msgstr "Daudzums"
+
+#: includes/side-cart-upsells.php:829
+msgid "Kitos prekės"
+msgstr "Nākamās preces"
+
+#: includes/product-promotions.php:635 includes/product-promotions.php:637
+msgid "Kopijuoti kodą"
+msgstr "Kopēt kodu"
+
+#: includes/side-cart.php:357
+msgid "KrepĹˇelis nepasiekiamas."
+msgstr "Grozs nav pieejams."
+
+#: includes/side-cart.php:518
+msgid "Krepšelis nepasiekiamas."
+msgstr "Grozs nav pieejams."
+
+#: includes/side-cart.php:317
+msgid "Krepšelis — %d"
+msgstr "Grozs - %d"
+
+#: includes/product-waitlist.php:651
+msgid "Last signup"
+msgstr "Pēdējais pieteikums"
+
+#: includes/blog-archive.php:254
+msgid "Latest blog posts"
+msgstr "Jaunākie bloga raksti"
+
+#: includes/side-cart-upsells.php:402
+msgid "Match type"
+msgstr "Atbilstības tips"
+
+#: includes/product-price-block.php:99
+msgid "Mažiausia kaina per 30 d.:"
+msgstr "Zemākā cena pēdējo 30 dienu laikā:"
+
+#. Name of the plugin
+msgid "Meditrendy Core"
+msgstr "Meditrendy Core"
+
+#: includes/product-size-charts.php:14
+msgid "Men"
+msgstr "Vīrieši"
+
+#: includes/product-size-charts.php:243
+#, php-format
+msgid "Missing: %s"
+msgstr "Trūkst: %s"
+
+#: includes/side-cart.php:306
+msgid "Mokesčiai įskaičiuoti į kainą"
+msgstr "Nodokļi ir iekļauti cenā"
+
+#: includes/admin-order-gross-prices.php:135
+msgid "Mokėjimo mokestis:"
+msgstr "Maksājuma maksa:"
+
+#: includes/product-badges.php:104
+msgid "NAUJIENA"
+msgstr "JAUNUMS"
+
+#: includes/product-waitlist.php:281
+msgid "Nepavyko išsaugoti. Bandykite dar kartą."
+msgstr "Neizdevās saglabāt. Lūdzu, mēģiniet vēlreiz."
+
+#: includes/side-cart.php:722
+msgid "Nepavyko įdėti prekės į krepšelį."
+msgstr "Neizdevās pievienot preci grozam."
+
+#: includes/product-size-charts.php:541
+msgid "No items found for this attribute."
+msgstr "Šim atribūtam nav atrasts neviens vienums."
+
+#: includes/product-promotions.php:284
+msgid "No published WooCommerce coupons found."
+msgstr "Nav atrastu publicētu WooCommerce kuponu."
+
+#: includes/product-size-charts.php:222
+msgid "No translations linked."
+msgstr "Nav piesaistītu tulkojumu."
+
+#: includes/product-waitlist.php:677 includes/product-waitlist.php:719
+msgid "No waitlist signups yet."
+msgstr "Vēl nav gaidīšanas saraksta pieteikumu."
+
+#: includes/product-size-charts.php:467
+msgid "No WooCommerce product attributes are available."
+msgstr "Nav pieejamu WooCommerce preču atribūtu."
+
+#: includes/product-waitlist.php:712
+msgid "Notified"
+msgstr "Paziņots"
+
+#: includes/product-waitlist.php:691
+msgid "Notified date"
+msgstr "Paziņošanas datums"
+
+#: includes/product-promotions.php:636
+msgid "Nukopijuota"
+msgstr "Nokopēts"
+
+#: includes/product-promotions.php:624
+msgid "Nuolaidos kodas"
+msgstr "Atlaides kods"
+
+#: includes/side-cart.php:277
+msgid "Padidinti kiekį"
+msgstr "Palielināt daudzumu"
+
+#: includes/product-complete-set.php:180 includes/side-cart-upsells.php:702
+#, php-format
+msgid "Pasirinkite %s"
+msgstr "Izvēlieties %s"
+
+#: includes/side-cart.php:656
+#, php-format
+msgid "Pasirinkite produkto „%s“ variantą."
+msgstr "Izvēlieties preces „%s“ variantu."
+
+#: includes/side-cart.php:253
+msgid "Pašalinti prekę"
+msgstr "Noņemt preci"
+
+#: includes/product-promotions.php:159 includes/product-promotions.php:160
+#: includes/product-promotions.php:275
+msgid "PDP coupon codes"
+msgstr "PDP kuponu kodi"
+
+#: includes/product-waitlist.php:649 includes/product-waitlist.php:712
+msgid "Pending"
+msgstr "Gaida"
+
+#: includes/product-waitlist.php:631
+msgid "Pending signups"
+msgstr "Gaidošie pieteikumi"
+
+#: includes/side-cart.php:332
+msgid "Pereiti prie apmokėjimo"
+msgstr "Doties uz apmaksu"
+
+#: includes/product-waitlist.php:419 includes/product-waitlist.php:502
+msgid "Peržiūrėti prekę"
+msgstr "Skatīt preci"
+
+#: includes/product-waitlist.php:275
+msgid "Pranešimas apie prekę"
+msgstr "Paziņojums par preci"
+
+#: includes/product-waitlist.php:415 includes/product-waitlist.php:498
+msgid "Prekė"
+msgstr "Prece"
+
+#: includes/side-cart.php:762
+msgid "Prekė nerasta krepšelyje."
+msgstr "Prece grozā nav atrasta."
+
+#: includes/side-cart.php:646 includes/product-waitlist.php:312
+msgid "Prekė nerasta."
+msgstr "Prece nav atrasta."
+
+#: includes/product-waitlist.php:401 includes/product-waitlist.php:491
+msgid "Prekė vėl prekyboje"
+msgstr "Prece atkal ir pieejama"
+
+#: includes/product-waitlist.php:647 includes/product-waitlist.php:669
+#: includes/product-waitlist.php:688
+msgid "Product"
+msgstr "Prece"
+
+#: includes/product-waitlist.php:539
+msgid "Product #%d"
+msgstr "Prece #%d"
+
+#: includes/product-size-charts.php:476
+msgid "Product attribute"
+msgstr "Preces atribūts"
+
+#: includes/side-cart-upsells.php:407
+msgid "Product from brand"
+msgstr "Prece no zīmola"
+
+#: includes/side-cart-upsells.php:406
+msgid "Product from category"
+msgstr "Prece no kategorijas"
+
+#: includes/product-promotions.php:299
+msgid "Products"
+msgstr "Preces"
+
+#: includes/product-size-charts.php:487
+msgid "Products using a selected attribute item with a chart will show a size chart link. Category-specific charts are used first, then the generic fallback chart."
+msgstr "Precēm, kas izmanto izvēlēto atribūta vienumu ar tabulu, tiks rādīta saite uz izmēru tabulu. Vispirms tiek izmantotas kategorijai specifiskas tabulas, pēc tam vispārīgā rezerves tabula."
+
+#: includes/product-waitlist.php:643
+msgid "Products with signups"
+msgstr "Preces ar pieteikumiem"
+
+#: includes/product-promotions.php:608
+msgid "Produktui taikoma nuolaida"
+msgstr "Precei piemērota atlaide"
+
+#: includes/product-badges.php:124
+msgid "Produktų žymos"
+msgstr "Preču birkas"
+
+#: includes/product-promotions.php:279
+msgid "Promotion settings saved."
+msgstr "Akcijas iestatījumi saglabāti."
+
+#: includes/side-cart-upsells.php:450
+msgid "Random from brands"
+msgstr "Nejauši no zīmoliem"
+
+#: includes/side-cart-upsells.php:445
+msgid "Random from categories"
+msgstr "Nejauši no kategorijām"
+
+#: includes/product-waitlist.php:683
+msgid "Recent signups"
+msgstr "Jaunākie pieteikumi"
+
+#: includes/product-color-swatches.php:397
+msgid "Rodyti visas spalvas (+%d)"
+msgstr "Rādīt visas krāsas (+%d)"
+
+#: includes/product-color-swatches.php:398
+msgid "Rodyti visas spalvas. Dar spalvų: %d"
+msgstr "Rādīt visas krāsas. Vēl krāsas: %d"
+
+#: includes/side-cart-upsells.php:388
+#, php-format
+msgid "Rule %s"
+msgstr "Noteikums %s"
+
+#: includes/product-promotions.php:380
+msgid "Save promotions"
+msgstr "Saglabāt akcijas"
+
+#: includes/product-size-charts.php:547
+msgid "Save size charts"
+msgstr "Saglabāt izmēru tabulas"
+
+#: includes/side-cart-upsells.php:486
+msgid "Save upsells"
+msgstr "Saglabāt papildu pārdošanu"
+
+#: includes/product-promotions.php:337 includes/side-cart-upsells.php:319
+#: includes/side-cart-upsells.php:340
+msgid "Search products..."
+msgstr "Meklēt preces..."
+
+#: includes/side-cart-upsells.php:360
+msgid "Search..."
+msgstr "Meklēt..."
+
+#: includes/product-waitlist.php:669
+msgid "Set"
+msgstr "Komplekts"
+
+#: includes/product-promotions.php:328
+msgid "Show"
+msgstr "Rādīt"
+
+#: includes/side-cart-upsells.php:67 includes/side-cart-upsells.php:68
+#: includes/side-cart-upsells.php:468
+msgid "Side cart upsells"
+msgstr "Sānu groza papildu piedāvājumi"
+
+#: includes/product-waitlist.php:690
+msgid "Signup date"
+msgstr "Pieteikuma datums"
+
+#: includes/product-promotions.php:298
+msgid "Site-wide"
+msgstr "Visā vietnē"
+
+#: includes/product-size-charts.php:439 includes/product-size-charts.php:440
+#: includes/product-size-charts.php:458
+msgid "Size charts"
+msgstr "Izmēru tabulas"
+
+#: includes/product-size-charts.php:462
+msgid "Size charts saved."
+msgstr "Izmēru tabulas saglabātas."
+
+#: includes/blog-archive.php:123
+#, php-format
+msgid "Skaityti daugiau apie %s"
+msgstr "Lasīt vairāk par %s"
+
+#: includes/product-complete-set.php:257
+msgid "Spalva:"
+msgstr "Krāsa:"
+
+#: includes/side-cart-upsells.php:405
+msgid "Specific cart product"
+msgstr "Konkrēta prece grozā"
+
+#: includes/product-promotions.php:297 includes/product-waitlist.php:689
+msgid "Status"
+msgstr "Statuss"
+
+#: includes/blog-archive.php:336
+msgid "Straipsniu nerasta."
+msgstr "Raksti nav atrasti."
+
+#: includes/side-cart.php:267
+msgid "Sumažinti kiekį"
+msgstr "Samazināt daudzumu"
+
+#: includes/product-promotions.php:609
+#, php-format
+msgid "Sutaupote %s"
+msgstr "Jūs ietaupāt %s"
+
+#: includes/product-waitlist.php:414 includes/product-waitlist.php:497
+msgid "Sveiki,"
+msgstr "Sveiki,"
+
+#: includes/side-cart.php:303
+msgid "Tarpinė suma:"
+msgstr "Starpsumma:"
+
+#: includes/side-cart-upsells.php:436
+msgid "This product is shown first when this rule matches."
+msgstr "Šī prece tiek rādīta pirmā, kad noteikums atbilst."
+
+#: includes/product-waitlist.php:650
+msgid "Total"
+msgstr "Kopā"
+
+#: includes/product-size-charts.php:499
+msgid "Translations"
+msgstr "Tulkojumi"
+
+#: includes/product-waitlist.php:648
+msgid "Type"
+msgstr "Tips"
+
+#: includes/product-waitlist.php:639
+msgid "Unique emails"
+msgstr "Unikāli e-pasti"
+
+#: includes/side-cart-upsells.php:471
+msgid "Upsells saved."
+msgstr "Papildu piedāvājumi saglabāti."
+
+#: includes/configurable-popups.php:721
+msgid "Uzdaryti"
+msgstr "Aizvērt"
+
+#: includes/product-complete-set.php:247
+msgid "Užbaikite komplektą"
+msgstr "Pabeidziet komplektu"
+
+#: includes/product-size-charts.php:685 includes/product-waitlist.php:279
+msgid "Uždaryti"
+msgstr "Aizvērt"
+
+#: includes/side-cart.php:318 includes/side-cart.php:504
+msgid "Uždaryti krepšelį"
+msgstr "Aizvērt grozu"
+
+#: includes/blog-archive.php:69
+msgid "Visi"
+msgstr "Visi"
+
+#: includes/product-color-swatches.php:398
+msgid "Visos +%d"
+msgstr "Visas +%d"
+
+#: includes/product-waitlist.php:417 includes/product-waitlist.php:500
+msgid "vėl yra prekyboje."
+msgstr "atkal ir pieejama."
+
+#: includes/product-waitlist.php:528 includes/product-waitlist.php:529
+#: includes/product-waitlist.php:626
+msgid "Waitlist"
+msgstr "Gaidīšanas saraksts"
+
+#: includes/side-cart-upsells.php:429
+msgid "What to show"
+msgstr "Ko rādīt"
+
+#: includes/side-cart-upsells.php:397
+msgid "When to show"
+msgstr "Kad rādīt"
+
+#: includes/product-size-charts.php:10
+msgid "Women"
+msgstr "Sievietes"
+
+#: includes/product-promotions.php:322
+msgid "Won’t show on PDP until expiry is updated."
+msgstr "Netiks rādīts produkta lapā, kamēr netiks atjaunināts derīguma termiņš."
+
+#: includes/product-size-charts.php:566
+msgid "You do not have permission to save size charts."
+msgstr "Jums nav atļaujas saglabāt izmēru tabulas."
+
+#: includes/product-promotions.php:389 includes/side-cart-upsells.php:498
+msgid "You do not have permission to save these settings."
+msgstr "Jums nav atļaujas saglabāt šos iestatījumus."
+
+#: includes/configurable-popups.php:450 includes/product-promotions.php:256
+#: includes/product-size-charts.php:449 includes/product-waitlist.php:589
+#: includes/side-cart-upsells.php:462 includes/marketing-banner.php:260
+msgid "You do not have permission to view this page."
+msgstr "Jums nav atļaujas skatīt šo lapu."
+
+#: includes/product-set-labels.php:5 includes/product-complete-set.php:146
+#: includes/product-complete-set.php:201 includes/side-cart-upsells.php:778
+msgid "Į krepšelį"
+msgstr "Pievienot grozam"
+
+#: includes/product-waitlist.php:276
+msgid "Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje."
+msgstr "Ievadiet e-pasta adresi, un mēs paziņosim, kad izvēlētā prece atkal būs pieejama."
+
+#: includes/product-waitlist.php:282 includes/product-waitlist.php:308
+msgid "Įveskite teisingą el. pašto adresą."
+msgstr "Ievadiet derīgu e-pasta adresi."
+
+#: includes/product-waitlist.php:321 includes/product-waitlist.php:325
+msgid "Ši prekė jau yra prekyboje."
+msgstr "Šī prece jau ir pieejama."
+
+#: includes/language-switcher-shortcode.php:39
+#: includes/language-switcher-shortcode.php:78
+msgid "Kalbos pasirinkimas"
+msgstr "Valodas izvēle"
+

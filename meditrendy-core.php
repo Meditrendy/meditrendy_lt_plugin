@@ -3,6 +3,8 @@
 Plugin Name: Meditrendy Core
 Description: Custom WooCommerce features for Meditrendy
 Version: 1.0
+Text Domain: meditrendy-core
+Domain Path: /languages
 */
 
 if (!defined('ABSPATH')) exit;
@@ -10,6 +12,10 @@ if (!defined('ABSPATH')) exit;
 define('MEDITRENDY_CORE_FILE', __FILE__);
 define('MEDITRENDY_CORE_DIR', plugin_dir_path(__FILE__));
 define('MEDITRENDY_CORE_URL', plugin_dir_url(__FILE__));
+
+add_action('plugins_loaded', function() {
+    load_plugin_textdomain('meditrendy-core', false, dirname(plugin_basename(__FILE__)) . '/languages');
+});
 
 require_once MEDITRENDY_CORE_DIR . 'includes/product-card-renderer.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/site-identity.php';
