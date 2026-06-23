@@ -636,3 +636,64 @@ msgstr "This product is already in stock."
 msgid "Kalbos pasirinkimas"
 msgstr "Language selection"
 
+
+#: includes/filter-settings.php
+msgid "Atgal"
+msgstr "Back"
+
+#: includes/filter-settings.php
+msgid "DYDIS"
+msgstr "SIZE"
+
+#: includes/filter-settings.php
+msgid "Filtrai"
+msgstr "Filters"
+
+#: includes/filter-settings.php
+msgid "GAMINTOJAS"
+msgstr "BRAND"
+
+#: includes/filter-settings.php
+msgid "ILGIS"
+msgstr "LENGTH"
+
+#: includes/filter-settings.php
+msgid "Išvalyti"
+msgstr "Clear"
+
+#: includes/filter-settings.php
+msgid "KAINA"
+msgstr "PRICE"
+
+#: includes/filter-settings.php
+msgid "Produktų nerasta"
+msgstr "No products found"
+
+#: includes/filter-settings.php
+msgid "Reset"
+msgstr "Reset"
+
+#: includes/filter-settings.php
+msgid "Rodyti produktus"
+msgstr "Show products"
+
+#: includes/filter-settings.php
+msgid "Rodyti rezultatus"
+msgstr "Show results"
+
+#: includes/filter-settings.php
+msgid "SPALVA"
+msgstr "COLOUR"
+
+#: includes/filter-settings.php
+msgid "Skaičiuojama..."
+msgstr "Counting..."
+
+#: includes/filter-settings.php
+msgid "Uzdaryti filtrus"
+msgstr "Close filters"
+
+#: includes/filter-settings.php
+msgid "Aktyvus filtrai"
+msgstr "Active filters"
+

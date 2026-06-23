@@ -636,3 +636,64 @@ msgstr "Šī prece jau ir pieejama."
 msgid "Kalbos pasirinkimas"
 msgstr "Valodas izvēle"
 
+
+#: includes/filter-settings.php
+msgid "Atgal"
+msgstr "Atpakaļ"
+
+#: includes/filter-settings.php
+msgid "DYDIS"
+msgstr "IZMĒRS"
+
+#: includes/filter-settings.php
+msgid "Filtrai"
+msgstr "Filtri"
+
+#: includes/filter-settings.php
+msgid "GAMINTOJAS"
+msgstr "ZĪMOLS"
+
+#: includes/filter-settings.php
+msgid "ILGIS"
+msgstr "GARUMS"
+
+#: includes/filter-settings.php
+msgid "Išvalyti"
+msgstr "Notīrīt"
+
+#: includes/filter-settings.php
+msgid "KAINA"
+msgstr "CENA"
+
+#: includes/filter-settings.php
+msgid "Produktų nerasta"
+msgstr "Preces nav atrastas"
+
+#: includes/filter-settings.php
+msgid "Reset"
+msgstr "Atiestatīt"
+
+#: includes/filter-settings.php
+msgid "Rodyti produktus"
+msgstr "Rādīt preces"
+
+#: includes/filter-settings.php
+msgid "Rodyti rezultatus"
+msgstr "Rādīt rezultātus"
+
+#: includes/filter-settings.php
+msgid "SPALVA"
+msgstr "KRĀSA"
+
+#: includes/filter-settings.php
+msgid "Skaičiuojama..."
+msgstr "Skaita..."
+
+#: includes/filter-settings.php
+msgid "Uzdaryti filtrus"
+msgstr "Aizvērt filtrus"
+
+#: includes/filter-settings.php
+msgid "Aktyvus filtrai"
+msgstr "Aktīvie filtri"
+

@@ -1,6 +1,107 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+function meditrendy_core_current_language() {
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language) {
+            return $language;
+        }
+    }
+
+    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+    $locale = strtolower((string) $locale);
+
+    if (strpos($locale, 'pl') === 0) {
+        return 'pl';
+    }
+
+    if (strpos($locale, 'lv') === 0) {
+        return 'lv';
+    }
+
+    if (strpos($locale, 'en') === 0) {
+        return 'en';
+    }
+
+    return 'lt';
+}
+
+function meditrendy_core_translate_ui_text($text) {
+    $text = (string) $text;
+    $language = meditrendy_core_current_language();
+
+    if ($language === 'lt' || $text === '') {
+        return $text;
+    }
+
+    $translations = [
+        'en' => [
+            'AKCIJA' => 'SALE',
+            'Akcija' => 'Sale',
+            'Atgal' => 'Back',
+            'DYDIS' => 'SIZE',
+            'Filtrai' => 'Filters',
+            'GAMINTOJAS' => 'BRAND',
+            'ILGIS' => 'LENGTH',
+            'Išvalyti' => 'Clear',
+            'KAINA' => 'PRICE',
+            'NAUJIENA' => 'NEW',
+            'Produktų nerasta' => 'No products found',
+            'Reset' => 'Reset',
+            'Rodyti produktus' => 'Show products',
+            'Rodyti rezultatus' => 'Show results',
+            'SPALVA' => 'COLOUR',
+            'Skaičiuojama...' => 'Counting...',
+            'Uzdaryti filtrus' => 'Close filters',
+            'Aktyvus filtrai' => 'Active filters',
+        ],
+        'lv' => [
+            'AKCIJA' => 'AKCIJA',
+            'Akcija' => 'Akcija',
+            'Atgal' => 'Atpakaļ',
+            'DYDIS' => 'IZMĒRS',
+            'Filtrai' => 'Filtri',
+            'GAMINTOJAS' => 'ZĪMOLS',
+            'ILGIS' => 'GARUMS',
+            'Išvalyti' => 'Notīrīt',
+            'KAINA' => 'CENA',
+            'NAUJIENA' => 'JAUNUMS',
+            'Produktų nerasta' => 'Preces nav atrastas',
+            'Reset' => 'Atiestatīt',
+            'Rodyti produktus' => 'Rādīt preces',
+            'Rodyti rezultatus' => 'Rādīt rezultātus',
+            'SPALVA' => 'KRĀSA',
+            'Skaičiuojama...' => 'Skaita...',
+            'Uzdaryti filtrus' => 'Aizvērt filtrus',
+            'Aktyvus filtrai' => 'Aktīvie filtri',
+        ],
+        'pl' => [
+            'AKCIJA' => 'PROMOCJA',
+            'Akcija' => 'Promocja',
+            'Atgal' => 'Wstecz',
+            'DYDIS' => 'ROZMIAR',
+            'Filtrai' => 'Filtry',
+            'GAMINTOJAS' => 'MARKA',
+            'ILGIS' => 'DŁUGOŚĆ',
+            'Išvalyti' => 'Wyczyść',
+            'KAINA' => 'CENA',
+            'NAUJIENA' => 'NOWOŚĆ',
+            'Produktų nerasta' => 'Nie znaleziono produktów',
+            'Reset' => 'Resetuj',
+            'Rodyti produktus' => 'Pokaż produkty',
+            'Rodyti rezultatus' => 'Pokaż wyniki',
+            'SPALVA' => 'KOLOR',
+            'Skaičiuojama...' => 'Liczenie...',
+            'Uzdaryti filtrus' => 'Zamknij filtry',
+            'Aktyvus filtrai' => 'Aktywne filtry',
+        ],
+    ];
+
+    return $translations[$language][$text] ?? $text;
+}
+
 function meditrendy_filter_settings_available_filters() {
     $filters = [
         'color' => [
@@ -146,8 +247,9 @@ function meditrendy_filter_settings_sanitize($input) {
 
 function meditrendy_filter_setting_label($key) {
     $settings = meditrendy_filter_settings();
+    $label = $settings['labels'][$key] ?? meditrendy_filter_settings_defaults()['labels'][$key] ?? '';
 
-    return $settings['labels'][$key] ?? meditrendy_filter_settings_defaults()['labels'][$key] ?? '';
+    return meditrendy_core_translate_ui_text($label);
 }
 
 function meditrendy_register_filter_settings() {

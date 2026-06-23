@@ -86,6 +86,9 @@ function meditrendy_subcategories_shortcode($atts) {
     $classes = trim('mt-subcategories ' . sanitize_html_class($atts['class']));
     $show_count = $atts['show_count'] === '1';
     $depth = max(1, absint($atts['depth']));
+    $parent_label = function_exists('meditrendy_core_translate_ui_text')
+        ? meditrendy_core_translate_ui_text($atts['parent_label'])
+        : $atts['parent_label'];
 
     ob_start();
     ?>
@@ -98,7 +101,7 @@ function meditrendy_subcategories_shortcode($atts) {
             <?php if ($back_url && !is_wp_error($back_url)) : ?>
                 <a class="mt-subcategories-back" href="<?php echo esc_url($back_url); ?>">
                     <span aria-hidden="true"></span>
-                    <span><?php echo esc_html($atts['parent_label']); ?></span>
+                    <span><?php echo esc_html($parent_label); ?></span>
                 </a>
             <?php endif; ?>
         <?php endif; ?>

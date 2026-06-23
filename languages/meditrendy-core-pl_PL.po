@@ -636,3 +636,64 @@ msgstr "Ten produkt jest już dostępny."
 msgid "Kalbos pasirinkimas"
 msgstr "Wybór języka"
 
+
+#: includes/filter-settings.php
+msgid "Atgal"
+msgstr "Wstecz"
+
+#: includes/filter-settings.php
+msgid "DYDIS"
+msgstr "ROZMIAR"
+
+#: includes/filter-settings.php
+msgid "Filtrai"
+msgstr "Filtry"
+
+#: includes/filter-settings.php
+msgid "GAMINTOJAS"
+msgstr "MARKA"
+
+#: includes/filter-settings.php
+msgid "ILGIS"
+msgstr "DŁUGOŚĆ"
+
+#: includes/filter-settings.php
+msgid "Išvalyti"
+msgstr "Wyczyść"
+
+#: includes/filter-settings.php
+msgid "KAINA"
+msgstr "CENA"
+
+#: includes/filter-settings.php
+msgid "Produktų nerasta"
+msgstr "Nie znaleziono produktów"
+
+#: includes/filter-settings.php
+msgid "Reset"
+msgstr "Resetuj"
+
+#: includes/filter-settings.php
+msgid "Rodyti produktus"
+msgstr "Pokaż produkty"
+
+#: includes/filter-settings.php
+msgid "Rodyti rezultatus"
+msgstr "Pokaż wyniki"
+
+#: includes/filter-settings.php
+msgid "SPALVA"
+msgstr "KOLOR"
+
+#: includes/filter-settings.php
+msgid "Skaičiuojama..."
+msgstr "Liczenie..."
+
+#: includes/filter-settings.php
+msgid "Uzdaryti filtrus"
+msgstr "Zamknij filtry"
+
+#: includes/filter-settings.php
+msgid "Aktyvus filtrai"
+msgstr "Aktywne filtry"
+

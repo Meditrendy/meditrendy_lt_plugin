@@ -158,6 +158,10 @@ function meditrendy_native_filter_config() {
         }
 
         $config[$key]['order'] = absint($filter_settings['order'] ?? 0);
+
+        if (function_exists('meditrendy_core_translate_ui_text')) {
+            $config[$key]['label'] = meditrendy_core_translate_ui_text($config[$key]['label']);
+        }
     }
 
     uasort($config, function ($a, $b) {
@@ -847,7 +851,7 @@ function meditrendy_native_active_filters_html($visible_filters) {
 
     ob_start();
     ?>
-    <div class="mt-native-active-filters" aria-label="Aktyvus filtrai">
+    <div class="mt-native-active-filters" aria-label="<?php echo esc_attr(meditrendy_core_translate_ui_text('Aktyvus filtrai')); ?>">
         <?php foreach ($chips as $chip) : ?>
             <a class="mt-native-active-filter" href="<?php echo esc_url($chip['url']); ?>">
                 <span><?php echo esc_html($chip['label']); ?></span>
@@ -970,7 +974,7 @@ function meditrendy_get_native_product_filters_html() {
         <div class="mt-native-filters-panel">
             <div class="mt-native-filters-header">
                 <span><?php echo esc_html(meditrendy_filter_setting_label('panel')); ?></span>
-                <button type="button" class="mt-native-filters-close" aria-label="Uzdaryti filtrus"></button>
+                <button type="button" class="mt-native-filters-close" aria-label="<?php echo esc_attr(meditrendy_core_translate_ui_text('Uzdaryti filtrus')); ?>"></button>
             </div>
 
             <div class="mt-native-filters-items">

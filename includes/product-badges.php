@@ -1,5 +1,13 @@
 <?php
 
+function meditrendy_product_card_badge_label($text) {
+    if (function_exists('meditrendy_core_translate_ui_text')) {
+        return meditrendy_core_translate_ui_text($text);
+    }
+
+    return __($text, 'meditrendy-core');
+}
+
 function meditrendy_product_card_badge_term_slugs($type) {
     $slugs = [
         'new' => ['naujienos-moterims', 'naujienos-vyrams'],
@@ -88,7 +96,7 @@ function meditrendy_product_card_badges_shortcode($atts) {
     if ($atts['sale'] === '1' && $product->is_on_sale()) {
         $badges[] = [
             'class' => 'mt-card-badge-sale',
-            'label' => __('AKCIJA', 'meditrendy-core'),
+            'label' => meditrendy_product_card_badge_label('AKCIJA'),
         ];
     }
 
@@ -101,7 +109,7 @@ function meditrendy_product_card_badges_shortcode($atts) {
     ) {
         $badges[] = [
             'class' => 'mt-card-badge-new',
-            'label' => __('NAUJIENA', 'meditrendy-core'),
+            'label' => meditrendy_product_card_badge_label('NAUJIENA'),
         ];
     }
 
@@ -111,7 +119,7 @@ function meditrendy_product_card_badges_shortcode($atts) {
     ) {
         $badges[] = [
             'class' => 'mt-card-badge-bestseller',
-            'label' => __('BESTSELLER', 'meditrendy-core'),
+            'label' => meditrendy_product_card_badge_label('BESTSELLER'),
         ];
     }
 
