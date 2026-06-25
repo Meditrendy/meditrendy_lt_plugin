@@ -49,6 +49,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/checkout-invoice-fields.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-terms-consent.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-translations.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-cod-fee.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/wpc-bundle-sync.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/wpc-bundle-blocks-compat.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-cache.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-badges.php';
