@@ -130,6 +130,10 @@
     }
 
     function refreshForm(form) {
+        if (form.classList.contains('woosb_variations_form')) {
+            return;
+        }
+
         const variations = readVariations(form);
 
         if (!variations.length) {

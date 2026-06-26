@@ -17,7 +17,16 @@ function meditrendy_set_variation_status_enqueue_assets() {
     }
 
     $script_path = MEDITRENDY_CORE_DIR . 'assets/js/product-set-variation-status.js';
+    $bundle_json_script_path = MEDITRENDY_CORE_DIR . 'assets/js/wpc-bundle-variation-json-compat.js';
     $style_path = MEDITRENDY_CORE_DIR . 'assets/css/product-set-variation-status.css';
+
+    wp_enqueue_script(
+        'meditrendy-wpc-bundle-variation-json-compat',
+        MEDITRENDY_CORE_URL . 'assets/js/wpc-bundle-variation-json-compat.js',
+        [],
+        file_exists($bundle_json_script_path) ? filemtime($bundle_json_script_path) : '1.0',
+        true
+    );
 
     wp_enqueue_script(
         'meditrendy-product-set-variation-status',
