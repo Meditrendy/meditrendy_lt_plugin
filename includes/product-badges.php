@@ -10,11 +10,50 @@ function meditrendy_product_card_badge_label($text) {
 
 function meditrendy_product_card_badge_term_slugs($type) {
     $slugs = [
-        'new' => ['naujienos-moterims', 'naujienos-vyrams'],
-        'bestseller' => ['bestseleriai-moterims', 'bestseleriai'],
+        'new' => ['naujienos-moterims', 'naujienos-vyrams', 'jaunumi', 'jaunumi-viriesiem'],
+        'bestseller' => ['bestseleriai-moterims', 'bestseleriai', 'popularakie-produkti', 'popularakie-produkti-viriesiem'],
     ];
 
     return $slugs[$type] ?? [];
+}
+
+function meditrendy_product_card_badge_expanded_term_slugs($target_slugs) {
+    static $cache = [];
+
+    $target_slugs = array_values(array_unique(array_filter(array_map('sanitize_title', (array) $target_slugs))));
+    $cache_key = implode('|', $target_slugs);
+
+    if (isset($cache[$cache_key])) {
+        return $cache[$cache_key];
+    }
+
+    $slugs = $target_slugs;
+
+    foreach ($target_slugs as $slug) {
+        $term = get_term_by('slug', $slug, 'product_cat');
+
+        if (!$term instanceof WP_Term || is_wp_error($term)) {
+            continue;
+        }
+
+        if (function_exists('pll_get_term_translations')) {
+            $translation_ids = pll_get_term_translations($term->term_id);
+
+            if (is_array($translation_ids)) {
+                foreach ($translation_ids as $translation_id) {
+                    $translation = get_term((int) $translation_id, 'product_cat');
+
+                    if ($translation instanceof WP_Term && !is_wp_error($translation)) {
+                        $slugs[] = $translation->slug;
+                    }
+                }
+            }
+        }
+    }
+
+    $cache[$cache_key] = array_values(array_unique(array_filter($slugs)));
+
+    return $cache[$cache_key];
 }
 
 function meditrendy_product_card_badge_term_matches($term, $target_slugs) {
@@ -22,10 +61,12 @@ function meditrendy_product_card_badge_term_matches($term, $target_slugs) {
         return false;
     }
 
-    return in_array($term->slug, $target_slugs, true);
+    return in_array($term->slug, meditrendy_product_card_badge_expanded_term_slugs($target_slugs), true);
 }
 
 function meditrendy_product_card_product_has_badge_term($product_id, $target_slugs) {
+    $target_slugs = meditrendy_product_card_badge_expanded_term_slugs($target_slugs);
+
     if (has_term($target_slugs, 'product_cat', $product_id)) {
         return true;
     }
