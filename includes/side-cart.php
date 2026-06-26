@@ -658,13 +658,20 @@ function meditrendy_side_cart_ajax_add() {
         wp_send_json_error(['message' => __('Prekė nerasta.', 'meditrendy-core')], 404);
     }
 
+    $is_bundle_request = $has_bundle_ids && $product->is_type('woosb');
+
+    if ($is_bundle_request) {
+        $variation_id = 0;
+        $variation    = [];
+    }
+
     $passed_validation = apply_filters('woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variation);
 
     if (!$passed_validation) {
         meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
-    if (empty($variation_id) && $product->is_type('variable')) {
+    if (!$is_bundle_request && empty($variation_id) && $product->is_type('variable')) {
         wc_add_notice(sprintf(__('Pasirinkite produkto „%s“ variantą.', 'meditrendy-core'), $product->get_name()), 'error');
         meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
@@ -812,7 +819,7 @@ function meditrendy_side_cart_enqueue_assets() {
         'MeditrendySideCart',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce' => '',
+            'nonce' => wp_create_nonce('meditrendy_side_cart'),
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
             'cartTriggerSelector' => 'header .xoo-wsc-cart-trigger, header .custom-cart-icon, header .meditrendy-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]',
