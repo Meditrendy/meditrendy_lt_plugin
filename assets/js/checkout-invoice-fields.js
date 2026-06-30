@@ -59,8 +59,6 @@
 
     if (input) {
       input.required = false;
-      input.minLength = 8;
-      input.pattern = '[0-9+()\\s-]{8,}';
       input.setAttribute('aria-required', 'true');
     }
 
@@ -203,13 +201,10 @@
     }
 
     const value = (field.value || '').trim();
-    const phonePattern = /^[0-9+()\s-]{8,}$/;
     let message = '';
 
     if (!value) {
       message = labels.phoneRequired || 'Įveskite telefono numerį.';
-    } else if (!phonePattern.test(value)) {
-      message = labels.phoneInvalid || 'Įveskite teisingą telefono numerį.';
     }
 
     setPhoneError(message);
@@ -430,15 +425,15 @@
       }
     ));
     const baseBilling = pickup ? compactAddress(Object.assign({}, currentBilling, {
-      first_name: visibleShipping.first_name || currentShipping.first_name || currentBilling.first_name,
-      last_name: visibleShipping.last_name || currentShipping.last_name || currentBilling.last_name,
+      first_name: visibleBilling.first_name || visibleShipping.first_name || currentShipping.first_name || currentBilling.first_name,
+      last_name: visibleBilling.last_name || visibleShipping.last_name || currentShipping.last_name || currentBilling.last_name,
       company: currentBilling.company,
-      address_1: '',
-      address_2: '',
-      city: '',
+      address_1: visibleBilling.address_1 || currentBilling.address_1,
+      address_2: visibleBilling.address_2 || currentBilling.address_2,
+      city: visibleBilling.city || currentBilling.city,
       state: '',
-      postcode: '',
-      country: currentBilling.country || 'LT',
+      postcode: visibleBilling.postcode || currentBilling.postcode,
+      country: visibleBilling.country || currentBilling.country || 'LT',
       phone: contactPhone || currentBilling.phone || currentShipping.phone,
       email: email
     })) : compactAddress(Object.assign({}, currentBilling, currentShipping, visibleShipping, {
@@ -792,6 +787,7 @@
       }
 
       if (isPickupSelected()) {
+        syncWooCheckoutAddresses('place order click');
         preparePickupAddressForFinalRequest();
       } else {
         syncWooCheckoutAddresses('place order click');
@@ -815,6 +811,7 @@
       }
 
       if (isPickupSelected()) {
+        syncWooCheckoutAddresses('place order submit');
         preparePickupAddressForFinalRequest();
       } else {
         syncWooCheckoutAddresses('place order submit');

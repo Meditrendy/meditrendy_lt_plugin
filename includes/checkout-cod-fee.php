@@ -43,6 +43,55 @@ function meditrendy_cod_fee_get_payment_method() {
     return (string) WC()->session->get('chosen_payment_method', '');
 }
 
+function meditrendy_cod_fee_is_pickup_method($method_id) {
+    $method_id = strtolower((string) $method_id);
+
+    if ($method_id === '') {
+        return false;
+    }
+
+    foreach (['local_pickup', 'pickup', 'collection', 'atsiėmimas', 'atsiimimas', 'atsiemimas', 'atsiimti'] as $marker) {
+        if (strpos($method_id, $marker) !== false) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function meditrendy_cod_fee_is_pickup_selected() {
+    if (!meditrendy_cod_fee_ensure_session()) {
+        return false;
+    }
+
+    $chosen_methods = (array) WC()->session->get('chosen_shipping_methods', []);
+
+    foreach ($chosen_methods as $method_id) {
+        if (meditrendy_cod_fee_is_pickup_method($method_id)) {
+            return true;
+        }
+    }
+
+    if (WC()->shipping()) {
+        foreach ((array) WC()->shipping()->get_packages() as $package_index => $package) {
+            $chosen_method = (string) ($chosen_methods[$package_index] ?? '');
+
+            if ($chosen_method === '' || empty($package['rates'][$chosen_method])) {
+                continue;
+            }
+
+            $rate = $package['rates'][$chosen_method];
+            $label = is_object($rate) && method_exists($rate, 'get_label') ? $rate->get_label() : '';
+
+            if (meditrendy_cod_fee_is_pickup_method($label)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 /**
  * Classic checkout support.
  */
@@ -117,6 +166,10 @@ add_action('woocommerce_cart_calculate_fees', function($cart) {
         return;
     }
 
+    if (meditrendy_cod_fee_is_pickup_selected()) {
+        return;
+    }
+
     $cart->add_fee(
         meditrendy_cod_fee_label(),
         MEDITRENDY_COD_FEE_AMOUNT,
@@ -133,6 +186,11 @@ add_filter('woocommerce_available_payment_gateways', function($gateways) {
     }
 
     if (!isset($gateways['cod'])) {
+        return $gateways;
+    }
+
+    if (meditrendy_cod_fee_is_pickup_selected()) {
+        $gateways['cod']->title = preg_replace('/\s*\(\+2\s*(€|&euro;|EUR|â‚¬)\)\s*$/u', '', (string) $gateways['cod']->title);
         return $gateways;
     }
 

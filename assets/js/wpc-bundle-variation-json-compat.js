@@ -23,62 +23,16 @@
     });
   }
 
-  function patchForm(form) {
-    if (!form || form.dataset.mtWpcVariationJsonPatched === '1') {
-      return false;
-    }
+  function getProductId(form) {
+    const raw = form.getAttribute('data-product_id') || form.querySelector('[name="product_id"]')?.value || '';
+    const productId = parseInt(raw, 10);
 
-    const variations = parseVariations(form);
-    const selects = getSelectData(form);
+    return Number.isFinite(productId) && productId > 0 ? productId : 0;
+  }
 
-    if (!variations.length || !selects.length) {
-      return false;
-    }
-
-    const primary = selects.find(function (select) {
-      return select.values.length === variations.length;
-    });
-    const singles = selects.filter(function (select) {
-      return select.values.length === 1;
-    });
-
-    if (!primary) {
-      return false;
-    }
-
-    let changed = false;
-
-    variations.forEach(function (variation, index) {
-      if (!variation || typeof variation !== 'object') {
-        return;
-      }
-
-      if (!variation.attributes || Array.isArray(variation.attributes) || typeof variation.attributes !== 'object') {
-        variation.attributes = {};
-        changed = true;
-      }
-
-      if (!variation.attributes[primary.name] && primary.values[index]) {
-        variation.attributes[primary.name] = primary.values[index];
-        changed = true;
-      }
-
-      singles.forEach(function (single) {
-        if (!variation.attributes[single.name] && single.values[0]) {
-          variation.attributes[single.name] = single.values[0];
-          changed = true;
-        }
-      });
-    });
-
-    if (!changed) {
-      form.dataset.mtWpcVariationJsonPatched = '1';
-      return false;
-    }
-
+  function refreshVariationForm(form, variations) {
     form.setAttribute('data-product_variations', JSON.stringify(variations));
     form.dataset.product_variations = JSON.stringify(variations);
-    form.dataset.mtWpcVariationJsonPatched = '1';
 
     if (window.jQuery) {
       const $form = window.jQuery(form);
@@ -96,8 +50,231 @@
       $form.removeClass('wvs-loaded wvs-pro-loaded');
       $form.trigger('reload_product_variations');
       $form.trigger('wc_variation_form');
+      $form.trigger('check_variations');
       window.jQuery(document).trigger('woo_variation_swatches_init');
+      window.jQuery(document.body).trigger('woosb_update');
     }
+  }
+
+  function fetchMissingVariations(form) {
+    const config = window.meditrendyWpcBundleVariations || {};
+    const productId = getProductId(form);
+
+    if (!config.ajaxUrl || !config.action || !productId || form.dataset.mtWpcVariationJsonFetching === '1') {
+      return false;
+    }
+
+    form.dataset.mtWpcVariationJsonFetching = '1';
+
+    const url = new URL(config.ajaxUrl, window.location.href);
+    url.searchParams.set('action', config.action);
+    url.searchParams.set('product_id', String(productId));
+
+    window.fetch(url.toString(), {
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json'
+      }
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Variation request failed');
+        }
+
+        return response.json();
+      })
+      .then(function (payload) {
+        const variations = payload && payload.success && payload.data && Array.isArray(payload.data.variations)
+          ? payload.data.variations
+          : [];
+
+        if (!variations.length) {
+          return;
+        }
+
+        form.dataset.mtWpcVariationJsonPatched = '0';
+        refreshVariationForm(form, variations);
+        patchForm(form);
+      })
+      .catch(function () {
+        // Keep Woo/WPC's native behavior if the fallback endpoint is unavailable.
+      })
+      .finally(function () {
+        form.dataset.mtWpcVariationJsonFetching = '0';
+      });
+
+    return true;
+  }
+
+  function ensureVariationAttributes(variation) {
+    if (!variation || typeof variation !== 'object') {
+      return null;
+    }
+
+    if (!variation.attributes || Array.isArray(variation.attributes) || typeof variation.attributes !== 'object') {
+      variation.attributes = {};
+    }
+
+    return variation.attributes;
+  }
+
+  function fillSingleSelectAttributes(variations, singles) {
+    let changed = false;
+
+    variations.forEach(function (variation) {
+      const attributes = ensureVariationAttributes(variation);
+
+      if (!attributes) {
+        return;
+      }
+
+      singles.forEach(function (single) {
+        if (!attributes[single.name] && single.values[0]) {
+          attributes[single.name] = single.values[0];
+          changed = true;
+        }
+      });
+    });
+
+    return changed;
+  }
+
+  function fillByDirectOptionOrder(variations, select) {
+    if (!select || select.values.length !== variations.length) {
+      return false;
+    }
+
+    let changed = false;
+
+    variations.forEach(function (variation, index) {
+      const attributes = ensureVariationAttributes(variation);
+
+      if (!attributes || !select.values[index]) {
+        return;
+      }
+
+      if (!attributes[select.name]) {
+        attributes[select.name] = select.values[index];
+        changed = true;
+      }
+    });
+
+    return changed;
+  }
+
+  function groupKeyForVariation(variation, otherSelects) {
+    const attributes = ensureVariationAttributes(variation);
+
+    if (!attributes) {
+      return '';
+    }
+
+    const keyParts = [];
+
+    for (const select of otherSelects) {
+      const value = attributes[select.name] || (select.values.length === 1 ? select.values[0] : '');
+
+      if (!value) {
+        return '';
+      }
+
+      keyParts.push(select.name + '=' + value);
+    }
+
+    return keyParts.join('|');
+  }
+
+  function fillByGroupedOptionOrder(variations, selects) {
+    let changed = false;
+
+    selects.forEach(function (targetSelect) {
+      const otherSelects = selects.filter(function (select) {
+        return select.name !== targetSelect.name;
+      });
+      const groups = new Map();
+
+      variations.forEach(function (variation, index) {
+        const attributes = ensureVariationAttributes(variation);
+
+        if (!attributes || attributes[targetSelect.name]) {
+          return;
+        }
+
+        const key = groupKeyForVariation(variation, otherSelects);
+
+        if (!key) {
+          return;
+        }
+
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+
+        groups.get(key).push({ variation, index });
+      });
+
+      groups.forEach(function (group) {
+        if (group.length !== targetSelect.values.length) {
+          return;
+        }
+
+        group.sort(function (left, right) {
+          return left.index - right.index;
+        });
+
+        group.forEach(function (entry, index) {
+          const attributes = ensureVariationAttributes(entry.variation);
+          const value = targetSelect.values[index] || '';
+
+          if (attributes && value && !attributes[targetSelect.name]) {
+            attributes[targetSelect.name] = value;
+            changed = true;
+          }
+        });
+      });
+    });
+
+    return changed;
+  }
+
+  function patchForm(form) {
+    if (!form || form.dataset.mtWpcVariationJsonPatched === '1') {
+      return false;
+    }
+
+    const variations = parseVariations(form);
+    const selects = getSelectData(form);
+
+    if (!variations.length) {
+      fetchMissingVariations(form);
+      return false;
+    }
+
+    if (!selects.length) {
+      return false;
+    }
+
+    const singles = selects.filter(function (select) {
+      return select.values.length === 1;
+    });
+
+    let changed = false;
+
+    changed = fillSingleSelectAttributes(variations, singles) || changed;
+
+    selects.forEach(function (select) {
+      changed = fillByDirectOptionOrder(variations, select) || changed;
+    });
+
+    changed = fillByGroupedOptionOrder(variations, selects) || changed;
+
+    if (!changed) {
+      form.dataset.mtWpcVariationJsonPatched = '1';
+      return false;
+    }
+
+    form.dataset.mtWpcVariationJsonPatched = '1';
+    refreshVariationForm(form, variations);
 
     return true;
   }

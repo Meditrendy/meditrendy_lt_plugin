@@ -3,8 +3,58 @@
 
   const settings = window.meditrendyCheckoutCodFee || {};
 
-  let lastPaymentMethod = null;
+  let lastSelectionSignature = null;
   let saveTimer = null;
+
+  function isPickupSelected() {
+    const pickupLabels = ['atsiėmimas', 'atsiimimas', 'atsiemimas', 'pickup', 'collection', 'local_pickup'];
+    const checkedInputs = Array.from(document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked'));
+
+    return checkedInputs.some(function (input) {
+      const text = [
+        input.value || '',
+        input.id || '',
+        input.name || '',
+        input.closest('label') ? input.closest('label').textContent : '',
+        input.closest('.wc-block-components-radio-control__option')
+          ? input.closest('.wc-block-components-radio-control__option').textContent
+          : ''
+      ].join(' ').toLowerCase();
+
+      return pickupLabels.some(function (label) {
+        return text.indexOf(label) !== -1;
+      });
+    });
+  }
+
+  function syncCodTitle() {
+    const pickup = isPickupSelected();
+
+    document.querySelectorAll('label, .wc-block-components-radio-control__label, .wc-block-components-payment-method-label').forEach(function (element) {
+      if (element.querySelector('input, select, textarea, button')) {
+        return;
+      }
+
+      const text = element.textContent || '';
+
+      if (text.indexOf('+2') === -1 && element.dataset.meditrendyCodOriginalTitle === undefined) {
+        return;
+      }
+
+      if (element.dataset.meditrendyCodOriginalTitle === undefined) {
+        element.dataset.meditrendyCodOriginalTitle = text;
+      }
+
+      const originalTitle = element.dataset.meditrendyCodOriginalTitle;
+      const nextTitle = pickup
+        ? originalTitle.replace(/\s*\(\+2\s*(€|EUR|eur|â‚¬)\)/gu, '')
+        : originalTitle;
+
+      if (element.textContent !== nextTitle) {
+        element.textContent = nextTitle;
+      }
+    });
+  }
 
   function getCheckedPaymentInput() {
     return (
@@ -158,12 +208,20 @@
 
     const run = function () {
       const paymentMethod = getSelectedPaymentMethod();
+      const selectionSignature = paymentMethod + '|' + (isPickupSelected() ? 'pickup' : 'delivery');
 
-      if (paymentMethod === lastPaymentMethod) {
+      syncCodTitle();
+
+      if (!paymentMethod) {
+        lastSelectionSignature = selectionSignature;
         return;
       }
 
-      lastPaymentMethod = paymentMethod;
+      if (selectionSignature === lastSelectionSignature) {
+        return;
+      }
+
+      lastSelectionSignature = selectionSignature;
 
       const blocksUpdate = savePaymentMethodViaBlocks(paymentMethod);
 
@@ -187,17 +245,25 @@
 
   function init() {
     savePaymentMethod(true);
+    syncCodTitle();
+    window.setTimeout(function () {
+      savePaymentMethod(true);
+    }, 300);
+    window.setTimeout(function () {
+      savePaymentMethod(true);
+    }, 1000);
 
     document.addEventListener('change', function (event) {
       if (!event.target || !event.target.matches('input, select')) {
         return;
       }
 
+      syncCodTitle();
       savePaymentMethod(false);
     }, true);
 
     const observer = new MutationObserver(function () {
-      savePaymentMethod(false);
+      syncCodTitle();
     });
 
     if (document.body) {

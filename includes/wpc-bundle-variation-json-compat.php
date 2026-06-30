@@ -274,3 +274,61 @@ function meditrendy_wpc_bundle_variation_json_fill_missing_attributes($data, $va
     return meditrendy_wpc_bundle_variation_json_merge_missing_attributes($data, $map[$variation_id]);
 }
 add_filter('woocommerce_available_variation', 'meditrendy_wpc_bundle_variation_json_fill_missing_attributes', 9999, 3);
+
+function meditrendy_wpc_bundle_variation_json_fallback_variations($product_id) {
+    $product_id = absint($product_id);
+
+    if (!$product_id || !function_exists('wc_get_product') || get_post_status($product_id) !== 'publish') {
+        return [];
+    }
+
+    $product = wc_get_product($product_id);
+
+    if (!$product || !is_a($product, 'WC_Product_Variable')) {
+        return [];
+    }
+
+    $variations = [];
+    $children = meditrendy_wpc_bundle_variation_json_sorted_children($product);
+    $hide_out_of_stock = 'yes' === get_option('woocommerce_hide_out_of_stock_items');
+
+    foreach ($children as $variation_id) {
+        $variation = wc_get_product($variation_id);
+
+        if (!$variation || !is_a($variation, 'WC_Product_Variation')) {
+            continue;
+        }
+
+        if ($hide_out_of_stock && !$variation->is_in_stock()) {
+            continue;
+        }
+
+        if (!$variation->is_purchasable()) {
+            continue;
+        }
+
+        $variation_data = $product->get_available_variation($variation);
+
+        if (!is_array($variation_data)) {
+            continue;
+        }
+
+        $variations[] = meditrendy_wpc_bundle_variation_json_fill_missing_attributes(
+            $variation_data,
+            $product,
+            $variation
+        );
+    }
+
+    return array_values($variations);
+}
+
+function meditrendy_wpc_bundle_variation_json_ajax_variations() {
+    $product_id = isset($_REQUEST['product_id']) ? absint(wp_unslash($_REQUEST['product_id'])) : 0;
+
+    wp_send_json_success([
+        'variations' => meditrendy_wpc_bundle_variation_json_fallback_variations($product_id),
+    ]);
+}
+add_action('wp_ajax_meditrendy_wpc_bundle_variations', 'meditrendy_wpc_bundle_variation_json_ajax_variations');
+add_action('wp_ajax_nopriv_meditrendy_wpc_bundle_variations', 'meditrendy_wpc_bundle_variation_json_ajax_variations');

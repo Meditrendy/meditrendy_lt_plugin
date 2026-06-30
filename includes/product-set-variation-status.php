@@ -28,6 +28,15 @@ function meditrendy_set_variation_status_enqueue_assets() {
         true
     );
 
+    wp_localize_script(
+        'meditrendy-wpc-bundle-variation-json-compat',
+        'meditrendyWpcBundleVariations',
+        [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'action'  => 'meditrendy_wpc_bundle_variations',
+        ]
+    );
+
     wp_enqueue_script(
         'meditrendy-product-set-variation-status',
         MEDITRENDY_CORE_URL . 'assets/js/product-set-variation-status.js',
