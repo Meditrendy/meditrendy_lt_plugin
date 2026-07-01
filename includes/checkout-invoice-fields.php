@@ -93,6 +93,98 @@ function meditrendy_get_checkout_invoice_session_data() {
     ];
 }
 
+function meditrendy_checkout_invoice_payment_data($request = null) {
+    if (!$request instanceof WP_REST_Request) {
+        return [];
+    }
+
+    $payment_data = (array) $request->get_param('payment_data');
+    $data = [];
+
+    foreach ($payment_data as $entry) {
+        if (!is_array($entry) || empty($entry['key'])) {
+            continue;
+        }
+
+        $key = sanitize_key($entry['key']);
+
+        if (strpos($key, 'meditrendy_') !== 0) {
+            continue;
+        }
+
+        $data[$key] = isset($entry['value']) ? wc_clean(wp_unslash($entry['value'])) : '';
+    }
+
+    return $data;
+}
+
+function meditrendy_get_checkout_invoice_request_data($request = null) {
+    $data = meditrendy_get_checkout_invoice_session_data();
+    $payment_data = meditrendy_checkout_invoice_payment_data($request);
+
+    if (!$payment_data) {
+        return $data;
+    }
+
+    if (array_key_exists('meditrendy_invoice_required', $payment_data)) {
+        $data['invoiceRequired'] = wc_string_to_bool($payment_data['meditrendy_invoice_required']);
+    }
+
+    $map = [
+        'meditrendy_contact_phone'    => 'contactPhone',
+        'meditrendy_company_name'     => 'companyName',
+        'meditrendy_company_code'     => 'companyCode',
+        'meditrendy_invoice_street'   => 'invoiceStreet',
+        'meditrendy_invoice_city'     => 'invoiceCity',
+        'meditrendy_invoice_postcode' => 'invoicePostcode',
+    ];
+
+    foreach ($map as $payment_key => $data_key) {
+        if (array_key_exists($payment_key, $payment_data)) {
+            $data[$data_key] = (string) $payment_data[$payment_key];
+        }
+    }
+
+    return $data;
+}
+
+function meditrendy_checkout_invoice_required_field_labels() {
+    return [
+        'companyName'     => __('Ä®monÄ—s pavadinimas', 'meditrendy-core'),
+        'companyCode'     => __('PVM mokÄ—tojo kodas', 'meditrendy-core'),
+        'invoiceStreet'   => __('GatvÄ—, namo numeris', 'meditrendy-core'),
+        'invoiceCity'     => __('Miestas', 'meditrendy-core'),
+        'invoicePostcode' => __('PaĹˇto kodas', 'meditrendy-core'),
+    ];
+}
+
+function meditrendy_checkout_invoice_missing_required_fields($data) {
+    if (empty($data['invoiceRequired'])) {
+        return [];
+    }
+
+    $missing = [];
+
+    foreach (meditrendy_checkout_invoice_required_field_labels() as $key => $label) {
+        if (trim((string) ($data[$key] ?? '')) === '') {
+            $missing[] = $label;
+        }
+    }
+
+    return $missing;
+}
+
+function meditrendy_checkout_invoice_required_error_message($missing) {
+    if (!$missing) {
+        return '';
+    }
+
+    return sprintf(
+        __('UĹľpildykite visus sÄ…skaitos faktĹ«ros laukus: %s.', 'meditrendy-core'),
+        implode(', ', $missing)
+    );
+}
+
 function meditrendy_set_checkout_invoice_session_data($invoice_required, $contact_phone, $company_name, $company_code, $invoice_street, $invoice_city, $invoice_postcode) {
     meditrendy_ensure_checkout_invoice_session();
 
@@ -294,13 +386,65 @@ function meditrendy_save_checkout_invoice_fields_ajax() {
 add_action('wp_ajax_meditrendy_save_checkout_invoice_fields', 'meditrendy_save_checkout_invoice_fields_ajax');
 add_action('wp_ajax_nopriv_meditrendy_save_checkout_invoice_fields', 'meditrendy_save_checkout_invoice_fields_ajax');
 
+function meditrendy_validate_checkout_invoice_fields($data = null) {
+    $data = is_array($data) ? $data : meditrendy_get_checkout_invoice_session_data();
+    $missing = meditrendy_checkout_invoice_missing_required_fields($data);
+
+    if (!$missing) {
+        return '';
+    }
+
+    return meditrendy_checkout_invoice_required_error_message($missing);
+}
+
+function meditrendy_validate_classic_checkout_invoice_fields($data, $errors) {
+    $message = meditrendy_validate_checkout_invoice_fields();
+
+    if (!$message || !$errors instanceof WP_Error) {
+        return;
+    }
+
+    $errors->add('meditrendy_invoice_fields_required', $message);
+}
+add_action('woocommerce_after_checkout_validation', 'meditrendy_validate_classic_checkout_invoice_fields', 20, 2);
+
+function meditrendy_validate_store_api_checkout_invoice_fields($order, $request) {
+    $data = meditrendy_get_checkout_invoice_request_data($request);
+    $message = meditrendy_validate_checkout_invoice_fields($data);
+
+    if (!$message) {
+        return;
+    }
+
+    if (class_exists('\Automattic\WooCommerce\StoreApi\Exceptions\RouteException')) {
+        throw new \Automattic\WooCommerce\StoreApi\Exceptions\RouteException(
+            'meditrendy_invoice_fields_required',
+            esc_html($message),
+            400
+        );
+    }
+
+    throw new Exception(esc_html($message));
+}
+add_action('woocommerce_store_api_checkout_update_order_from_request', 'meditrendy_validate_store_api_checkout_invoice_fields', 6, 2);
+
 function meditrendy_apply_checkout_invoice_fields_to_order($order, $request = null) {
     if (!$order instanceof WC_Order) {
         return;
     }
 
-    $data = meditrendy_get_checkout_invoice_session_data();
+    $data = meditrendy_get_checkout_invoice_request_data($request);
     $uses_pickup = meditrendy_order_uses_pickup($order);
+
+    meditrendy_set_checkout_invoice_session_data(
+        $data['invoiceRequired'],
+        $data['contactPhone'],
+        $data['companyName'],
+        $data['companyCode'],
+        $data['invoiceStreet'],
+        $data['invoiceCity'],
+        $data['invoicePostcode']
+    );
 
     if ($uses_pickup) {
         meditrendy_apply_pickup_address_to_order($order, $data['contactPhone']);

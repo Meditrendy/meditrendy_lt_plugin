@@ -29,6 +29,8 @@
   let lastShippingSignature = '';
   let lastComputedBillingAddress = null;
 
+  labels.invoiceRequiredFields = labels.invoiceRequiredFields || 'UĹľpildykite visus sÄ…skaitos faktĹ«ros laukus.';
+
   function createTextInput(id, label, value, autocomplete, inputMode) {
     const wrap = document.createElement('div');
     wrap.className = 'meditrendy-checkout-invoice-fields__field';
@@ -173,6 +175,15 @@
     }
 
     details.hidden = !checkbox.checked;
+
+    details.querySelectorAll('input').forEach(function (input) {
+      input.required = checkbox.checked;
+      input.setAttribute('aria-required', checkbox.checked ? 'true' : 'false');
+
+      if (!checkbox.checked) {
+        setFieldError(input, '');
+      }
+    });
   }
 
   function getPhoneField() {
@@ -186,6 +197,30 @@
 
     if (!field || !error) {
       return;
+    }
+
+    error.textContent = message || '';
+    error.hidden = !message;
+    field.setAttribute('aria-invalid', message ? 'true' : 'false');
+  }
+
+  function setFieldError(field, message) {
+    if (!field) {
+      return;
+    }
+
+    const wrap = field.closest('.meditrendy-checkout-invoice-fields__field');
+
+    if (!wrap) {
+      return;
+    }
+
+    let error = wrap.querySelector('.meditrendy-checkout-invoice-fields__error');
+
+    if (!error) {
+      error = document.createElement('div');
+      error.className = 'meditrendy-checkout-invoice-fields__error';
+      wrap.append(error);
     }
 
     error.textContent = message || '';
@@ -212,6 +247,41 @@
     if (message) {
       field.focus({ preventScroll: true });
       field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      return false;
+    }
+
+    return true;
+  }
+
+  function validateInvoiceFields() {
+    const block = document.querySelector(`.${blockClass}`);
+    const checkbox = block ? block.querySelector('#meditrendy_invoice_required') : null;
+
+    if (!block || !checkbox || !checkbox.checked) {
+      return true;
+    }
+
+    const fields = [
+      block.querySelector('#meditrendy_company_name'),
+      block.querySelector('#meditrendy_company_code'),
+      block.querySelector('#meditrendy_invoice_street'),
+      block.querySelector('#meditrendy_invoice_city'),
+      block.querySelector('#meditrendy_invoice_postcode')
+    ].filter(Boolean);
+    let firstMissing = null;
+
+    fields.forEach(function (field) {
+      const missing = !(field.value || '').trim();
+      setFieldError(field, missing ? labels.invoiceRequiredFields : '');
+
+      if (missing && !firstMissing) {
+        firstMissing = field;
+      }
+    });
+
+    if (firstMissing) {
+      firstMissing.focus({ preventScroll: true });
+      firstMissing.scrollIntoView({ block: 'center', behavior: 'smooth' });
       return false;
     }
 
@@ -367,6 +437,7 @@
     return {
       invoiceRequired: !!(checkbox && checkbox.checked),
       company: block && block.querySelector('#meditrendy_company_name') ? block.querySelector('#meditrendy_company_name').value : '',
+      companyCode: block && block.querySelector('#meditrendy_company_code') ? block.querySelector('#meditrendy_company_code').value : '',
       address_1: block && block.querySelector('#meditrendy_invoice_street') ? block.querySelector('#meditrendy_invoice_street').value : '',
       city: block && block.querySelector('#meditrendy_invoice_city') ? block.querySelector('#meditrendy_invoice_city').value : '',
       postcode: block && block.querySelector('#meditrendy_invoice_postcode') ? block.querySelector('#meditrendy_invoice_postcode').value : ''
@@ -629,6 +700,50 @@
     return payload;
   }
 
+  function appendInvoiceToCheckoutRequest(body) {
+    let payload;
+
+    try {
+      payload = JSON.parse(body || '{}');
+    } catch (error) {
+      return body;
+    }
+
+    const block = document.querySelector(`.${blockClass}`);
+    const invoice = getInvoiceAddress();
+    const contactPhone = getPhoneField() ? getPhoneField().value : '';
+    const invoiceData = {
+      meditrendy_invoice_required: invoice.invoiceRequired ? '1' : '',
+      meditrendy_contact_phone: contactPhone,
+      meditrendy_company_name: invoice.company || '',
+      meditrendy_company_code: invoice.companyCode || '',
+      meditrendy_invoice_street: invoice.address_1 || '',
+      meditrendy_invoice_city: invoice.city || '',
+      meditrendy_invoice_postcode: invoice.postcode || ''
+    };
+
+    if (!Array.isArray(payload.payment_data)) {
+      payload.payment_data = [];
+    }
+
+    payload.payment_data = payload.payment_data.filter(function (entry) {
+      return !entry || !entry.key || !Object.prototype.hasOwnProperty.call(invoiceData, entry.key);
+    });
+
+    Object.keys(invoiceData).forEach(function (key) {
+      payload.payment_data.push({
+        key: key,
+        value: invoiceData[key]
+      });
+    });
+
+    if (block && invoice.invoiceRequired) {
+      saveInvoiceFields(block, true);
+    }
+
+    return JSON.stringify(payload);
+  }
+
   function getPickupCheckoutPayload() {
     if (!isPickupSelected()) {
       return null;
@@ -668,7 +783,7 @@
       try {
         const payload = JSON.parse(body);
         const patchedPayload = patchCheckoutPayload(payload);
-        return JSON.stringify(patchedPayload);
+        return appendInvoiceToCheckoutRequest(JSON.stringify(patchedPayload));
       } catch (error) {
         return body;
       }
@@ -766,7 +881,11 @@
       saveInvoiceFields(block, true);
     });
 
-    block.addEventListener('input', function () {
+    block.addEventListener('input', function (event) {
+      if (event.target && event.target.matches('input')) {
+        setFieldError(event.target, '');
+      }
+
       if (!isPickupSelected()) {
         syncWooCheckoutAddresses('invoice input');
       }
@@ -781,6 +900,12 @@
       }
 
       if (!validateContactPhone()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      if (!validateInvoiceFields()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
@@ -805,6 +930,12 @@
       }
 
       if (!validateContactPhone()) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      if (!validateInvoiceFields()) {
         event.preventDefault();
         event.stopImmediatePropagation();
         return;
