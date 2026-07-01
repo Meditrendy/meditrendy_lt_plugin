@@ -23,6 +23,50 @@
     });
   }
 
+  function parseAttributeValues(raw) {
+    if (!raw) {
+      return [];
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function restoreSelectOptionsFromSwatches(form) {
+    Array.from(form.querySelectorAll('.variable-items-wrapper[data-attribute_name]')).forEach(function (wrapper) {
+      const attributeName = wrapper.getAttribute('data-attribute_name') || '';
+      const select = attributeName ? form.querySelector('select[name="' + attributeName + '"]') : null;
+      const values = parseAttributeValues(wrapper.getAttribute('data-attribute_values'));
+
+      if (!select || !values.length) {
+        return;
+      }
+
+      const existingValues = Array.from(select.options).map(function (option) {
+        return option.value || '';
+      });
+
+      values.forEach(function (value) {
+        if (existingValues.indexOf(value) !== -1) {
+          return;
+        }
+
+        const item = Array.from(wrapper.querySelectorAll('[data-value]')).find(function (element) {
+          return element.getAttribute('data-value') === value;
+        });
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = item?.getAttribute('data-title') || item?.getAttribute('title') || value;
+        option.className = 'attached enabled';
+        select.appendChild(option);
+      });
+    });
+  }
+
   function getProductId(form) {
     const raw = form.getAttribute('data-product_id') || form.querySelector('[name="product_id"]')?.value || '';
     const productId = parseInt(raw, 10);
@@ -31,6 +75,7 @@
   }
 
   function refreshVariationForm(form, variations) {
+    restoreSelectOptionsFromSwatches(form);
     form.setAttribute('data-product_variations', JSON.stringify(variations));
     form.dataset.product_variations = JSON.stringify(variations);
 
@@ -59,16 +104,23 @@
   function fetchMissingVariations(form) {
     const config = window.meditrendyWpcBundleVariations || {};
     const productId = getProductId(form);
+    const setId = parseInt(form.closest('.woosb-wrap')?.getAttribute('data-id') || '0', 10);
+    const ajaxUrl = config.ajaxUrl || (window.location.origin + '/wp-admin/admin-ajax.php');
+    const action = config.action || 'meditrendy_wpc_bundle_variations';
 
-    if (!config.ajaxUrl || !config.action || !productId || form.dataset.mtWpcVariationJsonFetching === '1') {
+    if (!productId || form.dataset.mtWpcVariationJsonFetching === '1') {
       return false;
     }
 
     form.dataset.mtWpcVariationJsonFetching = '1';
 
-    const url = new URL(config.ajaxUrl, window.location.href);
-    url.searchParams.set('action', config.action);
+    const url = new URL(ajaxUrl, window.location.href);
+    url.searchParams.set('action', action);
     url.searchParams.set('product_id', String(productId));
+
+    if (Number.isFinite(setId) && setId > 0) {
+      url.searchParams.set('set_id', String(setId));
+    }
 
     window.fetch(url.toString(), {
       credentials: 'same-origin',
@@ -241,6 +293,8 @@
     if (!form || form.dataset.mtWpcVariationJsonPatched === '1') {
       return false;
     }
+
+    restoreSelectOptionsFromSwatches(form);
 
     const variations = parseVariations(form);
     const selects = getSelectData(form);
