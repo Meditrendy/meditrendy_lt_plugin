@@ -1,4 +1,55 @@
 (() => {
+  const installBundleVariationGalleryGuard = () => {
+    const $ = window.jQuery;
+
+    if (!$ || !$.fn || $.fn.meditrendyBundleGalleryGuardInstalled) {
+      return false;
+    }
+
+    const originalImageUpdate = $.fn.wc_variations_image_update;
+    const originalImageReset = $.fn.wc_variations_image_reset;
+
+    if (typeof originalImageUpdate !== 'function' || typeof originalImageReset !== 'function') {
+      return false;
+    }
+
+    const isBundleVariationForm = (collection) => (
+      collection
+      && typeof collection.filter === 'function'
+      && collection.filter('form.woosb_variations_form').length > 0
+    );
+
+    $.fn.wc_variations_image_update = function (...args) {
+      if (isBundleVariationForm(this)) {
+        return this;
+      }
+
+      return originalImageUpdate.apply(this, args);
+    };
+
+    $.fn.wc_variations_image_reset = function (...args) {
+      if (isBundleVariationForm(this)) {
+        return this;
+      }
+
+      return originalImageReset.apply(this, args);
+    };
+
+    $.fn.meditrendyBundleGalleryGuardInstalled = true;
+
+    return true;
+  };
+
+  const scheduleBundleVariationGalleryGuard = () => {
+    if (installBundleVariationGalleryGuard()) {
+      return;
+    }
+
+    window.setTimeout(installBundleVariationGalleryGuard, 100);
+    window.setTimeout(installBundleVariationGalleryGuard, 500);
+    window.setTimeout(installBundleVariationGalleryGuard, 1500);
+  };
+
   const closeMeditrendyViewers = () => {
     document.querySelectorAll('.medviewer').forEach((viewer) => {
       viewer.classList.remove('open');
@@ -39,12 +90,19 @@
   };
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', schedulePlacement);
+    document.addEventListener('DOMContentLoaded', () => {
+      schedulePlacement();
+      scheduleBundleVariationGalleryGuard();
+    });
   } else {
     schedulePlacement();
+    scheduleBundleVariationGalleryGuard();
   }
 
-  window.addEventListener('load', placeGalleryNavigation, { once: true });
+  window.addEventListener('load', () => {
+    placeGalleryNavigation();
+    scheduleBundleVariationGalleryGuard();
+  }, { once: true });
 
   document.addEventListener('click', (event) => {
     if (event.target.closest('.pswp__button--close, .pswp__bg, .pswp__scroll-wrap')) {
