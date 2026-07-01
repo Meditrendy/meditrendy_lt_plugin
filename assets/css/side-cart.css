@@ -221,13 +221,23 @@ header .meditrendy-cart-trigger {
     cursor: pointer;
 }
 
-.mt-side-cart-remove span {
+.mt-side-cart-remove span,
+.mt-side-cart-remove-icon {
     display: block;
     width: 18px;
     height: 18px;
+}
+
+.mt-side-cart-remove span {
     background-color: currentColor;
     mask: url("../bin.svg") center / contain no-repeat;
     -webkit-mask: url("../bin.svg") center / contain no-repeat;
+}
+
+.mt-side-cart-remove-icon {
+    flex: 0 0 18px;
+    color: currentColor;
+    pointer-events: none;
 }
 
 .mt-side-cart-remove:hover,

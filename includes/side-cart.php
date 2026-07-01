@@ -198,6 +198,10 @@ function meditrendy_side_cart_item_image($product) {
     ]);
 }
 
+function meditrendy_side_cart_remove_icon() {
+    return '<svg class="mt-side-cart-remove-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path fill="currentColor" d="M15.2188 0c0.2229 0 0.4394 0.0748 0.6152 0.2119 0.1757 0.1371 0.3013 0.3287 0.3555 0.5449L16.5 2H24v2h-3v17c0 0.7957-0.3163 1.5585-0.8789 2.1211S18.7957 24 18 24H6c-0.7957 0-1.5585-0.3163-2.1211-0.8789C3.3163 22.5585 3 21.7957 3 21V4H0V2h7.5l0.3106-1.2432c0.0542-0.2162 0.1797-0.4078 0.3554-0.5449C8.3418 0.0748 8.5583 0 8.7813 0h6.4375ZM5 21c0 0.2652 0.1054 0.5195 0.293 0.707 0.1875 0.1876 0.4418 0.293 0.707 0.293h12c0.2652 0 0.5195-0.1054 0.707-0.293 0.1876-0.1875 0.293-0.4418 0.293-0.707V4H5v17Zm5-2H8V7h2v12Zm6 0h-2V7h2v12Z"/></svg>';
+}
+
 function meditrendy_side_cart_item_price_html($cart_item, $cart_item_key) {
     $product = $cart_item['data'] ?? null;
 
@@ -263,7 +267,7 @@ function meditrendy_side_cart_items_html() {
                         </h3>
 
                         <button class="mt-side-cart-remove" type="button" data-mt-side-cart-remove aria-label="<?php esc_attr_e('Pašalinti prekę', 'meditrendy-core'); ?>">
-                            <span aria-hidden="true"></span>
+                            <?php echo meditrendy_side_cart_remove_icon(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
                         </button>
                     </div>
 
