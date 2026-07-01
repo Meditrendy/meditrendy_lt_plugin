@@ -26,6 +26,12 @@ function meditrendy_product_category_description_term($atts) {
 }
 
 function meditrendy_product_category_description_is_first_page() {
+    $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+
+    if ($request_uri !== '' && preg_match('~(?:[?&](?:amp;)?(?:paged|product-page|mt_filter_paged)=|/page/)([2-9][0-9]*)~i', $request_uri)) {
+        return false;
+    }
+
     $paged = max(
         1,
         is_paged() ? 2 : 1,
@@ -40,12 +46,12 @@ function meditrendy_product_category_description_is_first_page() {
         }
     }
 
-    if (isset($_SERVER['REQUEST_URI'])) {
+    if ($request_uri !== '') {
         global $wp_rewrite;
 
-        $request_uri = esc_url_raw(wp_unslash($_SERVER['REQUEST_URI']));
-        $path = wp_parse_url($request_uri, PHP_URL_PATH);
-        $query = wp_parse_url($request_uri, PHP_URL_QUERY);
+        $safe_request_uri = esc_url_raw($request_uri);
+        $path = wp_parse_url($safe_request_uri, PHP_URL_PATH);
+        $query = wp_parse_url($safe_request_uri, PHP_URL_QUERY);
         $pagination_base = !empty($wp_rewrite->pagination_base) ? $wp_rewrite->pagination_base : 'page';
 
         if ($path && preg_match('~/' . preg_quote($pagination_base, '~') . '/([0-9]+)/?~', $path, $matches)) {
@@ -64,6 +70,18 @@ function meditrendy_product_category_description_is_first_page() {
     }
 
     return $paged <= 1;
+}
+
+function meditrendy_product_category_description_hide_native_on_paginated_pages($description) {
+    if (meditrendy_product_category_description_is_first_page()) {
+        return $description;
+    }
+
+    if (function_exists('is_product_category') && is_product_category()) {
+        return '';
+    }
+
+    return $description;
 }
 
 function meditrendy_product_category_description_shortcode($atts = []) {
@@ -117,3 +135,5 @@ function meditrendy_product_category_description_replace_core_kses() {
 
 add_shortcode('mt_product_category_description', 'meditrendy_product_category_description_shortcode');
 add_action('init', 'meditrendy_product_category_description_replace_core_kses', 1);
+add_filter('woocommerce_taxonomy_archive_description_raw', 'meditrendy_product_category_description_hide_native_on_paginated_pages', 20);
+add_filter('woocommerce_taxonomy_archive_description', 'meditrendy_product_category_description_hide_native_on_paginated_pages', 20);
