@@ -20,6 +20,7 @@
   let isUpsellsLoading = false;
   let cartMutationVersion = 0;
   let isEmittingSyntheticAddedToCart = false;
+  let upsellsRefreshTimer = 0;
 
   const debugEnabled = (() => {
     try {
@@ -48,7 +49,13 @@
 
   const currentSettings = () => window.MeditrendySideCart || settings || {};
 
-  const currentAjaxUrl = () => {
+  const currentAjaxUrl = (endpoint = '') => {
+    const configuredWcAjax = currentSettings().wcAjaxUrl || settings.wcAjaxUrl || '';
+
+    if (endpoint && configuredWcAjax) {
+      return configuredWcAjax.toString().replace('%%endpoint%%', endpoint);
+    }
+
     const configured = currentSettings().ajaxUrl || ajaxUrl;
 
     if (configured) {
@@ -108,7 +115,7 @@
     }
   };
 
-  const emitAddToCartTracking = (tracking, trigger = null) => {
+  const emitAddToCartTracking = (tracking, trigger = null, cartData = {}) => {
     if (!tracking || tracking.event !== 'add_to_cart') {
       return;
     }
@@ -160,7 +167,7 @@
           quantity: tracking.quantity || 1,
         }]);
 
-        window.jQuery(document.body).trigger('added_to_cart', [{}, '', $trigger]);
+        window.jQuery(document.body).trigger('added_to_cart', [cartData.fragments || {}, cartData.cart_hash || '', $trigger]);
       } finally {
         window.setTimeout(() => {
           isEmittingSyntheticAddedToCart = false;
@@ -205,7 +212,7 @@
   const isNonceFailurePayload = (payload) => payload === -1 || payload === '-1';
 
   const refreshNonce = async () => {
-    const nonceAjaxUrl = currentAjaxUrl();
+    const nonceAjaxUrl = currentAjaxUrl('meditrendy_side_cart_nonce');
 
     if (!nonceAjaxUrl) {
       return false;
@@ -263,17 +270,47 @@
     section.setAttribute('aria-busy', state ? 'true' : 'false');
   };
 
+  const replaceFragments = (fragments) => {
+    if (!fragments || typeof fragments !== 'object') {
+      return false;
+    }
+
+    let replaced = false;
+
+    Object.entries(fragments).forEach(([selector, markup]) => {
+      if (!selector || typeof markup !== 'string') {
+        return;
+      }
+
+      document.querySelectorAll(selector).forEach((element) => {
+        element.outerHTML = markup;
+        replaced = true;
+      });
+    });
+
+    if (drawer) {
+      inner = drawer.querySelector('[data-mt-side-cart-inner]');
+    }
+
+    return replaced;
+  };
+
   const replaceContent = (data) => {
-    if (!inner || !data || typeof data.html !== 'string') {
+    const hasFragments = data && replaceFragments(data.fragments);
+
+    if (!hasFragments && inner && data && typeof data.html === 'string') {
+      inner.innerHTML = data.html;
+    }
+
+    if (!inner || !data || (!hasFragments && typeof data.html !== 'string')) {
       debug('replace skipped', {
         hasInner: !!inner,
         hasData: !!data,
         htmlType: typeof (data && data.html),
+        hasFragments: !!(data && data.fragments),
       });
       return;
     }
-
-    inner.innerHTML = data.html;
 
     try {
       initDynamicCartContent();
@@ -371,17 +408,40 @@
 
     return request(
       'meditrendy_side_cart_get',
-      { include_upsells: options.includeUpsells === false ? 0 : 1 },
+      { include_upsells: 0 },
       {
         blocking: false,
         silent: true,
-        upsellsLoading: true,
       }
     );
   };
 
+  const refreshUpsells = (delay = 80) => {
+    if (!drawer || !drawer.classList.contains('is-open')) {
+      return;
+    }
+
+    if (upsellsRefreshTimer) {
+      window.clearTimeout(upsellsRefreshTimer);
+    }
+
+    upsellsRefreshTimer = window.setTimeout(() => {
+      upsellsRefreshTimer = 0;
+
+      if (!drawer || !drawer.classList.contains('is-open') || isRequesting) {
+        return;
+      }
+
+      request('meditrendy_side_cart_get', { include_upsells: 1 }, {
+        blocking: false,
+        silent: true,
+        upsellsLoading: true,
+      });
+    }, delay);
+  };
+
   const request = async (action, body = {}, options = {}) => {
-    const requestAjaxUrl = currentAjaxUrl();
+    const requestAjaxUrl = currentAjaxUrl(action);
 
     if (!requestAjaxUrl) {
       return null;
@@ -449,10 +509,13 @@
 
         if (action === 'meditrendy_side_cart_add') {
           open(false);
+          refreshUpsells();
+        } else if (action === 'meditrendy_side_cart_update') {
+          refreshUpsells();
         }
 
         try {
-          emitAddToCartTracking(payload.data.tracking, options.trigger || null);
+          emitAddToCartTracking(payload.data.tracking, options.trigger || null, payload.data);
         } catch (error) {
           debug('tracking failed after cart update', {
             message: error && error.message ? error.message : String(error),
@@ -476,7 +539,7 @@
 
       if (payload && payload.data && payload.data.message) {
         if (isSoftBundleAddError(action, formData, payload.data.message)) {
-          return await request('meditrendy_side_cart_get', { include_upsells: 1 });
+          return await request('meditrendy_side_cart_get', { include_upsells: 0 });
         }
 
         throw new Error(payload.data.message);
@@ -539,13 +602,11 @@
     document.documentElement.classList.add('mt-side-cart-is-open');
 
     if (shouldRefresh && !isRequesting) {
-      if (!isUpsellsLoading) {
-        request('meditrendy_side_cart_get', { include_upsells: 1 }, {
-          blocking: false,
-          silent: true,
-          upsellsLoading: true,
-        });
-      }
+      request('meditrendy_side_cart_get', { include_upsells: 0 }, {
+        blocking: false,
+        silent: true,
+      });
+      refreshUpsells(120);
     }
   };
 
@@ -607,7 +668,7 @@
 
     return request(
       'meditrendy_side_cart_get',
-      { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 },
+      { include_upsells: 0 },
       { silent: true }
     );
   };
@@ -925,6 +986,7 @@
 
     if (data) {
       open(false);
+      refreshUpsells();
     } else {
       debug('submit add form finished without data', {
         hasCartCookie: hasCartCookie(),
@@ -1118,20 +1180,20 @@
         return;
       }
 
-      await request('meditrendy_side_cart_get', { include_upsells: 1 }, {
+      await request('meditrendy_side_cart_get', { include_upsells: 0 }, {
         blocking: false,
         silent: true,
-        upsellsLoading: true,
       });
       open(false);
+      refreshUpsells();
     });
 
     window.jQuery(document.body).on('removed_from_cart updated_cart_totals wc_fragments_refreshed wc_fragments_loaded', () => {
-      request('meditrendy_side_cart_get', { include_upsells: drawer && drawer.classList.contains('is-open') ? 1 : 0 }, {
+      request('meditrendy_side_cart_get', { include_upsells: 0 }, {
         blocking: false,
         silent: true,
-        upsellsLoading: !!(drawer && drawer.classList.contains('is-open')),
       });
+      refreshUpsells();
     });
   };
 

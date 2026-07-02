@@ -355,10 +355,15 @@ function meditrendy_side_cart_content_html($include_upsells = false) {
 }
 
 function meditrendy_side_cart_response($include_upsells = false, $tracking = []) {
+    $html = meditrendy_side_cart_content_html($include_upsells);
     $response = [
-        'count' => meditrendy_side_cart_count(),
-        'html'  => meditrendy_side_cart_content_html($include_upsells),
-        'nonce' => wp_create_nonce('meditrendy_side_cart'),
+        'count'     => meditrendy_side_cart_count(),
+        'html'      => $html,
+        'fragments' => [
+            'div.mt-side-cart-inner' => '<div class="mt-side-cart-inner" data-mt-side-cart-inner>' . $html . '</div>',
+        ],
+        'cart_hash' => function_exists('WC') && WC()->cart ? WC()->cart->get_cart_hash() : '',
+        'nonce'     => wp_create_nonce('meditrendy_side_cart'),
     ];
 
     if (!empty($tracking)) {
@@ -593,7 +598,7 @@ function meditrendy_side_cart_send_existing_cart_response($message = '', $produc
         $tracking = meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity);
     }
 
-    $response = meditrendy_side_cart_response(true, $tracking);
+    $response = meditrendy_side_cart_response(false, $tracking);
 
     if ($message !== '') {
         $response['message'] = wp_strip_all_tags($message);
@@ -696,7 +701,7 @@ function meditrendy_side_cart_ajax_add() {
     WC()->cart->calculate_totals();
     wc_clear_notices();
 
-    wp_send_json_success(meditrendy_side_cart_response(true, meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity)));
+    wp_send_json_success(meditrendy_side_cart_response(false, meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity)));
 }
 
 function meditrendy_side_cart_is_soft_bundle_notice($message) {
@@ -788,7 +793,7 @@ function meditrendy_side_cart_ajax_update() {
     WC()->cart->set_quantity($cart_item_key, max(0, (int) $quantity), true);
     WC()->cart->calculate_totals();
 
-    wp_send_json_success(meditrendy_side_cart_response(true));
+    wp_send_json_success(meditrendy_side_cart_response(false));
 }
 
 function meditrendy_side_cart_enqueue_assets() {
@@ -823,6 +828,7 @@ function meditrendy_side_cart_enqueue_assets() {
         'MeditrendySideCart',
         [
             'ajaxUrl' => admin_url('admin-ajax.php'),
+            'wcAjaxUrl' => function_exists('WC_AJAX') ? WC_AJAX::get_endpoint('%%endpoint%%') : '',
             'nonce' => wp_create_nonce('meditrendy_side_cart'),
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
@@ -840,9 +846,13 @@ add_action('wp_footer', 'meditrendy_side_cart_render_shell', 30);
 add_action('wp_enqueue_scripts', 'meditrendy_side_cart_enqueue_assets', 46);
 add_action('wp_ajax_meditrendy_side_cart_nonce', 'meditrendy_side_cart_ajax_nonce');
 add_action('wp_ajax_nopriv_meditrendy_side_cart_nonce', 'meditrendy_side_cart_ajax_nonce');
+add_action('wc_ajax_meditrendy_side_cart_nonce', 'meditrendy_side_cart_ajax_nonce');
 add_action('wp_ajax_meditrendy_side_cart_get', 'meditrendy_side_cart_ajax_get');
 add_action('wp_ajax_nopriv_meditrendy_side_cart_get', 'meditrendy_side_cart_ajax_get');
+add_action('wc_ajax_meditrendy_side_cart_get', 'meditrendy_side_cart_ajax_get');
 add_action('wp_ajax_meditrendy_side_cart_add', 'meditrendy_side_cart_ajax_add');
 add_action('wp_ajax_nopriv_meditrendy_side_cart_add', 'meditrendy_side_cart_ajax_add');
+add_action('wc_ajax_meditrendy_side_cart_add', 'meditrendy_side_cart_ajax_add');
 add_action('wp_ajax_meditrendy_side_cart_update', 'meditrendy_side_cart_ajax_update');
 add_action('wp_ajax_nopriv_meditrendy_side_cart_update', 'meditrendy_side_cart_ajax_update');
+add_action('wc_ajax_meditrendy_side_cart_update', 'meditrendy_side_cart_ajax_update');
