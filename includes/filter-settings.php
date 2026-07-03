@@ -6,6 +6,10 @@ function meditrendy_core_current_language() {
         $language = strtolower((string) pll_current_language('slug'));
 
         if ($language) {
+            if ($language === 'ee') {
+                return 'et';
+            }
+
             return $language;
         }
     }
@@ -23,6 +27,10 @@ function meditrendy_core_current_language() {
 
     if (strpos($locale, 'en') === 0) {
         return 'en';
+    }
+
+    if (strpos($locale, 'et') === 0) {
+        return 'et';
     }
 
     return 'lt';

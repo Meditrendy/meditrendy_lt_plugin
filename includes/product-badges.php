@@ -1,6 +1,82 @@
 <?php
 
+function meditrendy_product_card_badge_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        $language = meditrendy_core_current_language();
+
+        return $language === 'ee' ? 'et' : $language;
+    }
+
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language) {
+            if ($language === 'ee') {
+                return 'et';
+            }
+
+            return $language;
+        }
+    }
+
+    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+    $locale = strtolower((string) $locale);
+
+    if (strpos($locale, 'et') === 0) {
+        return 'et';
+    }
+
+    if (strpos($locale, 'lv') === 0) {
+        return 'lv';
+    }
+
+    if (strpos($locale, 'pl') === 0) {
+        return 'pl';
+    }
+
+    if (strpos($locale, 'en') === 0) {
+        return 'en';
+    }
+
+    return 'lt';
+}
+
 function meditrendy_product_card_badge_label($text) {
+    $translations = [
+        'en' => [
+            'AKCIJA' => 'SALE',
+            'NAUJIENA' => 'NEW',
+            'BESTSELLER' => 'BESTSELLER',
+            'Produktów žymos' => 'Product badges',
+            'Produktų žymos' => 'Product badges',
+        ],
+        'lv' => [
+            'AKCIJA' => 'AKCIJA',
+            'NAUJIENA' => 'JAUNUMS',
+            'BESTSELLER' => 'BESTSELLER',
+            'Produktų žymos' => 'Produktu atzīmes',
+        ],
+        'pl' => [
+            'AKCIJA' => 'PROMOCJA',
+            'NAUJIENA' => 'NOWOŚĆ',
+            'BESTSELLER' => 'BESTSELLER',
+            'Produktów žymos' => 'Etykiety produktu',
+            'Produktų žymos' => 'Etykiety produktu',
+        ],
+        'et' => [
+            'AKCIJA' => 'SOODUS',
+            'NAUJIENA' => 'UUS',
+            'BESTSELLER' => 'ENIMMÜÜDUD',
+            'Produktų žymos' => 'Tootesildid',
+        ],
+    ];
+
+    $language = meditrendy_product_card_badge_language();
+
+    if (isset($translations[$language][$text])) {
+        return $translations[$language][$text];
+    }
+
     if (function_exists('meditrendy_core_translate_ui_text')) {
         return meditrendy_core_translate_ui_text($text);
     }
@@ -10,8 +86,45 @@ function meditrendy_product_card_badge_label($text) {
 
 function meditrendy_product_card_badge_term_slugs($type) {
     $slugs = [
-        'new' => ['naujienos-moterims', 'naujienos-vyrams', 'jaunumi', 'jaunumi-viriesiem'],
-        'bestseller' => ['bestseleriai-moterims', 'bestseleriai', 'popularakie-produkti', 'popularakie-produkti-viriesiem'],
+        'sale' => [
+            'akcijos-moterims',
+            'akcijos-vyrams',
+            'akcijas',
+            'akcijas-viriesiem',
+            'promocje',
+            'promocje-meskie',
+            'sale',
+            'sale-women',
+            'sale-men',
+            'sooduspakkumised',
+            'sooduspakkumised-meestele',
+        ],
+        'new' => [
+            'naujienos-moterims',
+            'naujienos-vyrams',
+            'jaunumi',
+            'jaunumi-viriesiem',
+            'nowosci',
+            'nowosci-meskie',
+            'new-arrivals',
+            'new-arrivals-women',
+            'new-arrivals-men',
+            'uudised',
+            'uudised-meestele',
+        ],
+        'bestseller' => [
+            'bestseleriai-moterims',
+            'bestseleriai',
+            'popularakie-produkti',
+            'popularakie-produkti-viriesiem',
+            'bestsellery',
+            'bestsellery-meskie',
+            'bestsellers',
+            'bestsellers-women',
+            'bestsellers-men',
+            'enimmuudud',
+            'enimmuudud-meestele',
+        ],
     ];
 
     return $slugs[$type] ?? [];
@@ -134,7 +247,15 @@ function meditrendy_product_card_badges_shortcode($atts) {
 
     $badges = [];
 
-    if ($atts['sale'] === '1' && $product->is_on_sale()) {
+    $sale_slugs = meditrendy_product_card_badge_term_slugs('sale');
+
+    if (
+        $atts['sale'] === '1'
+        && (
+            $product->is_on_sale()
+            || meditrendy_product_card_product_has_any_badge_term($product, $sale_slugs)
+        )
+    ) {
         $badges[] = [
             'class' => 'mt-card-badge-sale',
             'label' => meditrendy_product_card_badge_label('AKCIJA'),
@@ -170,7 +291,7 @@ function meditrendy_product_card_badges_shortcode($atts) {
 
     ob_start();
     ?>
-    <div class="mt-card-badges-shortcode" aria-label="<?php echo esc_attr__('Produktų žymos', 'meditrendy-core'); ?>">
+    <div class="mt-card-badges-shortcode" aria-label="<?php echo esc_attr(meditrendy_product_card_badge_label('Produktų žymos')); ?>">
         <?php foreach ($badges as $badge) : ?>
             <span class="<?php echo esc_attr('mt-card-badge ' . $badge['class']); ?>"><?php echo esc_html($badge['label']); ?></span>
         <?php endforeach; ?>
