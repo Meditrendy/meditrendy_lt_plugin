@@ -5,10 +5,103 @@ function meditrendy_side_cart_upsells_capability() {
     return current_user_can('manage_woocommerce') ? 'manage_woocommerce' : 'manage_options';
 }
 
+function meditrendy_side_cart_upsells_default_languages() {
+    $languages = [];
+
+    if (function_exists('pll_languages_list')) {
+        $slugs = pll_languages_list(['fields' => 'slug']);
+
+        if (is_array($slugs)) {
+            foreach ($slugs as $slug) {
+                $slug = sanitize_key($slug);
+
+                if ($slug !== '') {
+                    $languages[] = $slug;
+                }
+            }
+        }
+    }
+
+    if (!$languages) {
+        $languages = ['lt', 'lv', 'et', 'pl', 'en'];
+    }
+
+    return array_values(array_unique($languages));
+}
+
+function meditrendy_side_cart_upsells_ids($value) {
+    if (!is_array($value)) {
+        $value = preg_split('/[\s,]+/', (string) $value);
+    }
+
+    $ids = [];
+
+    foreach ($value as $id) {
+        $id = absint($id);
+
+        if ($id && !in_array($id, $ids, true)) {
+            $ids[] = $id;
+        }
+
+        if (count($ids) >= 10) {
+            break;
+        }
+    }
+
+    return $ids;
+}
+
+function meditrendy_side_cart_upsells_sanitize($input) {
+    $input = is_array($input) ? $input : [];
+    $output = [];
+
+    foreach (meditrendy_side_cart_upsells_default_languages() as $language) {
+        $output[$language] = meditrendy_side_cart_upsells_ids($input[$language] ?? []);
+    }
+
+    foreach ($input as $language => $ids) {
+        $language = sanitize_key($language);
+
+        if ($language === '' || isset($output[$language])) {
+            continue;
+        }
+
+        $output[$language] = meditrendy_side_cart_upsells_ids($ids);
+    }
+
+    return $output;
+}
+
+function meditrendy_side_cart_upsells_migrate_legacy_settings($settings) {
+    if (!$settings || !is_array($settings) || array_key_exists('lt', $settings)) {
+        return is_array($settings) ? $settings : [];
+    }
+
+    $ids = [];
+
+    foreach ($settings as $rule) {
+        if (!is_array($rule) || empty($rule['enabled'])) {
+            continue;
+        }
+
+        $ids = array_merge($ids, meditrendy_side_cart_upsells_ids($rule['first_product_id'] ?? 0));
+        $ids = array_merge($ids, meditrendy_side_cart_upsells_ids($rule['manual_product_ids'] ?? []));
+
+        if (count(array_unique(array_filter($ids))) >= 10) {
+            break;
+        }
+    }
+
+    return [
+        'lt' => meditrendy_side_cart_upsells_ids($ids),
+    ];
+}
+
 function meditrendy_side_cart_upsells_settings() {
     $settings = get_option('meditrendy_side_cart_upsells', []);
+    $settings = meditrendy_side_cart_upsells_migrate_legacy_settings($settings);
 
-    return is_array($settings) ? $settings : [];
+    return meditrendy_side_cart_upsells_sanitize($settings);
 }
 
 function meditrendy_side_cart_upsells_cache_version() {
@@ -19,46 +112,23 @@ function meditrendy_side_cart_upsells_flush_cache() {
     update_option('meditrendy_side_cart_upsells_cache_version', (string) time(), false);
 }
 
-function meditrendy_side_cart_upsells_ids($value) {
-    if (!is_array($value)) {
-        $value = preg_split('/[\s,]+/', (string) $value);
-    }
+function meditrendy_side_cart_upsells_language_label($language) {
+    if (function_exists('pll_languages_list')) {
+        $slugs = pll_languages_list(['fields' => 'slug']);
+        $names = pll_languages_list(['fields' => 'name']);
 
-    return array_values(array_unique(array_filter(array_map('absint', $value))));
-}
+        if (is_array($slugs) && is_array($names)) {
+            foreach ($slugs as $index => $slug) {
+                $slug = (string) $slug;
 
-function meditrendy_side_cart_upsells_sanitize($input) {
-    $output = [];
-
-    if (!is_array($input)) {
-        return $output;
-    }
-
-    foreach ($input as $rule) {
-        if (!is_array($rule) || empty($rule['enabled'])) {
-            continue;
+                if ($slug === (string) $language) {
+                    return !empty($names[$index]) ? (string) $names[$index] : strtoupper((string) $language);
+                }
+            }
         }
-
-        $scope = sanitize_key($rule['scope'] ?? 'sitewide');
-
-        if (!in_array($scope, ['sitewide', 'product', 'category', 'brand'], true)) {
-            $scope = 'sitewide';
-        }
-
-        $output[] = [
-            'enabled'             => 1,
-            'scope'               => $scope,
-            'scope_product_ids'   => meditrendy_side_cart_upsells_ids($rule['scope_product_ids'] ?? []),
-            'scope_category_ids'  => meditrendy_side_cart_upsells_ids($rule['scope_category_ids'] ?? []),
-            'scope_brand_ids'     => meditrendy_side_cart_upsells_ids($rule['scope_brand_ids'] ?? []),
-            'first_product_id'    => absint($rule['first_product_id'] ?? 0),
-            'manual_product_ids'  => meditrendy_side_cart_upsells_ids($rule['manual_product_ids'] ?? []),
-            'source_category_ids' => meditrendy_side_cart_upsells_ids($rule['source_category_ids'] ?? []),
-            'source_brand_ids'    => meditrendy_side_cart_upsells_ids($rule['source_brand_ids'] ?? []),
-        ];
     }
 
-    return $output;
+    return strtoupper((string) $language);
 }
 
 function meditrendy_side_cart_upsells_admin_menu() {
@@ -88,64 +158,18 @@ function meditrendy_side_cart_upsells_admin_assets($hook) {
     wp_register_style('meditrendy-side-cart-upsells-admin', false, [], '1.0');
     wp_enqueue_style('meditrendy-side-cart-upsells-admin');
     wp_add_inline_style('meditrendy-side-cart-upsells-admin', '
-        .meditrendy-side-cart-upsells-admin .mt-upsell-rule {
+        .meditrendy-side-cart-upsells-admin .mt-upsell-language {
+            max-width: 760px;
             margin: 0 0 18px;
-            padding: 0;
+            padding: 16px;
             border: 1px solid #c3c4c7;
             background: #fff;
         }
 
-        .meditrendy-side-cart-upsells-admin .mt-upsell-rule-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            padding: 14px 16px;
-            border-bottom: 1px solid #dcdcde;
-            background: #f6f7f7;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-rule-header h2 {
-            margin: 0;
-            font-size: 14px;
+        .meditrendy-side-cart-upsells-admin .mt-upsell-language h2 {
+            margin: 0 0 10px;
+            font-size: 16px;
             line-height: 1.3;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-sections {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 0;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-section {
-            padding: 16px;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-section + .mt-upsell-section {
-            border-left: 1px solid #dcdcde;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-section h3 {
-            margin: 0 0 4px;
-            font-size: 15px;
-            line-height: 1.3;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-section-description {
-            margin: 0 0 14px;
-            color: #646970;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-rule-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 14px 18px;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-field label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
         }
 
         .meditrendy-side-cart-upsells-admin .wc-product-search,
@@ -153,60 +177,17 @@ function meditrendy_side_cart_upsells_admin_assets($hook) {
             width: 100% !important;
         }
 
-        .meditrendy-side-cart-upsells-admin .mt-upsell-terms {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 6px 12px;
-            max-height: 170px;
-            padding: 8px;
-            border: 1px solid #8c8f94;
-            border-radius: 4px;
-            overflow: auto;
+        .meditrendy-side-cart-upsells-admin .mt-upsell-products {
+            margin: 10px 0 0;
+            padding-left: 20px;
         }
 
-        .meditrendy-side-cart-upsells-admin .mt-upsell-term-search {
-            width: 100%;
-            margin: 0 0 8px;
+        .meditrendy-side-cart-upsells-admin .mt-upsell-products li {
+            margin: 3px 0;
         }
 
-        .meditrendy-side-cart-upsells-admin .mt-upsell-term {
-            display: flex;
-            gap: 6px;
-            line-height: 1.25;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-term span {
-            overflow-wrap: anywhere;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-language {
-            display: inline-flex;
-            align-items: center;
-            min-height: 18px;
-            margin-left: 4px;
-            padding: 0 5px;
-            border-radius: 3px;
-            background: #eef2f6;
-            color: #50575e;
-            font-size: 10px;
-            font-weight: 700;
-            line-height: 1;
-            text-transform: uppercase;
-        }
-
-        .meditrendy-side-cart-upsells-admin .mt-upsell-field[hidden] {
-            display: none !important;
-        }
-
-        @media (max-width: 1180px) {
-            .meditrendy-side-cart-upsells-admin .mt-upsell-sections {
-                grid-template-columns: 1fr;
-            }
-
-            .meditrendy-side-cart-upsells-admin .mt-upsell-section + .mt-upsell-section {
-                border-top: 1px solid #dcdcde;
-                border-left: 0;
-            }
+        .meditrendy-side-cart-upsells-admin .mt-upsell-missing {
+            color: #b32d2e;
         }
     ');
 
@@ -214,247 +195,153 @@ function meditrendy_side_cart_upsells_admin_assets($hook) {
     wp_enqueue_script('meditrendy-side-cart-upsells-admin');
     wp_add_inline_script('meditrendy-side-cart-upsells-admin', "
         jQuery(function($) {
-            var index = $('.mt-upsell-rule').length;
+            $(document.body).trigger('wc-enhanced-select-init');
 
-            function initSelects(context) {
-                $(document.body).trigger('wc-enhanced-select-init');
-            }
+            $(document).on('select2:selecting', '.meditrendy-side-cart-upsells-admin .wc-product-search', function(e) {
+                var selected = $(this).val() || [];
 
-            function updateScopeFields(rule) {
-                var scope = rule.find('[data-mt-upsell-scope]').val() || 'sitewide';
-
-                rule.find('[data-mt-upsell-scope-field]').attr('hidden', 'hidden');
-
-                if (scope !== 'sitewide') {
-                    rule.find('[data-mt-upsell-scope-field=\"' + scope + '\"]').removeAttr('hidden');
+                if (selected.length >= 10) {
+                    e.preventDefault();
+                    window.alert('" . esc_js(__('You can select up to 10 products per language.', 'meditrendy-core')) . "');
                 }
-            }
-
-            function updateAllScopeFields(context) {
-                $(context).find('.mt-upsell-rule').each(function() {
-                    updateScopeFields($(this));
-                });
-            }
-
-            $('.mt-add-upsell-rule').on('click', function(e) {
-                e.preventDefault();
-                var template = $('#mt-upsell-rule-template').html().replace(/__INDEX__/g, index++);
-                var rule = $(template).appendTo('.mt-upsell-rules');
-                initSelects(rule);
-                updateScopeFields(rule);
             });
-
-            $(document).on('change', '[data-mt-upsell-scope]', function() {
-                updateScopeFields($(this).closest('.mt-upsell-rule'));
-            });
-
-            $(document).on('input', '[data-mt-upsell-term-search]', function() {
-                var query = ($(this).val() || '').toLowerCase();
-                var list = $(this).closest('.mt-upsell-term-picker').find('.mt-upsell-term');
-
-                list.each(function() {
-                    var item = $(this);
-                    var text = item.text().toLowerCase();
-                    item.toggle(text.indexOf(query) !== -1);
-                });
-            });
-
-            initSelects(document);
-            updateAllScopeFields(document);
         });
     ");
 }
 add_action('admin_enqueue_scripts', 'meditrendy_side_cart_upsells_admin_assets');
 
-function meditrendy_side_cart_upsells_terms($taxonomy) {
-    if (!taxonomy_exists($taxonomy)) {
-        return [];
+function meditrendy_side_cart_upsells_search_products() {
+    check_ajax_referer('search-products', 'security');
+
+    if (!current_user_can(meditrendy_side_cart_upsells_capability())) {
+        wp_send_json([]);
     }
 
-    $terms = get_terms([
-        'taxonomy'   => $taxonomy,
-        'hide_empty' => false,
-        'orderby'    => 'name',
-        'order'      => 'ASC',
-    ]);
+    $term = isset($_GET['term']) ? wc_clean(wp_unslash($_GET['term'])) : '';
+    $term = trim((string) $term);
 
-    return is_wp_error($terms) ? [] : $terms;
-}
-
-function meditrendy_side_cart_upsells_term_language_label($term_id) {
-    if (!function_exists('pll_get_term_language')) {
-        return '';
+    if ($term === '') {
+        wp_send_json([]);
     }
 
-    $language = pll_get_term_language($term_id, 'slug');
+    global $wpdb;
 
-    if (!$language) {
-        $language = pll_get_term_language($term_id);
-    }
+    $limit = !empty($_GET['limit']) ? absint($_GET['limit']) : 30;
+    $limit = max(1, min(50, $limit));
+    $like = '%' . $wpdb->esc_like($term) . '%';
 
-    return $language ? strtoupper((string) $language) : '';
-}
+    $product_ids = $wpdb->get_col($wpdb->prepare(
+        "
+        SELECT DISTINCT p.ID
+        FROM {$wpdb->posts} p
+        LEFT JOIN {$wpdb->posts} parent_post
+            ON parent_post.ID = p.post_parent
+        LEFT JOIN {$wpdb->postmeta} sku_meta
+            ON sku_meta.post_id = p.ID
+            AND sku_meta.meta_key = '_sku'
+        LEFT JOIN {$wpdb->postmeta} parent_sku_meta
+            ON parent_sku_meta.post_id = parent_post.ID
+            AND parent_sku_meta.meta_key = '_sku'
+        WHERE p.post_type IN ('product', 'product_variation')
+            AND p.post_status IN ('publish', 'private')
+            AND (
+                p.post_title LIKE %s
+                OR parent_post.post_title LIKE %s
+                OR sku_meta.meta_value LIKE %s
+                OR parent_sku_meta.meta_value LIKE %s
+            )
+        ORDER BY
+            CASE
+                WHEN p.post_title LIKE %s THEN 0
+                WHEN parent_post.post_title LIKE %s THEN 1
+                WHEN sku_meta.meta_value LIKE %s THEN 2
+                WHEN parent_sku_meta.meta_value LIKE %s THEN 3
+                ELSE 4
+            END,
+            COALESCE(parent_post.post_title, p.post_title) ASC,
+            p.ID ASC
+        LIMIT %d
+        ",
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $like,
+        $limit
+    ));
 
-function meditrendy_side_cart_upsells_term_name($term, $show_language = false) {
-    $name = esc_html($term->name);
+    $results = [];
 
-    if ($show_language) {
-        $language = meditrendy_side_cart_upsells_term_language_label($term->term_id);
+    foreach ($product_ids as $product_id) {
+        $product = wc_get_product($product_id);
 
-        if ($language) {
-            $name .= ' <span class="mt-upsell-language">' . esc_html($language) . '</span>';
+        if (!$product || !wc_products_array_filter_readable($product)) {
+            continue;
         }
+
+        if (!$product->is_type('simple') && !$product->is_type('variation')) {
+            continue;
+        }
+
+        $label = rawurldecode(wp_strip_all_tags($product->get_formatted_name()));
+
+        if ($product->is_type('variation')) {
+            $label = sprintf(__('Variation #%1$d - %2$s', 'meditrendy-core'), $product->get_id(), $label);
+        } else {
+            $label = sprintf(__('Product #%1$d - %2$s', 'meditrendy-core'), $product->get_id(), $label);
+        }
+
+        $results[$product->get_id()] = $label;
     }
 
-    return $name;
+    wp_send_json($results);
 }
+add_action('wp_ajax_meditrendy_side_cart_upsells_search_products', 'meditrendy_side_cart_upsells_search_products');
 
-function meditrendy_side_cart_upsells_product_select($name, $ids = []) {
-    $ids = meditrendy_side_cart_upsells_ids($ids);
+function meditrendy_side_cart_upsells_product_search_field($language, $ids) {
     ?>
     <select
         class="wc-product-search"
         multiple="multiple"
-        name="<?php echo esc_attr($name); ?>[]"
-        data-placeholder="<?php esc_attr_e('Search products...', 'meditrendy-core'); ?>"
-        data-action="meditrendy_product_promotions_search_products"
+        name="meditrendy_side_cart_upsells[<?php echo esc_attr($language); ?>][]"
+        data-placeholder="<?php esc_attr_e('Search products by name or SKU...', 'meditrendy-core'); ?>"
+        data-action="meditrendy_side_cart_upsells_search_products"
         data-minimum_input_length="1"
         data-limit="30"
     >
-        <?php foreach ($ids as $product_id) : ?>
+        <?php foreach (meditrendy_side_cart_upsells_ids($ids) as $product_id) : ?>
             <?php $product = wc_get_product($product_id); ?>
             <?php if ($product) : ?>
-                <option value="<?php echo esc_attr($product_id); ?>" selected><?php echo esc_html($product->get_formatted_name()); ?></option>
+                <option value="<?php echo esc_attr($product_id); ?>" selected><?php echo esc_html(sprintf('#%1$d - %2$s', $product_id, $product->get_formatted_name())); ?></option>
             <?php endif; ?>
         <?php endforeach; ?>
     </select>
     <?php
 }
 
-function meditrendy_side_cart_upsells_single_product_select($name, $product_id = 0) {
-    $product_id = absint($product_id);
-    ?>
-    <select
-        class="wc-product-search"
-        name="<?php echo esc_attr($name); ?>"
-        data-placeholder="<?php esc_attr_e('Search products...', 'meditrendy-core'); ?>"
-        data-action="meditrendy_product_promotions_search_products"
-        data-minimum_input_length="1"
-        data-limit="30"
-        data-allow_clear="true"
-    >
-        <?php if ($product_id) : ?>
-            <?php $product = wc_get_product($product_id); ?>
-            <?php if ($product) : ?>
-                <option value="<?php echo esc_attr($product_id); ?>" selected><?php echo esc_html($product->get_formatted_name()); ?></option>
-            <?php endif; ?>
-        <?php endif; ?>
-    </select>
-    <?php
-}
+function meditrendy_side_cart_upsells_admin_product_list($ids) {
+    if (!$ids) {
+        echo '<p class="description">' . esc_html__('No products selected.', 'meditrendy-core') . '</p>';
+        return;
+    }
 
-function meditrendy_side_cart_upsells_term_checkboxes($name, $taxonomy, $selected = [], $show_language = false) {
-    $selected = meditrendy_side_cart_upsells_ids($selected);
-    ?>
-    <div class="mt-upsell-term-picker">
-        <input type="search" class="mt-upsell-term-search" data-mt-upsell-term-search placeholder="<?php esc_attr_e('Search...', 'meditrendy-core'); ?>">
-        <div class="mt-upsell-terms">
-            <?php foreach (meditrendy_side_cart_upsells_terms($taxonomy) as $term) : ?>
-                <label class="mt-upsell-term">
-                    <input type="checkbox" name="<?php echo esc_attr($name); ?>[]" value="<?php echo esc_attr($term->term_id); ?>" <?php checked(in_array((int) $term->term_id, $selected, true)); ?>>
-                    <span><?php echo meditrendy_side_cart_upsells_term_name($term, $show_language); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></span>
-                </label>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php
-}
+    echo '<ol class="mt-upsell-products">';
 
-function meditrendy_side_cart_upsells_rule_html($index, $rule = []) {
-    $rule = wp_parse_args($rule, [
-        'enabled'             => 1,
-        'scope'               => 'sitewide',
-        'scope_product_ids'   => [],
-        'scope_category_ids'  => [],
-        'scope_brand_ids'     => [],
-        'first_product_id'    => 0,
-        'manual_product_ids'  => [],
-        'source_category_ids' => [],
-        'source_brand_ids'    => [],
-    ]);
-    ?>
-    <div class="mt-upsell-rule">
-        <div class="mt-upsell-rule-header">
-            <h2><?php echo esc_html(sprintf(__('Rule %s', 'meditrendy-core'), is_numeric($index) ? (int) $index + 1 : '')); ?></h2>
-            <label>
-                <input type="checkbox" name="meditrendy_side_cart_upsells[<?php echo esc_attr($index); ?>][enabled]" value="1" <?php checked(!empty($rule['enabled'])); ?>>
-                <?php esc_html_e('Enabled', 'meditrendy-core'); ?>
-            </label>
-        </div>
+    foreach ($ids as $id) {
+        $product = function_exists('wc_get_product') ? wc_get_product($id) : null;
 
-        <div class="mt-upsell-sections">
-            <section class="mt-upsell-section">
-                <h3><?php esc_html_e('When to show', 'meditrendy-core'); ?></h3>
-                <p class="mt-upsell-section-description"><?php esc_html_e('Choose which cart contents activate this rule.', 'meditrendy-core'); ?></p>
+        if (!$product) {
+            echo '<li class="mt-upsell-missing">' . esc_html(sprintf(__('Product ID %d was not found.', 'meditrendy-core'), $id)) . '</li>';
+            continue;
+        }
 
-                <div class="mt-upsell-rule-grid">
-                    <div class="mt-upsell-field">
-                        <label><?php esc_html_e('Match type', 'meditrendy-core'); ?></label>
-                        <select name="meditrendy_side_cart_upsells[<?php echo esc_attr($index); ?>][scope]" data-mt-upsell-scope>
-                            <option value="sitewide" <?php selected($rule['scope'], 'sitewide'); ?>><?php esc_html_e('Any cart', 'meditrendy-core'); ?></option>
-                            <option value="product" <?php selected($rule['scope'], 'product'); ?>><?php esc_html_e('Specific cart product', 'meditrendy-core'); ?></option>
-                            <option value="category" <?php selected($rule['scope'], 'category'); ?>><?php esc_html_e('Product from category', 'meditrendy-core'); ?></option>
-                            <option value="brand" <?php selected($rule['scope'], 'brand'); ?>><?php esc_html_e('Product from brand', 'meditrendy-core'); ?></option>
-                        </select>
-                    </div>
+        echo '<li>' . esc_html(sprintf('#%d - %s', $id, $product->get_formatted_name())) . '</li>';
+    }
 
-                    <div class="mt-upsell-field" data-mt-upsell-scope-field="product">
-                        <label><?php esc_html_e('Cart products', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_product_select("meditrendy_side_cart_upsells[$index][scope_product_ids]", $rule['scope_product_ids']); ?>
-                    </div>
-
-                    <div class="mt-upsell-field" data-mt-upsell-scope-field="category">
-                        <label><?php esc_html_e('Cart categories', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_term_checkboxes("meditrendy_side_cart_upsells[$index][scope_category_ids]", 'product_cat', $rule['scope_category_ids'], true); ?>
-                    </div>
-
-                    <div class="mt-upsell-field" data-mt-upsell-scope-field="brand">
-                        <label><?php esc_html_e('Cart brands', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_term_checkboxes("meditrendy_side_cart_upsells[$index][scope_brand_ids]", 'pa_brand', $rule['scope_brand_ids'], true); ?>
-                    </div>
-                </div>
-            </section>
-
-            <section class="mt-upsell-section">
-                <h3><?php esc_html_e('What to show', 'meditrendy-core'); ?></h3>
-                <p class="mt-upsell-section-description"><?php esc_html_e('Choose exact products, or let the side cart pull random products from categories and brands.', 'meditrendy-core'); ?></p>
-
-                <div class="mt-upsell-rule-grid">
-                    <div class="mt-upsell-field">
-                        <label><?php esc_html_e('First product', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_single_product_select("meditrendy_side_cart_upsells[$index][first_product_id]", $rule['first_product_id']); ?>
-                        <p class="description"><?php esc_html_e('This product is shown first when this rule matches.', 'meditrendy-core'); ?></p>
-                    </div>
-
-                    <div class="mt-upsell-field">
-                        <label><?php esc_html_e('Exact upsell products', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_product_select("meditrendy_side_cart_upsells[$index][manual_product_ids]", $rule['manual_product_ids']); ?>
-                    </div>
-
-                    <div class="mt-upsell-field">
-                        <label><?php esc_html_e('Random from categories', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_term_checkboxes("meditrendy_side_cart_upsells[$index][source_category_ids]", 'product_cat', $rule['source_category_ids'], true); ?>
-                    </div>
-
-                    <div class="mt-upsell-field">
-                        <label><?php esc_html_e('Random from brands', 'meditrendy-core'); ?></label>
-                        <?php meditrendy_side_cart_upsells_term_checkboxes("meditrendy_side_cart_upsells[$index][source_brand_ids]", 'pa_brand', $rule['source_brand_ids'], true); ?>
-                    </div>
-                </div>
-            </section>
-        </div>
-    </div>
-    <?php
+    echo '</ol>';
 }
 
 function meditrendy_side_cart_upsells_admin_page() {
@@ -462,33 +349,34 @@ function meditrendy_side_cart_upsells_admin_page() {
         wp_die(esc_html__('You do not have permission to view this page.', 'meditrendy-core'));
     }
 
-    $rules = meditrendy_side_cart_upsells_settings();
+    $settings = meditrendy_side_cart_upsells_settings();
+    $languages = meditrendy_side_cart_upsells_default_languages();
     ?>
     <div class="wrap meditrendy-side-cart-upsells-admin">
         <h1><?php esc_html_e('Side cart upsells', 'meditrendy-core'); ?></h1>
 
         <?php if (isset($_GET['updated'])) : ?>
-            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Upsells saved.', 'meditrendy-core'); ?></p></div>
+            <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Upsells saved and cache cleared.', 'meditrendy-core'); ?></p></div>
         <?php endif; ?>
+
+        <p><?php esc_html_e('Enter up to 10 exact product IDs per language. The side cart uses only these IDs and does not run cart matching, taxonomy searches, random queries, or cart-item exclusions.', 'meditrendy-core'); ?></p>
 
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('meditrendy_save_side_cart_upsells'); ?>
             <input type="hidden" name="action" value="meditrendy_save_side_cart_upsells">
 
-            <div class="mt-upsell-rules">
-                <?php foreach ($rules as $index => $rule) : ?>
-                    <?php meditrendy_side_cart_upsells_rule_html($index, $rule); ?>
-                <?php endforeach; ?>
-            </div>
-
-            <p><button type="button" class="button mt-add-upsell-rule"><?php esc_html_e('Add rule', 'meditrendy-core'); ?></button></p>
+            <?php foreach ($languages as $language) : ?>
+                <?php $ids = $settings[$language] ?? []; ?>
+                <section class="mt-upsell-language">
+                    <h2><?php echo esc_html(meditrendy_side_cart_upsells_language_label($language)); ?> <code><?php echo esc_html($language); ?></code></h2>
+                    <?php meditrendy_side_cart_upsells_product_search_field($language, $ids); ?>
+                    <p class="description"><?php esc_html_e('Search products by name or SKU. Use exact simple products or variation IDs; only the first 10 unique products are saved.', 'meditrendy-core'); ?></p>
+                    <?php meditrendy_side_cart_upsells_admin_product_list($ids); ?>
+                </section>
+            <?php endforeach; ?>
 
             <?php submit_button(__('Save upsells', 'meditrendy-core')); ?>
         </form>
-
-        <script type="text/html" id="mt-upsell-rule-template">
-            <?php meditrendy_side_cart_upsells_rule_html('__INDEX__'); ?>
-        </script>
     </div>
     <?php
 }
@@ -512,265 +400,68 @@ function meditrendy_save_side_cart_upsells() {
 }
 add_action('admin_post_meditrendy_save_side_cart_upsells', 'meditrendy_save_side_cart_upsells');
 
-function meditrendy_side_cart_upsells_cart_product_ids() {
-    if (!function_exists('WC') || !WC()->cart) {
-        return [];
+function meditrendy_side_cart_upsells_active_language() {
+    if (function_exists('meditrendy_side_cart_language')) {
+        return sanitize_key(meditrendy_side_cart_language());
     }
 
-    $ids = [];
-
-    foreach (WC()->cart->get_cart() as $item) {
-        if (!empty($item['product_id'])) {
-            $ids[] = (int) $item['product_id'];
-        }
-        if (!empty($item['variation_id'])) {
-            $ids[] = (int) $item['variation_id'];
-        }
+    if (function_exists('pll_current_language')) {
+        return sanitize_key((string) pll_current_language('slug'));
     }
 
-    return array_values(array_unique($ids));
-}
-
-function meditrendy_side_cart_upsells_product_term_ids($product_id, $taxonomy) {
-    $term_ids = wp_get_post_terms($product_id, $taxonomy, ['fields' => 'ids']);
-
-    if (is_wp_error($term_ids) || !$term_ids) {
-        return [];
-    }
-
-    $all = array_map('intval', $term_ids);
-
-    foreach ($term_ids as $term_id) {
-        $all = array_merge($all, array_map('intval', get_ancestors($term_id, $taxonomy, 'taxonomy')));
-    }
-
-    return array_values(array_unique($all));
-}
-
-function meditrendy_side_cart_upsells_rule_matches($rule) {
-    if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) {
-        return false;
-    }
-
-    $scope = $rule['scope'] ?? 'sitewide';
-
-    if ($scope === 'sitewide') {
-        return true;
-    }
-
-    $cart_product_ids = meditrendy_side_cart_upsells_cart_product_ids();
-
-    if ($scope === 'product') {
-        return (bool) array_intersect($cart_product_ids, meditrendy_side_cart_upsells_ids($rule['scope_product_ids'] ?? []));
-    }
-
-    foreach (WC()->cart->get_cart() as $item) {
-        $product_id = (int) ($item['product_id'] ?? 0);
-
-        if ($scope === 'category') {
-            if (array_intersect(meditrendy_side_cart_upsells_ids($rule['scope_category_ids'] ?? []), meditrendy_side_cart_upsells_product_term_ids($product_id, 'product_cat'))) {
-                return true;
-            }
-        }
-
-        if ($scope === 'brand' && taxonomy_exists('pa_brand')) {
-            if (array_intersect(meditrendy_side_cart_upsells_ids($rule['scope_brand_ids'] ?? []), meditrendy_side_cart_upsells_product_term_ids($product_id, 'pa_brand'))) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-function meditrendy_side_cart_upsells_random_ids($category_ids, $brand_ids) {
-    $category_ids = meditrendy_side_cart_upsells_ids($category_ids);
-    $brand_ids = meditrendy_side_cart_upsells_ids($brand_ids);
-    sort($category_ids);
-    sort($brand_ids);
-
-    $cache_key = 'mt_side_cart_upsells_random_' . md5(wp_json_encode([
-        'v' => meditrendy_side_cart_upsells_cache_version(),
-        'c' => $category_ids,
-        'b' => $brand_ids,
-    ]));
-    $cached_ids = get_transient($cache_key);
-
-    if (is_array($cached_ids)) {
-        shuffle($cached_ids);
-
-        return $cached_ids;
-    }
-
-    $tax_query = [];
-
-    if ($category_ids) {
-        $tax_query[] = [
-            'taxonomy' => 'product_cat',
-            'field'    => 'term_id',
-            'terms'    => $category_ids,
-        ];
-    }
-
-    if ($brand_ids && taxonomy_exists('pa_brand')) {
-        $tax_query[] = [
-            'taxonomy' => 'pa_brand',
-            'field'    => 'term_id',
-            'terms'    => $brand_ids,
-        ];
-    }
-
-    if (count($tax_query) > 1) {
-        $tax_query['relation'] = 'OR';
-    }
-
-    if (!$tax_query) {
-        return [];
-    }
-
-    $ids = get_posts([
-        'post_type'      => 'product',
-        'post_status'    => 'publish',
-        'posts_per_page' => -1,
-        'orderby'        => 'ID',
-        'order'          => 'ASC',
-        'fields'         => 'ids',
-        'tax_query'      => $tax_query,
-    ]);
-    $ids = array_values(array_filter(array_map('absint', $ids)));
-
-    set_transient($cache_key, $ids, 30 * MINUTE_IN_SECONDS);
-    shuffle($ids);
-
-    return $ids;
+    return 'lt';
 }
 
 function meditrendy_side_cart_upsells_products() {
-    $cart_ids = meditrendy_side_cart_upsells_cart_product_ids();
-    $ids = [];
+    $settings = meditrendy_side_cart_upsells_settings();
+    $language = meditrendy_side_cart_upsells_active_language();
+    $ids = $settings[$language] ?? [];
 
-    foreach (meditrendy_side_cart_upsells_settings() as $rule) {
-        if (empty($rule['enabled']) || !meditrendy_side_cart_upsells_rule_matches($rule)) {
+    $products = [];
+
+    foreach (meditrendy_side_cart_upsells_ids($ids) as $id) {
+        $product = wc_get_product($id);
+
+        if (!$product || !$product->exists() || !$product->is_purchasable()) {
             continue;
         }
 
-        $first_product_id = absint($rule['first_product_id'] ?? 0);
-        $rule_ids = $first_product_id ? [$first_product_id] : [];
-        $rule_ids = array_merge($rule_ids, meditrendy_side_cart_upsells_ids($rule['manual_product_ids'] ?? []));
-        $rule_ids = array_merge($rule_ids, meditrendy_side_cart_upsells_random_ids(
-            meditrendy_side_cart_upsells_ids($rule['source_category_ids'] ?? []),
-            meditrendy_side_cart_upsells_ids($rule['source_brand_ids'] ?? [])
-        ));
+        if (!$product->is_type('simple') && !$product->is_type('variation')) {
+            continue;
+        }
 
-        foreach ($rule_ids as $id) {
-            $id = absint($id);
+        if ($product->is_type('variation')) {
+            $parent = wc_get_product($product->get_parent_id());
 
-            if (!$id || in_array($id, $cart_ids, true) || in_array($id, $ids, true)) {
+            if (!$parent || !$parent->exists() || !$parent->is_visible()) {
                 continue;
             }
-
-            $product = wc_get_product($id);
-
-            if (meditrendy_side_cart_upsells_is_eligible_product($product)) {
-                $ids[] = $id;
-            }
+        } elseif (!$product->is_visible()) {
+            continue;
         }
+
+        $products[] = $product;
     }
 
-    return array_map('wc_get_product', $ids);
-}
-
-function meditrendy_side_cart_upsells_variation_fields($product, $prefix = '') {
-    if (!$product || !$product->is_type('variable')) {
-        return;
-    }
-
-    $attributes = $product->get_variation_attributes();
-    $available_variations = $product->get_available_variations();
-    $variations_json = wp_json_encode($available_variations);
-    ?>
-    <div class="mt-side-cart-upsell-variations" data-product_variations="<?php echo function_exists('wc_esc_json') ? wc_esc_json($variations_json) : esc_attr($variations_json); ?>">
-        <?php foreach ($attributes as $attribute_name => $options) : ?>
-            <label>
-                <span><?php echo esc_html(wc_attribute_label($attribute_name)); ?></span>
-                <?php
-                wc_dropdown_variation_attribute_options([
-                    'options'          => $options,
-                    'attribute'        => $attribute_name,
-                    'product'          => $product,
-                    'name'             => $prefix . 'attribute_' . sanitize_title($attribute_name),
-                    'show_option_none' => sprintf(esc_html__('Pasirinkite %s', 'meditrendy-core'), function_exists('mb_strtolower') ? mb_strtolower(wc_attribute_label($attribute_name)) : strtolower(wc_attribute_label($attribute_name))),
-                ]);
-                ?>
-            </label>
-        <?php endforeach; ?>
-        <input type="hidden" name="variation_id" class="variation_id" value="0">
-    </div>
-    <?php
-}
-
-function meditrendy_side_cart_upsells_single_variation($product) {
-    if (!$product || !$product->is_type('variable')) {
-        return null;
-    }
-
-    $variations = $product->get_available_variations();
-
-    if (count($variations) !== 1 || empty($variations[0]['variation_id'])) {
-        return null;
-    }
-
-    $variation = wc_get_product((int) $variations[0]['variation_id']);
-
-    if (!$variation || !$variation->is_purchasable() || !$variation->is_in_stock()) {
-        return null;
-    }
-
-    return $variations[0];
-}
-
-function meditrendy_side_cart_upsells_is_eligible_product($product) {
-    if (!$product || !$product->exists() || !$product->is_visible()) {
-        return false;
-    }
-
-    $product_id = $product->get_id();
-    $cache_key = 'mt_side_cart_upsells_eligible_' . meditrendy_side_cart_upsells_cache_version() . '_' . $product_id;
-    $cached = get_transient($cache_key);
-
-    if ($cached === '1') {
-        return true;
-    }
-
-    if ($cached === '0') {
-        return false;
-    }
-
-    if ($product->is_type('simple')) {
-        $eligible = $product->is_purchasable();
-    } else {
-        $eligible = $product->is_type('variable') && (bool) meditrendy_side_cart_upsells_single_variation($product);
-    }
-
-    set_transient($cache_key, $eligible ? '1' : '0', 30 * MINUTE_IN_SECONDS);
-
-    return $eligible;
+    return $products;
 }
 
 function meditrendy_side_cart_upsells_simple_or_variable_form($product) {
-    $single_variation = meditrendy_side_cart_upsells_single_variation($product);
     $price_html = $product->get_price_html();
+    $is_variation = $product->is_type('variation');
+    $product_id = $is_variation ? $product->get_parent_id() : $product->get_id();
+    $variation_id = $is_variation ? $product->get_id() : 0;
     ?>
     <form class="cart mt-side-cart-upsell-form" method="post" enctype="multipart/form-data">
-        <?php if ($single_variation) : ?>
-            <?php foreach (($single_variation['attributes'] ?? []) as $attribute_name => $attribute_value) : ?>
-                <input type="hidden" name="<?php echo esc_attr($attribute_name); ?>" value="<?php echo esc_attr($attribute_value); ?>">
+        <?php if ($is_variation) : ?>
+            <?php foreach ($product->get_variation_attributes() as $attribute_name => $attribute_value) : ?>
+                <input type="hidden" name="<?php echo esc_attr('attribute_' . sanitize_title(str_replace('attribute_', '', $attribute_name))); ?>" value="<?php echo esc_attr($attribute_value); ?>">
             <?php endforeach; ?>
-            <input type="hidden" name="variation_id" class="variation_id" value="<?php echo esc_attr((int) $single_variation['variation_id']); ?>">
+            <input type="hidden" name="variation_id" class="variation_id" value="<?php echo esc_attr($variation_id); ?>">
         <?php endif; ?>
         <input type="hidden" name="quantity" value="1">
-        <input type="hidden" name="product_id" value="<?php echo esc_attr($product->get_id()); ?>">
-        <input type="hidden" name="add-to-cart" value="<?php echo esc_attr($product->get_id()); ?>">
+        <input type="hidden" name="product_id" value="<?php echo esc_attr($product_id); ?>">
+        <input type="hidden" name="add-to-cart" value="<?php echo esc_attr($product_id); ?>">
         <button
             type="button"
             class="mt-side-cart-upsell-add"
@@ -785,23 +476,20 @@ function meditrendy_side_cart_upsells_simple_or_variable_form($product) {
     <?php
 }
 
-function meditrendy_side_cart_upsells_bundle_form($bundle_product) {
-    global $product;
-    $previous_product = $product;
-    $product = $bundle_product;
-
-    echo '<div class="mt-side-cart-upsell-bundle">';
-    do_action('woocommerce_woosb_add_to_cart');
-    echo '</div>';
-
-    $product = $previous_product;
-}
-
 function meditrendy_side_cart_upsells_tile($product) {
+    $permalink = $product->is_type('variation')
+        ? get_permalink($product->get_parent_id())
+        : $product->get_permalink();
     ?>
     <article class="mt-side-cart-upsell" data-mt-side-cart-upsell>
         <div class="mt-side-cart-upsell-image">
-            <?php echo $product->get_image('woocommerce_single', ['loading' => 'lazy']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php if ($permalink) : ?>
+                <a href="<?php echo esc_url($permalink); ?>">
+                    <?php echo $product->get_image('woocommerce_single', ['loading' => 'lazy']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </a>
+            <?php else : ?>
+                <?php echo $product->get_image('woocommerce_single', ['loading' => 'lazy']); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
         </div>
         <div class="mt-side-cart-upsell-body">
             <h3><?php echo esc_html($product->get_name()); ?></h3>
@@ -812,7 +500,7 @@ function meditrendy_side_cart_upsells_tile($product) {
     <?php
 }
 
-function meditrendy_side_cart_upsells_html() {
+function meditrendy_side_cart_upsells_render_html() {
     $products = meditrendy_side_cart_upsells_products();
 
     if (!$products) {
@@ -839,3 +527,25 @@ function meditrendy_side_cart_upsells_html() {
 
     return ob_get_clean();
 }
+
+function meditrendy_side_cart_upsells_html() {
+    $language = meditrendy_side_cart_upsells_active_language();
+    $cache_key = 'mt_side_cart_upsells_html_' . md5(wp_json_encode([
+        'v' => meditrendy_side_cart_upsells_cache_version(),
+        'l' => $language,
+    ]));
+    $cached = get_transient($cache_key);
+
+    if (is_string($cached)) {
+        return $cached;
+    }
+
+    $html = meditrendy_side_cart_upsells_render_html();
+
+    set_transient($cache_key, $html, 12 * HOUR_IN_SECONDS);
+
+    return $html;
+}
+
+add_action('save_post_product', 'meditrendy_side_cart_upsells_flush_cache');
+add_action('woocommerce_update_product', 'meditrendy_side_cart_upsells_flush_cache');
