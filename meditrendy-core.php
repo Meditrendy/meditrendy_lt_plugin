@@ -20,6 +20,7 @@ add_action('plugins_loaded', function() {
 require_once MEDITRENDY_CORE_DIR . 'includes/product-card-renderer.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/site-identity.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/module-settings.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/search-indexing.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/account-domain-routing.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/marketing-banner.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/configurable-popups.php';
