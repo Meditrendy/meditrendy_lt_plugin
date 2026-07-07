@@ -175,6 +175,22 @@ function meditrendy_checkout_invoice_language() {
 }
 
 function meditrendy_checkout_invoice_labels() {
+    return [
+        'contactPhone' => __('Telefonas', 'meditrendy-core'),
+        'firstName' => __('Vardas', 'meditrendy-core'),
+        'lastName' => __('Pavardė', 'meditrendy-core'),
+        'invoiceRequired' => __('Reikia sąskaitos faktūros įmonei', 'meditrendy-core'),
+        'companyName' => __('Įmonės pavadinimas', 'meditrendy-core'),
+        'companyCode' => __('PVM mokėtojo kodas', 'meditrendy-core'),
+        'invoiceAddress' => __('Adresas sąskaitai', 'meditrendy-core'),
+        'invoiceStreet' => __('Gatvė, namo numeris', 'meditrendy-core'),
+        'invoiceCity' => __('Miestas', 'meditrendy-core'),
+        'invoicePostcode' => __('Pašto kodas', 'meditrendy-core'),
+        'phoneRequired' => __('Įveskite telefono numerį.', 'meditrendy-core'),
+        'phoneInvalid' => __('Įveskite teisingą telefono numerį.', 'meditrendy-core'),
+        'invoiceRequiredFields' => __('Užpildykite visus sąskaitos faktūros laukus.', 'meditrendy-core'),
+    ];
+
     $labels = [
         'lt' => [
             'contactPhone' => 'Telefonas',

@@ -672,3 +672,147 @@ msgstr ""
 #: includes/checkout-terms-consent.php
 msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
 msgstr ""
+
+#: includes/generated-translations.php
+msgid "Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje."
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Telefonas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Vardas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Pavardė"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Reikia sąskaitos faktūros įmonei"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Įmonės pavadinimas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "PVM mokėtojo kodas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Adresas sąskaitai"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Gatvė, namo numeris"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Miestas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Pašto kodas"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Įveskite telefono numerį."
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą telefono numerį."
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Užpildykite visus sąskaitos faktūros laukus."
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Atgal"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "DYDIS"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Filtrai"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "GAMINTOJAS"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "ILGIS"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Išvalyti"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "KAINA"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Produktų nerasta"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Reset"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Rodyti produktus"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Rodyti rezultatus"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "SPALVA"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Skaičiuojama..."
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Uzdaryti filtrus"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Aktyvus filtrai"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Pasirinkite dydį"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Spalva"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Dydis"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Ilgis"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Color"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Size"
+msgstr ""
+
+#: includes/generated-translations.php
+msgid "Length"
+msgstr ""

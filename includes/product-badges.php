@@ -43,6 +43,11 @@ function meditrendy_product_card_badge_language() {
 
 function meditrendy_product_card_badge_label($text) {
     $language = meditrendy_product_card_badge_language();
+    $gettext = __($text, 'meditrendy-core');
+
+    if ($gettext !== $text) {
+        return $gettext;
+    }
 
     if ($language === 'et') {
         $estonian = [

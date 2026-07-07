@@ -2,9 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_waitlist_button_text() {
-    $labels = meditrendy_waitlist_labels();
-
-    return __($labels['link'], 'meditrendy-core');
+    return __('Informuokite mane, kai bus prekyboje', 'meditrendy-core');
 }
 
 function meditrendy_waitlist_language() {
@@ -34,6 +32,20 @@ function meditrendy_waitlist_language() {
 }
 
 function meditrendy_waitlist_labels() {
+    return [
+        'link' => __('Informuokite mane, kai bus prekyboje', 'meditrendy-core'),
+        'heading' => __('Pranešimas apie prekę', 'meditrendy-core'),
+        'body' => __('Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje.', 'meditrendy-core'),
+        'email' => __('El. pašto adresas', 'meditrendy-core'),
+        'submit' => __('Informuokite mane', 'meditrendy-core'),
+        'close' => __('Uždaryti', 'meditrendy-core'),
+        'success' => __('Ačiū. Informuosime jus el. paštu, kai prekė vėl bus prekyboje.', 'meditrendy-core'),
+        'error' => __('Nepavyko išsaugoti. Bandykite dar kartą.', 'meditrendy-core'),
+        'invalidEmail' => __('Įveskite teisingą el. pašto adresą.', 'meditrendy-core'),
+        'alreadyInStock' => __('Ši prekė jau yra prekyboje.', 'meditrendy-core'),
+        'productNotFound' => __('Prekė nerasta.', 'meditrendy-core'),
+    ];
+
     $labels = [
         'lt' => [
             'link' => 'Informuokite mane, kai bus prekyboje',

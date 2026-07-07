@@ -110,6 +110,14 @@ function meditrendy_side_cart_text($key, ...$args) {
         }
     }
 
+    if ($text === $source) {
+        $translated = __($source, 'meditrendy-core');
+
+        if ($translated !== $source) {
+            $text = $translated;
+        }
+    }
+
     if ($text === $source && $language !== 'lt') {
         $text = $strings[$language][$key] ?? $source;
     }

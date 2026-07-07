@@ -40,6 +40,12 @@ function meditrendy_core_translate_ui_text($text) {
     $text = (string) $text;
     $language = meditrendy_core_current_language();
 
+    $gettext = __($text, 'meditrendy-core');
+
+    if ($gettext !== $text) {
+        return $gettext;
+    }
+
     if ($language === 'lt' || $text === '') {
         return $text;
     }

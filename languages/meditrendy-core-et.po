@@ -1,0 +1,226 @@
+msgid ""
+msgstr "Project-Id-Version: Meditrendy Core\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2026-07-07 00:00+0000\nLast-Translator: Meditrendy\nLanguage-Team: Meditrendy\nLanguage: et\nPlural-Forms: nplurals=2; plural=(n != 1);\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Domain: meditrendy-core\n"
+
+#: includes/generated-translations.php
+msgid "Į krepšelį"
+msgstr "Ostukorvi"
+
+#: includes/generated-translations.php
+msgid "Informuokite mane, kai bus prekyboje"
+msgstr "Teavita mind, kui toode on saadaval"
+
+#: includes/generated-translations.php
+msgid "Pranešimas apie prekę"
+msgstr "Toote saadavuse teavitus"
+
+#: includes/generated-translations.php
+msgid "Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje."
+msgstr "Sisesta e-posti aadress ja anname teada, kui valitud toode on jälle saadaval."
+
+#: includes/generated-translations.php
+msgid "El. pašto adresas"
+msgstr "E-posti aadress"
+
+#: includes/generated-translations.php
+msgid "Informuokite mane"
+msgstr "Teavita mind"
+
+#: includes/generated-translations.php
+msgid "Uždaryti"
+msgstr "Sulge"
+
+#: includes/generated-translations.php
+msgid "Ačiū. Informuosime jus el. paštu, kai prekė vėl bus prekyboje."
+msgstr "Aitäh. Teavitame sind e-posti teel, kui toode on jälle saadaval."
+
+#: includes/generated-translations.php
+msgid "Nepavyko išsaugoti. Bandykite dar kartą."
+msgstr "Salvestamine ebaõnnestus. Proovi uuesti."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą el. pašto adresą."
+msgstr "Sisesta korrektne e-posti aadress."
+
+#: includes/generated-translations.php
+msgid "Ši prekė jau yra prekyboje."
+msgstr "See toode on juba saadaval."
+
+#: includes/generated-translations.php
+msgid "Prekė nerasta."
+msgstr "Toodet ei leitud."
+
+#: includes/generated-translations.php
+msgid "Telefonas"
+msgstr "Telefon"
+
+#: includes/generated-translations.php
+msgid "Vardas"
+msgstr "Eesnimi"
+
+#: includes/generated-translations.php
+msgid "Pavardė"
+msgstr "Perekonnanimi"
+
+#: includes/generated-translations.php
+msgid "Reikia sąskaitos faktūros įmonei"
+msgstr "Vajan ettevõttele arvet"
+
+#: includes/generated-translations.php
+msgid "Įmonės pavadinimas"
+msgstr "Ettevõtte nimi"
+
+#: includes/generated-translations.php
+msgid "PVM mokėtojo kodas"
+msgstr "KMKR number"
+
+#: includes/generated-translations.php
+msgid "Adresas sąskaitai"
+msgstr "Arve aadress"
+
+#: includes/generated-translations.php
+msgid "Gatvė, namo numeris"
+msgstr "Tänav, maja number"
+
+#: includes/generated-translations.php
+msgid "Miestas"
+msgstr "Linn"
+
+#: includes/generated-translations.php
+msgid "Pašto kodas"
+msgstr "Postiindeks"
+
+#: includes/generated-translations.php
+msgid "Įveskite telefono numerį."
+msgstr "Sisesta telefoninumber."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą telefono numerį."
+msgstr "Sisesta korrektne telefoninumber."
+
+#: includes/generated-translations.php
+msgid "Užpildykite visus sąskaitos faktūros laukus."
+msgstr "Täida kõik arve väljad."
+
+#: includes/generated-translations.php
+msgid "AKCIJA"
+msgstr "SOODUS"
+
+#: includes/generated-translations.php
+msgid "Akcija"
+msgstr "Soodus"
+
+#: includes/generated-translations.php
+msgid "Atgal"
+msgstr "Tagasi"
+
+#: includes/generated-translations.php
+msgid "DYDIS"
+msgstr "SUURUS"
+
+#: includes/generated-translations.php
+msgid "Filtrai"
+msgstr "Filtrid"
+
+#: includes/generated-translations.php
+msgid "GAMINTOJAS"
+msgstr "BRÄND"
+
+#: includes/generated-translations.php
+msgid "ILGIS"
+msgstr "PIKKUS"
+
+#: includes/generated-translations.php
+msgid "Išvalyti"
+msgstr "Tühjenda"
+
+#: includes/generated-translations.php
+msgid "KAINA"
+msgstr "HIND"
+
+#: includes/generated-translations.php
+msgid "NAUJIENA"
+msgstr "UUS"
+
+#: includes/generated-translations.php
+msgid "Produktų nerasta"
+msgstr "Tooteid ei leitud"
+
+#: includes/generated-translations.php
+msgid "Reset"
+msgstr "Lähtesta"
+
+#: includes/generated-translations.php
+msgid "Rodyti produktus"
+msgstr "Näita tooteid"
+
+#: includes/generated-translations.php
+msgid "Rodyti rezultatus"
+msgstr "Näita tulemusi"
+
+#: includes/generated-translations.php
+msgid "SPALVA"
+msgstr "VÄRV"
+
+#: includes/generated-translations.php
+msgid "Skaičiuojama..."
+msgstr "Arvutamine..."
+
+#: includes/generated-translations.php
+msgid "Uzdaryti filtrus"
+msgstr "Sulge filtrid"
+
+#: includes/generated-translations.php
+msgid "Aktyvus filtrai"
+msgstr "Aktiivsed filtrid"
+
+#: includes/generated-translations.php
+msgid "BESTSELLER"
+msgstr "ENIMMÜÜDUD"
+
+#: includes/generated-translations.php
+msgid "Produktų žymos"
+msgstr "Tootesildid"
+
+#: includes/generated-translations.php
+msgid "Jums taip pat gali patikti"
+msgstr "Sulle võib meeldida ka"
+
+#: includes/generated-translations.php
+msgid "Pasirinkite dydį"
+msgstr "Vali suurus"
+
+#: includes/generated-translations.php
+msgid "Rodyti visas spalvas (+%d)"
+msgstr "Näita kõiki värve (+%d)"
+
+#: includes/generated-translations.php
+msgid "Rodyti visas spalvas. Dar spalvų: %d"
+msgstr "Näita kõiki värve. Veel värve: %d"
+
+#: includes/generated-translations.php
+msgid "Visos +%d"
+msgstr "Kõik +%d"
+
+#: includes/generated-translations.php
+msgid "Spalva"
+msgstr "Värv"
+
+#: includes/generated-translations.php
+msgid "Dydis"
+msgstr "Suurus"
+
+#: includes/generated-translations.php
+msgid "Ilgis"
+msgstr "Pikkus"
+
+#: includes/generated-translations.php
+msgid "Color"
+msgstr "Värv"
+
+#: includes/generated-translations.php
+msgid "Size"
+msgstr "Suurus"
+
+#: includes/generated-translations.php
+msgid "Length"
+msgstr "Pikkus"

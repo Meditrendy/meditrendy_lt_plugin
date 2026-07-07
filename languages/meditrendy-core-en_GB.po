@@ -717,3 +717,95 @@ msgstr "Privacy Policy"
 msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
 msgstr "You must agree to the terms and privacy policy before placing your order."
 
+
+#: includes/generated-translations.php
+msgid "Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje."
+msgstr "Enter your email address and we will let you know when the selected product is available again."
+
+#: includes/generated-translations.php
+msgid "Nepavyko išsaugoti. Bandykite dar kartą."
+msgstr "Could not save. Please try again."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą el. pašto adresą."
+msgstr "Enter a valid email address."
+
+#: includes/generated-translations.php
+msgid "Telefonas"
+msgstr "Phone"
+
+#: includes/generated-translations.php
+msgid "Vardas"
+msgstr "First name"
+
+#: includes/generated-translations.php
+msgid "Pavardė"
+msgstr "Last name"
+
+#: includes/generated-translations.php
+msgid "Reikia sąskaitos faktūros įmonei"
+msgstr "I need a company invoice"
+
+#: includes/generated-translations.php
+msgid "Įmonės pavadinimas"
+msgstr "Company name"
+
+#: includes/generated-translations.php
+msgid "PVM mokėtojo kodas"
+msgstr "VAT number"
+
+#: includes/generated-translations.php
+msgid "Adresas sąskaitai"
+msgstr "Billing address"
+
+#: includes/generated-translations.php
+msgid "Gatvė, namo numeris"
+msgstr "Street, house number"
+
+#: includes/generated-translations.php
+msgid "Miestas"
+msgstr "City"
+
+#: includes/generated-translations.php
+msgid "Pašto kodas"
+msgstr "Postcode"
+
+#: includes/generated-translations.php
+msgid "Įveskite telefono numerį."
+msgstr "Enter a phone number."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą telefono numerį."
+msgstr "Enter a valid phone number."
+
+#: includes/generated-translations.php
+msgid "Užpildykite visus sąskaitos faktūros laukus."
+msgstr "Fill in all invoice fields."
+
+#: includes/generated-translations.php
+msgid "Pasirinkite dydį"
+msgstr "Choose size"
+
+#: includes/generated-translations.php
+msgid "Spalva"
+msgstr "Colour"
+
+#: includes/generated-translations.php
+msgid "Dydis"
+msgstr "Size"
+
+#: includes/generated-translations.php
+msgid "Ilgis"
+msgstr "Length"
+
+#: includes/generated-translations.php
+msgid "Color"
+msgstr "Colour"
+
+#: includes/generated-translations.php
+msgid "Size"
+msgstr "Size"
+
+#: includes/generated-translations.php
+msgid "Length"
+msgstr "Length"

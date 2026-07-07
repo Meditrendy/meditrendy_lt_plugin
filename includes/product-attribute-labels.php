@@ -47,6 +47,11 @@ function meditrendy_product_attribute_label_translations() {
 function meditrendy_translate_product_attribute_label($label, $name = '', $product = null) {
     $language = meditrendy_current_language_slug();
     $translations = meditrendy_product_attribute_label_translations();
+    $translated_label = __($label, 'meditrendy-core');
+
+    if ($translated_label !== $label) {
+        return $translated_label;
+    }
 
     if (empty($translations[$language])) {
         return $label;

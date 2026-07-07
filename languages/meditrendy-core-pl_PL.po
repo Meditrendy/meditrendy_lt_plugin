@@ -717,3 +717,95 @@ msgstr "Polityką prywatności"
 msgid "Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika."
 msgstr "Przed złożeniem zamówienia musisz zaakceptować regulamin i politykę prywatności."
 
+
+#: includes/generated-translations.php
+msgid "Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje."
+msgstr "Wpisz adres e-mail, a poinformujemy Cię, gdy wybrany produkt znów będzie dostępny."
+
+#: includes/generated-translations.php
+msgid "Nepavyko išsaugoti. Bandykite dar kartą."
+msgstr "Nie udało się zapisać. Spróbuj ponownie."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą el. pašto adresą."
+msgstr "Wpisz poprawny adres e-mail."
+
+#: includes/generated-translations.php
+msgid "Telefonas"
+msgstr "Telefon"
+
+#: includes/generated-translations.php
+msgid "Vardas"
+msgstr "Imię"
+
+#: includes/generated-translations.php
+msgid "Pavardė"
+msgstr "Nazwisko"
+
+#: includes/generated-translations.php
+msgid "Reikia sąskaitos faktūros įmonei"
+msgstr "Potrzebuję faktury dla firmy"
+
+#: includes/generated-translations.php
+msgid "Įmonės pavadinimas"
+msgstr "Nazwa firmy"
+
+#: includes/generated-translations.php
+msgid "PVM mokėtojo kodas"
+msgstr "Numer VAT"
+
+#: includes/generated-translations.php
+msgid "Adresas sąskaitai"
+msgstr "Adres do faktury"
+
+#: includes/generated-translations.php
+msgid "Gatvė, namo numeris"
+msgstr "Ulica, numer domu"
+
+#: includes/generated-translations.php
+msgid "Miestas"
+msgstr "Miasto"
+
+#: includes/generated-translations.php
+msgid "Pašto kodas"
+msgstr "Kod pocztowy"
+
+#: includes/generated-translations.php
+msgid "Įveskite telefono numerį."
+msgstr "Wpisz numer telefonu."
+
+#: includes/generated-translations.php
+msgid "Įveskite teisingą telefono numerį."
+msgstr "Wpisz poprawny numer telefonu."
+
+#: includes/generated-translations.php
+msgid "Užpildykite visus sąskaitos faktūros laukus."
+msgstr "Wypełnij wszystkie pola faktury."
+
+#: includes/generated-translations.php
+msgid "Pasirinkite dydį"
+msgstr "Wybierz rozmiar"
+
+#: includes/generated-translations.php
+msgid "Spalva"
+msgstr "Kolor"
+
+#: includes/generated-translations.php
+msgid "Dydis"
+msgstr "Rozmiar"
+
+#: includes/generated-translations.php
+msgid "Ilgis"
+msgstr "Długość"
+
+#: includes/generated-translations.php
+msgid "Color"
+msgstr "Kolor"
+
+#: includes/generated-translations.php
+msgid "Size"
+msgstr "Rozmiar"
+
+#: includes/generated-translations.php
+msgid "Length"
+msgstr "Długość"
