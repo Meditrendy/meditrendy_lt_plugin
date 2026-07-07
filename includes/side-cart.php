@@ -354,7 +354,15 @@ function meditrendy_side_cart_content_html($include_upsells = false) {
     return ob_get_clean();
 }
 
-function meditrendy_side_cart_response($include_upsells = false, $tracking = []) {
+function meditrendy_side_cart_debug_enabled() {
+    if (!empty($_POST['mt_side_cart_debug'])) {
+        return true;
+    }
+
+    return !empty($_GET['mt_side_cart_debug']);
+}
+
+function meditrendy_side_cart_response($include_upsells = false, $tracking = [], $debug = []) {
     $html = meditrendy_side_cart_content_html($include_upsells);
     $response = [
         'count'     => meditrendy_side_cart_count(),
@@ -368,6 +376,10 @@ function meditrendy_side_cart_response($include_upsells = false, $tracking = [])
 
     if (!empty($tracking)) {
         $response['tracking'] = $tracking;
+    }
+
+    if (meditrendy_side_cart_debug_enabled() && !empty($debug)) {
+        $response['debug'] = $debug;
     }
 
     return $response;
@@ -587,7 +599,75 @@ function meditrendy_side_cart_find_cart_item_key($product_id, $variation_id = 0)
     return '';
 }
 
-function meditrendy_side_cart_send_existing_cart_response($message = '', $product_id = 0, $variation_id = 0, $quantity = 1) {
+function meditrendy_side_cart_add_request_id() {
+    if (!isset($_POST['mt_side_cart_request_id'])) {
+        return '';
+    }
+
+    $request_id = wp_unslash($_POST['mt_side_cart_request_id']);
+
+    if (is_array($request_id)) {
+        return '';
+    }
+
+    $request_id = sanitize_text_field($request_id);
+    $request_id = preg_replace('/[^a-zA-Z0-9._-]/', '', $request_id);
+
+    return substr((string) $request_id, 0, 80);
+}
+
+function meditrendy_side_cart_recent_add_requests() {
+    if (!function_exists('WC') || !WC()->session) {
+        return [];
+    }
+
+    $requests = WC()->session->get('meditrendy_side_cart_add_requests', []);
+
+    if (!is_array($requests)) {
+        return [];
+    }
+
+    $expires = time() - 300;
+
+    return array_filter($requests, function ($request) use ($expires) {
+        return is_array($request) && !empty($request['time']) && (int) $request['time'] >= $expires;
+    });
+}
+
+function meditrendy_side_cart_find_recent_add_request($request_id) {
+    if ($request_id === '') {
+        return [];
+    }
+
+    $requests = meditrendy_side_cart_recent_add_requests();
+
+    return isset($requests[$request_id]) && is_array($requests[$request_id]) ? $requests[$request_id] : [];
+}
+
+function meditrendy_side_cart_store_recent_add_request($request_id, $product_id, $variation_id, $quantity) {
+    if ($request_id === '' || !function_exists('WC') || !WC()->session) {
+        return;
+    }
+
+    $requests = meditrendy_side_cart_recent_add_requests();
+    $requests[$request_id] = [
+        'time'         => time(),
+        'product_id'   => absint($product_id),
+        'variation_id' => absint($variation_id),
+        'quantity'     => max(1, (int) $quantity),
+    ];
+
+    if (count($requests) > 20) {
+        uasort($requests, function ($a, $b) {
+            return (int) ($a['time'] ?? 0) <=> (int) ($b['time'] ?? 0);
+        });
+        $requests = array_slice($requests, -20, null, true);
+    }
+
+    WC()->session->set('meditrendy_side_cart_add_requests', $requests);
+}
+
+function meditrendy_side_cart_send_existing_cart_response($message = '', $product_id = 0, $variation_id = 0, $quantity = 1, $debug = []) {
     WC()->cart->calculate_totals();
     wc_clear_notices();
 
@@ -598,7 +678,13 @@ function meditrendy_side_cart_send_existing_cart_response($message = '', $produc
         $tracking = meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity);
     }
 
-    $response = meditrendy_side_cart_response(false, $tracking);
+    if (!empty($debug)) {
+        $debug['guard'] = $debug['guard'] ?? 'existing-cart-response';
+        $debug['after_quantity'] = meditrendy_side_cart_existing_quantity($product_id, $variation_id);
+        $debug['cart_count'] = meditrendy_side_cart_count();
+    }
+
+    $response = meditrendy_side_cart_response(false, $tracking, $debug);
 
     if ($message !== '') {
         $response['message'] = wp_strip_all_tags($message);
@@ -614,7 +700,9 @@ function meditrendy_side_cart_ajax_get() {
         wp_send_json_error(['message' => __('Cart module is disabled.', 'meditrendy-core')], 403);
     }
 
-    $include_upsells = !empty($_POST['include_upsells']);
+    $include_upsells = !empty($_POST['include_upsells'])
+        && function_exists('meditrendy_side_cart_upsells_has_configured_products')
+        && meditrendy_side_cart_upsells_has_configured_products();
 
     wp_send_json_success(meditrendy_side_cart_response($include_upsells));
 }
@@ -637,6 +725,8 @@ function meditrendy_side_cart_ajax_add() {
      */
     if ($has_bundle_ids && isset($_POST['product_id'])) {
         $product_id = absint(wp_unslash($_POST['product_id']));
+    } elseif (isset($_POST['mt_side_cart_product_id'])) {
+        $product_id = absint(wp_unslash($_POST['mt_side_cart_product_id']));
     } elseif (isset($_POST['add-to-cart'])) {
         $product_id = absint(wp_unslash($_POST['add-to-cart']));
     } elseif (isset($_POST['product_id'])) {
@@ -647,6 +737,7 @@ function meditrendy_side_cart_ajax_add() {
     $variation_id = isset($_POST['variation_id']) ? absint(wp_unslash($_POST['variation_id'])) : 0;
     $quantity = empty($_POST['quantity']) ? 1 : wc_stock_amount(wp_unslash($_POST['quantity']));
     $client_existing_quantity = isset($_POST['mt_side_cart_existing_quantity']) ? max(0, wc_stock_amount(wp_unslash($_POST['mt_side_cart_existing_quantity']))) : null;
+    $request_id = meditrendy_side_cart_add_request_id();
     $variation = [];
 
     if (isset($_POST['woosb_ids']) && wc_clean(wp_unslash($_POST['woosb_ids'])) === '') {
@@ -674,6 +765,17 @@ function meditrendy_side_cart_ajax_add() {
         $variation    = [];
     }
 
+    $before_quantity = meditrendy_side_cart_existing_quantity($product_id, $variation_id);
+    $debug = [
+        'request_id' => $request_id,
+        'product_id' => absint($product_id),
+        'variation_id' => absint($variation_id),
+        'quantity' => max(1, (int) $quantity),
+        'client_existing_quantity' => $client_existing_quantity,
+        'before_quantity' => $before_quantity,
+        'is_bundle_request' => $is_bundle_request,
+    ];
+
     $passed_validation = apply_filters('woocommerce_add_to_cart_validation', true, $product_id, $quantity, $variation_id, $variation);
 
     if (!$passed_validation) {
@@ -685,8 +787,14 @@ function meditrendy_side_cart_ajax_add() {
         meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
-    if ($client_existing_quantity !== null && meditrendy_side_cart_existing_quantity($product_id, $variation_id) > $client_existing_quantity) {
-        meditrendy_side_cart_send_existing_cart_response('', $product_id, $variation_id, $quantity);
+    if ($client_existing_quantity !== null && $before_quantity > $client_existing_quantity) {
+        $debug['guard'] = 'client-existing-quantity';
+        meditrendy_side_cart_send_existing_cart_response('', $product_id, $variation_id, $quantity, $debug);
+    }
+
+    if (!empty(meditrendy_side_cart_find_recent_add_request($request_id))) {
+        $debug['guard'] = 'request-id-replay';
+        meditrendy_side_cart_send_existing_cart_response('', $product_id, $variation_id, $quantity, $debug);
     }
 
     $cart_item_key = WC()->cart->add_to_cart($product_id, $quantity, $variation_id, $variation);
@@ -695,13 +803,20 @@ function meditrendy_side_cart_ajax_add() {
         meditrendy_side_cart_send_add_error($product_id, $variation_id, $has_bundle_ids);
     }
 
+    meditrendy_side_cart_store_recent_add_request($request_id, $product_id, $variation_id, $quantity);
+
     do_action('woocommerce_ajax_added_to_cart', $product_id);
     do_action('internal_woocommerce_cart_item_added_from_user_request', $variation_id ? $variation_id : $product_id, $quantity);
 
     WC()->cart->calculate_totals();
     wc_clear_notices();
 
-    wp_send_json_success(meditrendy_side_cart_response(false, meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity)));
+    $debug['guard'] = 'added';
+    $debug['cart_item_key'] = $cart_item_key;
+    $debug['after_quantity'] = meditrendy_side_cart_existing_quantity($product_id, $variation_id);
+    $debug['cart_count'] = meditrendy_side_cart_count();
+
+    wp_send_json_success(meditrendy_side_cart_response(false, meditrendy_side_cart_tracking_payload($cart_item_key, $product_id, $variation_id, $quantity), $debug));
 }
 
 function meditrendy_side_cart_is_soft_bundle_notice($message) {
@@ -832,6 +947,7 @@ function meditrendy_side_cart_enqueue_assets() {
             'nonce' => wp_create_nonce('meditrendy_side_cart'),
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
+            'upsellsEnabled' => function_exists('meditrendy_side_cart_upsells_has_configured_products') && meditrendy_side_cart_upsells_has_configured_products(),
             'cartTriggerSelector' => 'header .xoo-wsc-cart-trigger, header .custom-cart-icon, header .meditrendy-cart-trigger, header .meditrendy-cart-toggle, header a[href*="/cart"]',
             'labels' => [
                 'refreshFailed' => meditrendy_side_cart_text('refresh_failed'),

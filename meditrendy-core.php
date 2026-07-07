@@ -46,7 +46,9 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-complete-set.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-price-block.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-promotions.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-gallery.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/preset-translations.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-invoice-fields.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/checkout-pickup-availability.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-terms-consent.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-translations.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/checkout-cod-fee.php';
@@ -57,6 +59,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/wpc-bundle-variation-json-compat.ph
 require_once MEDITRENDY_CORE_DIR . 'includes/product-badges.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-gross-prices.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-labels.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-last-comment-column.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/paysera-pos-sync.php';
 
 /* ======================================================

@@ -49,6 +49,8 @@
 
   const currentSettings = () => window.MeditrendySideCart || settings || {};
 
+  const upsellsEnabled = () => currentSettings().upsellsEnabled === true || currentSettings().upsellsEnabled === '1';
+
   const currentAjaxUrl = (endpoint = '') => {
     const configuredWcAjax = currentSettings().wcAjaxUrl || settings.wcAjaxUrl || '';
 
@@ -203,6 +205,21 @@
     }
   };
 
+  const debugFormData = (formData) => {
+    if (!debugEnabled || !(formData instanceof window.FormData)) {
+      return {};
+    }
+
+    return {
+      productId: formData.get('mt_side_cart_product_id') || formData.get('product_id') || formData.get('add-to-cart') || '',
+      variationId: formData.get('variation_id') || '',
+      quantity: formData.get('quantity') || '1',
+      requestId: formData.get('mt_side_cart_request_id') || '',
+      existingQuantity: formData.get('mt_side_cart_existing_quantity') || '',
+      hasBundleIds: String(formData.get('woosb_ids') || '').trim() !== '',
+    };
+  };
+
   const isNonceFailure = (error) => {
     const message = String(error && error.message ? error.message : '').trim().toLowerCase();
 
@@ -247,6 +264,11 @@
 
   const setUpsellsLoading = (state) => {
     if (!inner) return;
+
+    if (!upsellsEnabled()) {
+      isUpsellsLoading = false;
+      return;
+    }
 
     isUpsellsLoading = !!state;
 
@@ -401,12 +423,55 @@
   const hasCartCookie = () => /(?:^|;\s*)woocommerce_items_in_cart=1(?:;|$)/.test(document.cookie || '') ||
     /(?:^|;\s*)woocommerce_cart_hash=([^;]+)/.test(document.cookie || '');
 
-  const recoverAddedCartFromSession = async (action, options = {}) => {
+  const wait = (delay) => new Promise((resolve) => {
+    window.setTimeout(resolve, delay);
+  });
+
+  const cartDataContainsAddedItem = (data, formData) => {
+    if (!data || !(formData instanceof window.FormData)) {
+      return true;
+    }
+
+    const productId = String(formData.get('mt_side_cart_product_id') || formData.get('product_id') || formData.get('add-to-cart') || '');
+    const variationId = String(formData.get('variation_id') || '0');
+    const previousQuantity = parseCount(formData.get('mt_side_cart_existing_quantity'));
+    const wrapper = document.createElement('div');
+    const html = typeof data.html === 'string'
+      ? data.html
+      : data.fragments && typeof data.fragments['div.mt-side-cart-inner'] === 'string'
+        ? data.fragments['div.mt-side-cart-inner']
+        : '';
+    let quantity = 0;
+
+    if (!productId || !html) {
+      return true;
+    }
+
+    wrapper.innerHTML = html;
+
+    wrapper.querySelectorAll('[data-product-id]').forEach((item) => {
+      const itemProductId = String(item.dataset.productId || '');
+      const itemVariationId = String(item.dataset.variationId || '0');
+
+      if (variationId !== '0' && itemVariationId === variationId) {
+        quantity += readCartItemQuantity(item);
+        return;
+      }
+
+      if (variationId === '0' && itemProductId === productId && itemVariationId === '0') {
+        quantity += readCartItemQuantity(item);
+      }
+    });
+
+    return quantity > previousQuantity;
+  };
+
+  const recoverAddedCartFromSession = async (action, options = {}, formData = null) => {
     if (!isAddToCartAction(action) || !hasCartCookie()) {
       return null;
     }
 
-    return request(
+    const data = await request(
       'meditrendy_side_cart_get',
       { include_upsells: 0 },
       {
@@ -414,9 +479,16 @@
         silent: true,
       }
     );
+
+    return cartDataContainsAddedItem(data, formData) ? data : null;
   };
 
   const refreshUpsells = (delay = 80) => {
+    if (!upsellsEnabled()) {
+      setUpsellsLoading(false);
+      return;
+    }
+
     if (!drawer || !drawer.classList.contains('is-open')) {
       return;
     }
@@ -476,6 +548,16 @@
     formData.set('action', action);
     formData.set('nonce', currentNonce());
 
+    if (debugEnabled) {
+      formData.set('mt_side_cart_debug', '1');
+      debug('request start', {
+        action,
+        blocking,
+        nonceRetry: !!options.nonceRetry,
+        form: debugFormData(formData),
+      });
+    }
+
     try {
       const response = await window.fetch(requestAjaxUrl, {
         method: 'POST',
@@ -496,6 +578,7 @@
         hasHtml: !!(payload && payload.data && payload.data.html),
         count: payload && payload.data ? payload.data.count : null,
         message: payload && payload.data ? payload.data.message : '',
+        serverDebug: payload && payload.data ? payload.data.debug : null,
       });
 
       if (payload && payload.success && payload.data) {
@@ -530,7 +613,7 @@
       }
 
       if (payload && payload.success && isAddToCartAction(action)) {
-        const recoveredData = await recoverAddedCartFromSession(action, options);
+        const recoveredData = await recoverAddedCartFromSession(action, options, formData);
 
         if (recoveredData) {
           return recoveredData;
@@ -554,14 +637,36 @@
         window.console.warn('Meditrendy side cart request failed.', error);
       }
 
-      if (!options.nonceRetry && isNonceFailure(error) && await refreshNonce()) {
-        return request(action, formData, {
-          ...options,
-          nonceRetry: true,
-        });
+      if (!options.nonceRetry && isNonceFailure(error)) {
+        if (isAddToCartAction(action)) {
+          await wait(250);
+
+          const recoveredData = await recoverAddedCartFromSession(action, options, formData);
+
+          if (recoveredData) {
+            return recoveredData;
+          }
+        }
+
+        if (await refreshNonce()) {
+          if (isAddToCartAction(action)) {
+            await wait(150);
+
+            const recoveredData = await recoverAddedCartFromSession(action, options, formData);
+
+            if (recoveredData) {
+              return recoveredData;
+            }
+          }
+
+          return request(action, formData, {
+            ...options,
+            nonceRetry: true,
+          });
+        }
       }
 
-      const recoveredData = await recoverAddedCartFromSession(action, options);
+      const recoveredData = await recoverAddedCartFromSession(action, options, formData);
 
       if (recoveredData) {
         return recoveredData;
@@ -684,7 +789,7 @@
   };
 
   const getKnownCartQuantity = (formData) => {
-    const productId = String(formData.get('product_id') || formData.get('add-to-cart') || '');
+    const productId = String(formData.get('mt_side_cart_product_id') || formData.get('product_id') || formData.get('add-to-cart') || '');
     const variationId = String(formData.get('variation_id') || '0');
     let quantity = 0;
 
@@ -965,16 +1070,34 @@
       formData.append(addToCart.name, addToCart.value || '');
     }
 
+    const sideCartProductId = formData.get('product_id') || formData.get('add-to-cart') || '';
+
+    if (sideCartProductId) {
+      formData.set('mt_side_cart_product_id', sideCartProductId);
+    }
+
+    formData.delete('add-to-cart');
     formData.set('mt_side_cart_existing_quantity', getKnownCartQuantity(formData));
 
+    if (!formData.has('mt_side_cart_request_id')) {
+      formData.set(
+        'mt_side_cart_request_id',
+        `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+    }
+
     const requestKey = [
-      formData.get('add-to-cart') || formData.get('product_id') || '',
+      formData.get('mt_side_cart_product_id') || formData.get('product_id') || '',
       formData.get('variation_id') || '',
       formData.get('quantity') || '1',
       formData.get('woosb_ids') || '',
     ].join('|');
 
     if (activeAddRequestKey === requestKey) {
+      debug('skip duplicate active add request', {
+        requestKey,
+        form: debugFormData(formData),
+      });
       return;
     }
 

@@ -104,6 +104,22 @@ function meditrendy_side_cart_upsells_settings() {
     return meditrendy_side_cart_upsells_sanitize($settings);
 }
 
+function meditrendy_side_cart_upsells_enabled() {
+    return get_option('meditrendy_side_cart_upsells_enabled', 'yes') === 'yes';
+}
+
+function meditrendy_side_cart_upsells_has_configured_products($language = '') {
+    if (!meditrendy_side_cart_upsells_enabled()) {
+        return false;
+    }
+
+    $language = $language !== '' ? sanitize_key($language) : meditrendy_side_cart_upsells_active_language();
+    $settings = meditrendy_side_cart_upsells_settings();
+    $ids = $settings[$language] ?? [];
+
+    return !empty(meditrendy_side_cart_upsells_ids($ids));
+}
+
 function meditrendy_side_cart_upsells_cache_version() {
     return (string) get_option('meditrendy_side_cart_upsells_cache_version', '1');
 }
@@ -188,6 +204,21 @@ function meditrendy_side_cart_upsells_admin_assets($hook) {
 
         .meditrendy-side-cart-upsells-admin .mt-upsell-missing {
             color: #b32d2e;
+        }
+
+        .meditrendy-side-cart-upsells-admin .mt-upsell-global {
+            max-width: 760px;
+            margin: 16px 0;
+            padding: 14px 16px;
+            border: 1px solid #c3c4c7;
+            background: #fff;
+        }
+
+        .meditrendy-side-cart-upsells-admin .mt-upsell-global label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
         }
     ');
 
@@ -351,6 +382,7 @@ function meditrendy_side_cart_upsells_admin_page() {
 
     $settings = meditrendy_side_cart_upsells_settings();
     $languages = meditrendy_side_cart_upsells_default_languages();
+    $enabled = meditrendy_side_cart_upsells_enabled();
     ?>
     <div class="wrap meditrendy-side-cart-upsells-admin">
         <h1><?php esc_html_e('Side cart upsells', 'meditrendy-core'); ?></h1>
@@ -364,6 +396,14 @@ function meditrendy_side_cart_upsells_admin_page() {
         <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
             <?php wp_nonce_field('meditrendy_save_side_cart_upsells'); ?>
             <input type="hidden" name="action" value="meditrendy_save_side_cart_upsells">
+
+            <section class="mt-upsell-global">
+                <label>
+                    <input type="checkbox" name="meditrendy_side_cart_upsells_enabled" value="yes" <?php checked($enabled); ?>>
+                    <?php esc_html_e('Enable side cart upsells', 'meditrendy-core'); ?>
+                </label>
+                <p class="description"><?php esc_html_e('When disabled, the side cart will not request or display the upsell section.', 'meditrendy-core'); ?></p>
+            </section>
 
             <?php foreach ($languages as $language) : ?>
                 <?php $ids = $settings[$language] ?? []; ?>
@@ -392,6 +432,11 @@ function meditrendy_save_side_cart_upsells() {
         ? wp_unslash($_POST['meditrendy_side_cart_upsells'])
         : [];
 
+    update_option(
+        'meditrendy_side_cart_upsells_enabled',
+        isset($_POST['meditrendy_side_cart_upsells_enabled']) && wp_unslash($_POST['meditrendy_side_cart_upsells_enabled']) === 'yes' ? 'yes' : 'no',
+        false
+    );
     update_option('meditrendy_side_cart_upsells', meditrendy_side_cart_upsells_sanitize($input), false);
     meditrendy_side_cart_upsells_flush_cache();
 
@@ -413,6 +458,10 @@ function meditrendy_side_cart_upsells_active_language() {
 }
 
 function meditrendy_side_cart_upsells_products() {
+    if (!meditrendy_side_cart_upsells_has_configured_products()) {
+        return [];
+    }
+
     $settings = meditrendy_side_cart_upsells_settings();
     $language = meditrendy_side_cart_upsells_active_language();
     $ids = $settings[$language] ?? [];
