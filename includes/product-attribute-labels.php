@@ -18,27 +18,30 @@ function meditrendy_current_language_slug() {
 function meditrendy_product_attribute_label_translations() {
     return [
         'lt' => [
-            'color'    => 'Spalva',
-            'pa_color' => 'Spalva',
-            'size'     => 'Dydis',
-            'pa_size'  => 'Dydis',
-            'length'   => 'Ilgis',
+            'color'     => 'Spalva',
+            'pa_color'  => 'Spalva',
+            'colour'    => 'Spalva',
+            'size'      => 'Dydis',
+            'pa_size'   => 'Dydis',
+            'length'    => 'Ilgis',
             'pa_length' => 'Ilgis',
         ],
         'lv' => [
-            'color'    => 'Krāsa',
-            'pa_color' => 'Krāsa',
-            'size'     => 'Izmērs',
-            'pa_size'  => 'Izmērs',
-            'length'   => 'Garums',
+            'color'     => 'Krāsa',
+            'pa_color'  => 'Krāsa',
+            'colour'    => 'Krāsa',
+            'size'      => 'Izmērs',
+            'pa_size'   => 'Izmērs',
+            'length'    => 'Garums',
             'pa_length' => 'Garums',
         ],
         'et' => [
-            'color'    => 'Värv',
-            'pa_color' => 'Värv',
-            'size'     => 'Suurus',
-            'pa_size'  => 'Suurus',
-            'length'   => 'Pikkus',
+            'color'     => 'Värv',
+            'pa_color'  => 'Värv',
+            'colour'    => 'Värv',
+            'size'      => 'Suurus',
+            'pa_size'   => 'Suurus',
+            'length'    => 'Pikkus',
             'pa_length' => 'Pikkus',
         ],
     ];
@@ -47,28 +50,25 @@ function meditrendy_product_attribute_label_translations() {
 function meditrendy_translate_product_attribute_label($label, $name = '', $product = null) {
     $language = meditrendy_current_language_slug();
     $translations = meditrendy_product_attribute_label_translations();
-    $translated_label = __($label, 'meditrendy-core');
 
-    if ($translated_label !== $label) {
-        return $translated_label;
-    }
+    if (!empty($translations[$language])) {
+        $keys = array_unique(array_filter([
+            sanitize_title($name),
+            strpos((string) $name, 'attribute_') === 0 ? sanitize_title(substr((string) $name, 10)) : '',
+            sanitize_title($label),
+            sanitize_key($name),
+            sanitize_key($label),
+        ]));
 
-    if (empty($translations[$language])) {
-        return $label;
-    }
-
-    $keys = array_unique(array_filter([
-        sanitize_title($name),
-        strpos((string) $name, 'attribute_') === 0 ? sanitize_title(substr((string) $name, 10)) : '',
-        sanitize_title($label),
-    ]));
-
-    foreach ($keys as $key) {
-        if (isset($translations[$language][$key])) {
-            return $translations[$language][$key];
+        foreach ($keys as $key) {
+            if (isset($translations[$language][$key])) {
+                return $translations[$language][$key];
+            }
         }
     }
 
-    return $label;
+    $translated_label = __($label, 'meditrendy-core');
+
+    return $translated_label !== $label ? $translated_label : $label;
 }
 add_filter('woocommerce_attribute_label', 'meditrendy_translate_product_attribute_label', 20, 3);

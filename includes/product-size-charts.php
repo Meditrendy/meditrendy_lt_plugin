@@ -8,11 +8,11 @@ function meditrendy_size_charts_contexts() {
     return apply_filters('meditrendy_size_chart_contexts', [
         'women' => [
             'label'          => __('Women', 'meditrendy-core'),
-            'category_slugs' => ['moterims'],
+            'category_slugs' => ['moterims', 'sievietem', 'naistele'],
         ],
         'men' => [
             'label'          => __('Men', 'meditrendy-core'),
-            'category_slugs' => ['vyrams'],
+            'category_slugs' => ['vyrams', 'viriesiem', 'meestele'],
         ],
     ]);
 }
@@ -21,6 +21,55 @@ function meditrendy_size_charts_context_meta_key($context) {
     $context = sanitize_key((string) $context);
 
     return $context ? MEDITRENDY_SIZE_CHART_META_KEY . '_' . $context : MEDITRENDY_SIZE_CHART_META_KEY;
+}
+
+function meditrendy_size_charts_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language !== '') {
+            return $language === 'ee' ? 'et' : $language;
+        }
+    }
+
+    $locale = function_exists('determine_locale') ? strtolower((string) determine_locale()) : strtolower((string) get_locale());
+
+    if (strpos($locale, 'lv') === 0) {
+        return 'lv';
+    }
+
+    if (strpos($locale, 'et') === 0) {
+        return 'et';
+    }
+
+    return 'lt';
+}
+
+function meditrendy_size_charts_text($key) {
+    $strings = [
+        'lt' => [
+            'link' => 'Dydžių lentelė',
+            'note' => 'Amerikietiški dydžiai – rinkitės mažesnį dydį',
+            'close' => 'Uždaryti',
+        ],
+        'lv' => [
+            'link' => 'Izmēru tabula',
+            'note' => 'Amerikāņu izmēri – izvēlieties mazāku izmēru',
+            'close' => 'Aizvērt',
+        ],
+        'et' => [
+            'link' => 'Suuruste tabel',
+            'note' => 'Ameerika suurused – valige väiksem suurus',
+            'close' => 'Sulge',
+        ],
+    ];
+    $language = meditrendy_size_charts_language();
+
+    return $strings[$language][$key] ?? $strings['lt'][$key] ?? '';
 }
 
 function meditrendy_size_charts_capability() {
@@ -74,6 +123,13 @@ function meditrendy_size_charts_sanitize_html($html, $unslash = false) {
 function meditrendy_size_charts_available_attributes() {
     $attributes = [];
 
+    if (taxonomy_exists('product_brand')) {
+        $taxonomy = get_taxonomy('product_brand');
+        $attributes['product_brand'] = $taxonomy && !empty($taxonomy->labels->singular_name)
+            ? $taxonomy->labels->singular_name
+            : __('Brand', 'meditrendy-core');
+    }
+
     if (!function_exists('wc_get_attribute_taxonomies') || !function_exists('wc_attribute_taxonomy_name')) {
         return $attributes;
     }
@@ -101,6 +157,10 @@ function meditrendy_size_charts_available_attributes() {
 function meditrendy_size_charts_default_taxonomy($attributes = null) {
     $attributes = $attributes === null ? meditrendy_size_charts_available_attributes() : $attributes;
 
+    if (isset($attributes['product_brand'])) {
+        return 'product_brand';
+    }
+
     if (isset($attributes['pa_brand'])) {
         return 'pa_brand';
     }
@@ -121,6 +181,131 @@ function meditrendy_size_charts_active_taxonomy() {
     }
 
     return meditrendy_size_charts_default_taxonomy($attributes);
+}
+
+function meditrendy_size_charts_candidate_taxonomies($preferred = '') {
+    $attributes = meditrendy_size_charts_available_attributes();
+    $candidates = array_filter([
+        sanitize_key((string) $preferred),
+        'product_brand',
+        'pa_brand',
+    ]);
+
+    $candidates = array_merge($candidates, array_keys($attributes));
+    $candidates = array_values(array_unique(array_filter($candidates, function ($taxonomy) use ($attributes) {
+        return isset($attributes[$taxonomy]) && taxonomy_exists($taxonomy);
+    })));
+
+    return $candidates;
+}
+
+function meditrendy_size_charts_related_product_ids($product) {
+    if (!$product || !is_a($product, 'WC_Product')) {
+        return [];
+    }
+
+    $product_id = (int) $product->get_id();
+    $product_ids = [$product_id];
+
+    if (function_exists('pll_get_post_translations')) {
+        $product_ids = array_merge($product_ids, array_map('absint', (array) pll_get_post_translations($product_id)));
+    }
+
+    $sku = (string) $product->get_sku();
+
+    if ($sku !== '' && preg_match('/^(?:[a-z]{2}-)?PARENT-(\d+)$/i', $sku, $matches)) {
+        $product_ids[] = absint($matches[1]);
+    }
+
+    return array_values(array_unique(array_filter($product_ids)));
+}
+
+function meditrendy_size_charts_brand_taxonomies() {
+    return array_values(array_filter(['pa_brand', 'product_brand'], 'taxonomy_exists'));
+}
+
+function meditrendy_size_charts_matching_terms($source_terms, $target_taxonomy) {
+    if (!$source_terms || !$target_taxonomy || !taxonomy_exists($target_taxonomy)) {
+        return [];
+    }
+
+    $matches = [];
+
+    foreach ((array) $source_terms as $source_term) {
+        if (!$source_term || is_wp_error($source_term)) {
+            continue;
+        }
+
+        $keys = array_unique(array_filter([
+            isset($source_term->slug) ? sanitize_title($source_term->slug) : '',
+            isset($source_term->name) ? sanitize_title($source_term->name) : '',
+        ]));
+
+        foreach ($keys as $key) {
+            $term = get_term_by('slug', $key, $target_taxonomy);
+
+            if ($term && !is_wp_error($term)) {
+                $matches[(int) $term->term_id] = $term;
+            }
+        }
+
+        foreach (meditrendy_size_charts_get_terms($target_taxonomy) as $candidate) {
+            if (!$candidate || empty($candidate->term_id)) {
+                continue;
+            }
+
+            $candidate_keys = array_unique(array_filter([
+                isset($candidate->slug) ? sanitize_title($candidate->slug) : '',
+                isset($candidate->name) ? sanitize_title($candidate->name) : '',
+            ]));
+
+            if (array_intersect($keys, $candidate_keys)) {
+                $matches[(int) $candidate->term_id] = $candidate;
+            }
+        }
+    }
+
+    return array_values($matches);
+}
+
+function meditrendy_size_charts_product_terms($product, $taxonomy) {
+    $terms = [];
+
+    if (!$product || !is_a($product, 'WC_Product') || !$taxonomy || !taxonomy_exists($taxonomy)) {
+        return $terms;
+    }
+
+    foreach (meditrendy_size_charts_related_product_ids($product) as $product_id) {
+        $product_terms = wp_get_post_terms($product_id, $taxonomy);
+
+        if (!is_wp_error($product_terms) && $product_terms) {
+            $terms = array_merge($terms, $product_terms);
+        }
+
+        if (in_array($taxonomy, meditrendy_size_charts_brand_taxonomies(), true)) {
+            foreach (meditrendy_size_charts_brand_taxonomies() as $brand_taxonomy) {
+                if ($brand_taxonomy === $taxonomy) {
+                    continue;
+                }
+
+                $brand_terms = wp_get_post_terms($product_id, $brand_taxonomy);
+
+                if (!is_wp_error($brand_terms) && $brand_terms) {
+                    $terms = array_merge($terms, meditrendy_size_charts_matching_terms($brand_terms, $taxonomy));
+                }
+            }
+        }
+    }
+
+    $unique = [];
+
+    foreach ($terms as $term) {
+        if ($term && !is_wp_error($term) && !empty($term->term_id)) {
+            $unique[(int) $term->term_id] = $term;
+        }
+    }
+
+    return array_values($unique);
 }
 
 function meditrendy_size_charts_admin_taxonomy() {
@@ -267,6 +452,10 @@ function meditrendy_size_charts_term_chart($term, $context = '') {
         }
     }
 
+    foreach (meditrendy_size_charts_related_term_ids($term) as $term_id) {
+        $term_ids[] = (int) $term_id;
+    }
+
     if ($context !== '') {
         $meta_keys[] = meditrendy_size_charts_context_meta_key($context);
     }
@@ -284,6 +473,48 @@ function meditrendy_size_charts_term_chart($term, $context = '') {
     }
 
     return '';
+}
+
+function meditrendy_size_charts_related_term_ids($term) {
+    if (!$term || empty($term->term_id) || empty($term->taxonomy)) {
+        return [];
+    }
+
+    $term_ids = [];
+    $lookups = array_unique(array_filter([
+        isset($term->slug) ? sanitize_title($term->slug) : '',
+        isset($term->name) ? sanitize_title($term->name) : '',
+    ]));
+
+    foreach ($lookups as $lookup) {
+        $matches = get_terms([
+            'taxonomy'   => $term->taxonomy,
+            'hide_empty' => false,
+            'slug'       => $lookup,
+            'fields'     => 'ids',
+        ]);
+
+        if (!is_wp_error($matches)) {
+            $term_ids = array_merge($term_ids, array_map('absint', (array) $matches));
+        }
+    }
+
+    foreach (meditrendy_size_charts_get_terms($term->taxonomy) as $candidate) {
+        if (!$candidate || empty($candidate->term_id)) {
+            continue;
+        }
+
+        $candidate_keys = array_unique(array_filter([
+            isset($candidate->slug) ? sanitize_title($candidate->slug) : '',
+            isset($candidate->name) ? sanitize_title($candidate->name) : '',
+        ]));
+
+        if (array_intersect($lookups, $candidate_keys)) {
+            $term_ids[] = (int) $candidate->term_id;
+        }
+    }
+
+    return array_values(array_diff(array_unique(array_filter($term_ids)), [(int) $term->term_id]));
 }
 
 function meditrendy_size_charts_attribute_product($product) {
@@ -317,7 +548,16 @@ function meditrendy_size_charts_product_context($product) {
         return $cache[$product_id];
     }
 
-    $term_ids = wp_get_post_terms($product_id, 'product_cat', ['fields' => 'ids']);
+    $product_ids = meditrendy_size_charts_related_product_ids($attribute_product);
+    $term_ids = [];
+
+    foreach ($product_ids as $translated_product_id) {
+        $translated_term_ids = wp_get_post_terms($translated_product_id, 'product_cat', ['fields' => 'ids']);
+
+        if (!is_wp_error($translated_term_ids) && $translated_term_ids) {
+            $term_ids = array_merge($term_ids, array_map('absint', $translated_term_ids));
+        }
+    }
 
     if (is_wp_error($term_ids) || !$term_ids) {
         $cache[$product_id] = '';
@@ -365,9 +605,9 @@ function meditrendy_size_charts_product_term_data($product, $taxonomy) {
         return null;
     }
 
-    $terms = wp_get_post_terms($attribute_product->get_id(), $taxonomy);
+    $terms = meditrendy_size_charts_product_terms($attribute_product, $taxonomy);
 
-    if (is_wp_error($terms) || !$terms) {
+    if (!$terms) {
         return null;
     }
 
@@ -631,20 +871,28 @@ function meditrendy_product_size_chart_data($product = null, $seen = []) {
         return null;
     }
 
-    $taxonomy = meditrendy_size_charts_active_taxonomy();
+    $taxonomies = meditrendy_size_charts_candidate_taxonomies(meditrendy_size_charts_active_taxonomy());
 
-    if (!$taxonomy || !taxonomy_exists($taxonomy)) {
+    if (!$taxonomies) {
         return null;
     }
 
-    $data = meditrendy_size_charts_product_term_data($product, $taxonomy);
+    foreach ($taxonomies as $taxonomy) {
+        $data = meditrendy_size_charts_product_term_data($product, $taxonomy);
 
-    if ($data) {
-        return $data;
+        if ($data) {
+            return $data;
+        }
     }
 
     if ($product->is_type('woosb')) {
-        return meditrendy_size_charts_set_product_data($product, $taxonomy, $seen);
+        foreach ($taxonomies as $taxonomy) {
+            $data = meditrendy_size_charts_set_product_data($product, $taxonomy, $seen);
+
+            if ($data) {
+                return $data;
+            }
+        }
     }
 
     return null;
@@ -691,7 +939,119 @@ function meditrendy_size_charts_render_product_size_chart_html($product = null, 
         </div>
     </div>
     <?php
-    return ob_get_clean();
+    $html = ob_get_clean();
+    $link_label = esc_html(meditrendy_size_charts_text('link'));
+    $note_label = esc_html(meditrendy_size_charts_text('note'));
+    $close_label = esc_attr(meditrendy_size_charts_text('close'));
+
+    $html = preg_replace('/(<button[^>]*class="mt-product-size-chart-link"[^>]*>).*?(<\/button>)/s', '$1' . $link_label . '$2', $html, 1);
+    $html = preg_replace('/(<p[^>]*class="mt-product-size-chart-header-note"[^>]*>).*?(<\/p>)/s', '$1' . $note_label . '$2', $html, 1);
+    $html = preg_replace('/(<h2[^>]*>).*?(<\/h2>)/s', '$1' . $link_label . '$2', $html, 1);
+    $html = preg_replace('/(<button[^>]*class="mt-product-size-chart-close"[^>]*aria-label=")[^"]*(")/s', '$1' . $close_label . '$2', $html, 1);
+
+    return $html;
+}
+
+function meditrendy_size_charts_debug_enabled() {
+    return isset($_GET['mt_size_chart_debug'])
+        && current_user_can('manage_woocommerce');
+}
+
+function meditrendy_size_charts_debug_product_rows($product, $taxonomy) {
+    $rows = [];
+
+    if (!$product || !is_a($product, 'WC_Product') || !$taxonomy || !taxonomy_exists($taxonomy)) {
+        return $rows;
+    }
+
+    foreach (meditrendy_size_charts_related_product_ids($product) as $product_id) {
+        $related_product = wc_get_product($product_id);
+        $terms = $related_product ? meditrendy_size_charts_product_terms($related_product, $taxonomy) : [];
+
+        if (!$terms) {
+            $rows[] = sprintf('product %d (%s) / %s: no direct or matched terms', $product_id, $related_product ? $related_product->get_sku() : 'missing product', $taxonomy);
+            continue;
+        }
+
+        $context = meditrendy_size_charts_product_context($related_product);
+        $meta_keys = array_filter([
+            $context ? meditrendy_size_charts_context_meta_key($context) : '',
+            MEDITRENDY_SIZE_CHART_META_KEY,
+        ]);
+
+        foreach ($terms as $term) {
+            foreach ($meta_keys as $meta_key) {
+                $chart = (string) get_term_meta($term->term_id, $meta_key, true);
+                $rows[] = sprintf(
+                    'product %d (%s) / %s: term %d %s [%s], key %s, chart=%s',
+                    $product_id,
+                    $related_product ? $related_product->get_sku() : 'missing product',
+                    $taxonomy,
+                    (int) $term->term_id,
+                    $term->name,
+                    $term->slug,
+                    $meta_key,
+                    trim($chart) === '' ? 'no' : 'yes'
+                );
+            }
+        }
+    }
+
+    return $rows;
+}
+
+function meditrendy_size_charts_render_debug() {
+    if (!meditrendy_size_charts_debug_enabled() || !function_exists('is_product') || !is_product()) {
+        return;
+    }
+
+    static $rendered = false;
+
+    if ($rendered) {
+        return;
+    }
+
+    $product = wc_get_product(get_queried_object_id());
+
+    if (!$product) {
+        return;
+    }
+
+    $rendered = true;
+
+    $active_taxonomy = meditrendy_size_charts_active_taxonomy();
+    $taxonomies = meditrendy_size_charts_candidate_taxonomies($active_taxonomy);
+    $data = meditrendy_product_size_chart_data($product);
+    $lines = [
+        'Meditrendy size chart debug',
+        'product_id=' . $product->get_id(),
+        'product_type=' . $product->get_type(),
+        'sku=' . $product->get_sku(),
+        'active_taxonomy=' . $active_taxonomy,
+        'candidate_taxonomies=' . implode(', ', $taxonomies),
+        'related_product_ids=' . implode(', ', meditrendy_size_charts_related_product_ids($product)),
+        'resolved_chart=' . ($data ? 'yes' : 'no'),
+    ];
+
+    if ($data) {
+        $lines[] = sprintf(
+            'resolved_term=%d %s [%s], taxonomy=%s, context=%s, chart_length=%d',
+            (int) $data['term']->term_id,
+            $data['term']->name,
+            $data['term']->slug,
+            $data['taxonomy'],
+            $data['context'],
+            strlen((string) $data['chart'])
+        );
+    }
+
+    foreach ($taxonomies as $taxonomy) {
+        $lines[] = '--- ' . $taxonomy;
+        $rows = meditrendy_size_charts_debug_product_rows($product, $taxonomy);
+        $lines = array_merge($lines, $rows ?: ['no rows']);
+    }
+
+    echo '<pre style="white-space:pre-wrap;margin:16px 0;padding:12px;border:1px solid #cc1818;background:#fff8f8;color:#111;font:12px/1.4 monospace;">' . esc_html(implode("\n", $lines)) . '</pre>';
 }
 
 function meditrendy_size_chart_shortcode() {
@@ -774,3 +1134,5 @@ add_action('woocommerce_single_product_summary', 'meditrendy_render_product_size
 add_action('woocommerce_before_add_to_cart_form', 'meditrendy_render_product_size_chart_link', 5);
 add_action('woosb_after_item_variations', 'meditrendy_render_set_item_size_chart_link', 10);
 add_action('woosb_after_item', 'meditrendy_render_fixed_set_item_size_chart_link', 10);
+add_action('woocommerce_after_single_product_summary', 'meditrendy_size_charts_render_debug', 1);
+add_action('wp_footer', 'meditrendy_size_charts_render_debug', 99);
