@@ -6,7 +6,7 @@ function meditrendy_current_language_slug() {
         $language = pll_current_language('slug');
 
         if ($language) {
-            return $language;
+            return $language === 'ee' ? 'et' : $language;
         }
     }
 
@@ -24,6 +24,22 @@ function meditrendy_product_attribute_label_translations() {
             'pa_size'  => 'Dydis',
             'length'   => 'Ilgis',
             'pa_length' => 'Ilgis',
+        ],
+        'lv' => [
+            'color'    => 'Krāsa',
+            'pa_color' => 'Krāsa',
+            'size'     => 'Izmērs',
+            'pa_size'  => 'Izmērs',
+            'length'   => 'Garums',
+            'pa_length' => 'Garums',
+        ],
+        'et' => [
+            'color'    => 'Värv',
+            'pa_color' => 'Värv',
+            'size'     => 'Suurus',
+            'pa_size'  => 'Suurus',
+            'length'   => 'Pikkus',
+            'pa_length' => 'Pikkus',
         ],
     ];
 }

@@ -28,6 +28,9 @@
   let lastBillingSignature = '';
   let lastShippingSignature = '';
   let lastComputedBillingAddress = null;
+  let defaultDeliveryStartedAt = 0;
+  let defaultDeliveryTimer = 0;
+  let customerTouchedShippingChoice = false;
 
   labels.invoiceRequiredFields = labels.invoiceRequiredFields || 'UĹľpildykite visus sÄ…skaitos faktĹ«ros laukus.';
 
@@ -1135,6 +1138,94 @@
     });
   }
 
+  function shippingChoiceText(input) {
+    if (!input) {
+      return '';
+    }
+
+    return [
+      input.value,
+      input.id,
+      input.name,
+      input.closest('label') ? input.closest('label').textContent : '',
+      input.closest('.wc-block-components-radio-control__option') ? input.closest('.wc-block-components-radio-control__option').textContent : '',
+      input.closest('[class*="shipping"]') ? input.closest('[class*="shipping"]').textContent : '',
+      input.closest('[class*="pickup"]') ? input.closest('[class*="pickup"]').textContent : ''
+    ].join(' ').toLowerCase();
+  }
+
+  function shippingChoiceLooksLikePickup(input) {
+    const text = shippingChoiceText(input);
+
+    return pickupLabels.some(function (label) {
+      return text.indexOf(label) !== -1;
+    });
+  }
+
+  function shippingChoiceGroup(input) {
+    if (!input) {
+      return document;
+    }
+
+    return input.closest(
+      '.wc-block-checkout__shipping-method, ' +
+      '.wp-block-woocommerce-checkout-shipping-method-block, ' +
+      '.wc-block-components-shipping-rates-control, ' +
+      '.wc-block-components-radio-control, ' +
+      'fieldset'
+    ) || document;
+  }
+
+  function forceDefaultDeliveryShipping() {
+    if (customerTouchedShippingChoice) {
+      return;
+    }
+
+    if (defaultDeliveryStartedAt && Date.now() - defaultDeliveryStartedAt > 6000) {
+      return;
+    }
+
+    const checkedPickup = Array.from(document.querySelectorAll('input[type="radio"]:checked')).find(function (input) {
+      return shippingChoiceLooksLikePickup(input);
+    });
+
+    if (!checkedPickup) {
+      return;
+    }
+
+    const group = shippingChoiceGroup(checkedPickup);
+    const deliveryInput = Array.from(group.querySelectorAll('input[type="radio"]')).find(function (input) {
+      return input !== checkedPickup && !input.disabled && !shippingChoiceLooksLikePickup(input);
+    });
+
+    if (!deliveryInput) {
+      return;
+    }
+
+    deliveryInput.click();
+
+    if (!deliveryInput.checked) {
+      deliveryInput.checked = true;
+      deliveryInput.dispatchEvent(new Event('input', { bubbles: true }));
+      deliveryInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }
+
+  function scheduleDefaultDeliveryShipping() {
+    if (customerTouchedShippingChoice || defaultDeliveryTimer) {
+      return;
+    }
+
+    defaultDeliveryTimer = window.setTimeout(function () {
+      defaultDeliveryTimer = 0;
+      forceDefaultDeliveryShipping();
+
+      if (!customerTouchedShippingChoice && defaultDeliveryStartedAt && Date.now() - defaultDeliveryStartedAt <= 6000) {
+        scheduleDefaultDeliveryShipping();
+      }
+    }, 250);
+  }
+
   function forceCheckboxChecked(checkbox) {
     if (!checkbox || checkbox.checked) {
       return false;
@@ -1215,6 +1306,7 @@
   }
 
   function syncCheckoutInvoiceUi() {
+    forceDefaultDeliveryShipping();
     ensureContactPhoneField();
     ensureInvoiceBlock();
     syncBillingAddressLabel();
@@ -1230,10 +1322,16 @@
 
   function init() {
     installCheckoutRequestPatch();
+    defaultDeliveryStartedAt = Date.now();
     syncCheckoutInvoiceUi();
+    scheduleDefaultDeliveryShipping();
 
     document.addEventListener('change', function (event) {
       if (event.target && event.target.matches('input, select')) {
+        if (event.isTrusted && event.target.matches('input[type="radio"]') && shippingChoiceText(event.target)) {
+          customerTouchedShippingChoice = true;
+        }
+
         if (!isPickupSelected()) {
           syncWooCheckoutAddresses('field change');
         }

@@ -64,6 +64,30 @@ function meditrendy_color_term_hex($term) {
     return '#cccccc';
 }
 
+function meditrendy_color_swatches_text($key) {
+    $language = function_exists('meditrendy_core_current_language') ? meditrendy_core_current_language() : '';
+    $language = $language === 'ee' ? 'et' : $language;
+    $strings = [
+        'lt' => [
+            'show_all_title' => 'Rodyti visas spalvas (+%d)',
+            'show_all_aria' => 'Rodyti visas spalvas. Dar spalvų: %d',
+            'show_all_label' => 'Visos +%d',
+        ],
+        'lv' => [
+            'show_all_title' => 'Rādīt visas krāsas (+%d)',
+            'show_all_aria' => 'Rādīt visas krāsas. Vēl krāsu: %d',
+            'show_all_label' => 'Visas +%d',
+        ],
+        'et' => [
+            'show_all_title' => 'Näita kõiki värve (+%d)',
+            'show_all_aria' => 'Näita kõiki värve. Veel värve: %d',
+            'show_all_label' => 'Kõik +%d',
+        ],
+    ];
+
+    return $strings[$language][$key] ?? $strings['lt'][$key] ?? '';
+}
+
 function meditrendy_clear_color_swatches_cache_for_product($product_id) {
     $product_id = absint($product_id);
 
@@ -396,6 +420,10 @@ function meditrendy_color_swatches_shortcode($atts = []) {
         class="mt-swatch-more"
         title="' . esc_attr(sprintf(__('Rodyti visas spalvas (+%d)', 'meditrendy-core'), $hidden_count)) . '"
         aria-label="' . esc_attr(sprintf(__('Rodyti visas spalvas. Dar spalvų: %d', 'meditrendy-core'), $hidden_count)) . '">' . esc_html(sprintf(__('Visos +%d', 'meditrendy-core'), $hidden_count)) . '</a>';
+    }
+
+    if (function_exists('meditrendy_core_current_language') && meditrendy_core_current_language() === 'et' && $hidden_count > 0) {
+        $swatches_html = str_replace('>Visos +' . $hidden_count . '</a>', '>Kõik +' . $hidden_count . '</a>', $swatches_html);
     }
 
     ob_start();

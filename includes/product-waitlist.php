@@ -2,7 +2,82 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_waitlist_button_text() {
-    return __('Informuokite mane, kai bus prekyboje', 'meditrendy-core');
+    $labels = meditrendy_waitlist_labels();
+
+    return __($labels['link'], 'meditrendy-core');
+}
+
+function meditrendy_waitlist_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language !== '') {
+            return $language === 'ee' ? 'et' : $language;
+        }
+    }
+
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
+    if (strpos($host, 'meditrendy.ee') !== false) {
+        return 'et';
+    }
+
+    if (strpos($host, 'meditrendy.lv') !== false) {
+        return 'lv';
+    }
+
+    return 'lt';
+}
+
+function meditrendy_waitlist_labels() {
+    $labels = [
+        'lt' => [
+            'link' => 'Informuokite mane, kai bus prekyboje',
+            'heading' => 'Pranešimas apie prekę',
+            'body' => 'Įveskite el. pašto adresą ir informuosime, kai pasirinkta prekė vėl bus prekyboje.',
+            'email' => 'El. pašto adresas',
+            'submit' => 'Informuokite mane',
+            'close' => 'Uždaryti',
+            'success' => 'Ačiū. Informuosime jus el. paštu, kai prekė vėl bus prekyboje.',
+            'error' => 'Nepavyko išsaugoti. Bandykite dar kartą.',
+            'invalidEmail' => 'Įveskite teisingą el. pašto adresą.',
+            'alreadyInStock' => 'Ši prekė jau yra prekyboje.',
+            'productNotFound' => 'Prekė nerasta.',
+        ],
+        'lv' => [
+            'link' => 'Paziņot man, kad būs pieejams',
+            'heading' => 'Paziņojums par preci',
+            'body' => 'Ievadiet e-pasta adresi, un mēs informēsim, kad izvēlētā prece atkal būs pieejama.',
+            'email' => 'E-pasta adrese',
+            'submit' => 'Paziņot man',
+            'close' => 'Aizvērt',
+            'success' => 'Paldies. Informēsim jūs e-pastā, kad prece atkal būs pieejama.',
+            'error' => 'Neizdevās saglabāt. Mēģiniet vēlreiz.',
+            'invalidEmail' => 'Ievadiet derīgu e-pasta adresi.',
+            'alreadyInStock' => 'Šī prece jau ir pieejama.',
+            'productNotFound' => 'Prece nav atrasta.',
+        ],
+        'et' => [
+            'link' => 'Teavita mind, kui toode on saadaval',
+            'heading' => 'Toote saadavuse teavitus',
+            'body' => 'Sisesta e-posti aadress ja anname teada, kui valitud toode on jälle saadaval.',
+            'email' => 'E-posti aadress',
+            'submit' => 'Teavita mind',
+            'close' => 'Sulge',
+            'success' => 'Aitäh. Teavitame sind e-posti teel, kui toode on jälle saadaval.',
+            'error' => 'Salvestamine ebaõnnestus. Proovi uuesti.',
+            'invalidEmail' => 'Sisesta korrektne e-posti aadress.',
+            'alreadyInStock' => 'See toode on juba saadaval.',
+            'productNotFound' => 'Toodet ei leitud.',
+        ],
+    ];
+    $language = meditrendy_waitlist_language();
+
+    return $labels[$language] ?? $labels['lt'];
 }
 
 function meditrendy_stock_waitlist_table_name() {
@@ -254,6 +329,7 @@ function meditrendy_waitlist_enqueue_assets() {
 
     $script_path = MEDITRENDY_CORE_DIR . 'assets/js/product-waitlist.js';
     $style_path = MEDITRENDY_CORE_DIR . 'assets/css/product-waitlist.css';
+    $labels = meditrendy_waitlist_labels();
 
     wp_enqueue_script(
         'meditrendy-product-waitlist',
@@ -281,6 +357,7 @@ function meditrendy_waitlist_enqueue_assets() {
                 'error' => __('Nepavyko išsaugoti. Bandykite dar kartą.', 'meditrendy-core'),
                 'invalidEmail' => __('Įveskite teisingą el. pašto adresą.', 'meditrendy-core'),
             ],
+            'labels' => $labels,
         ]
     );
 

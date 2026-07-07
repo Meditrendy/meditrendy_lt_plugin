@@ -148,7 +148,98 @@ function meditrendy_get_checkout_invoice_request_data($request = null) {
     return $data;
 }
 
+function meditrendy_checkout_invoice_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language !== '') {
+            return $language === 'ee' ? 'et' : $language;
+        }
+    }
+
+    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
+    if (strpos($host, 'meditrendy.ee') !== false) {
+        return 'et';
+    }
+
+    if (strpos($host, 'meditrendy.lv') !== false) {
+        return 'lv';
+    }
+
+    return 'lt';
+}
+
+function meditrendy_checkout_invoice_labels() {
+    $labels = [
+        'lt' => [
+            'contactPhone' => 'Telefonas',
+            'firstName' => 'Vardas',
+            'lastName' => 'Pavardė',
+            'invoiceRequired' => 'Reikia sąskaitos faktūros įmonei',
+            'companyName' => 'Įmonės pavadinimas',
+            'companyCode' => 'PVM mokėtojo kodas',
+            'invoiceAddress' => 'Adresas sąskaitai',
+            'invoiceStreet' => 'Gatvė, namo numeris',
+            'invoiceCity' => 'Miestas',
+            'invoicePostcode' => 'Pašto kodas',
+            'phoneRequired' => 'Įveskite telefono numerį.',
+            'phoneInvalid' => 'Įveskite teisingą telefono numerį.',
+            'invoiceRequiredFields' => 'Užpildykite visus sąskaitos faktūros laukus.',
+        ],
+        'lv' => [
+            'contactPhone' => 'Tālrunis',
+            'firstName' => 'Vārds',
+            'lastName' => 'Uzvārds',
+            'invoiceRequired' => 'Nepieciešams rēķins uzņēmumam',
+            'companyName' => 'Uzņēmuma nosaukums',
+            'companyCode' => 'PVN maksātāja kods',
+            'invoiceAddress' => 'Rēķina adrese',
+            'invoiceStreet' => 'Iela, mājas numurs',
+            'invoiceCity' => 'Pilsēta',
+            'invoicePostcode' => 'Pasta indekss',
+            'phoneRequired' => 'Ievadiet tālruņa numuru.',
+            'phoneInvalid' => 'Ievadiet derīgu tālruņa numuru.',
+            'invoiceRequiredFields' => 'Aizpildiet visus rēķina laukus.',
+        ],
+        'et' => [
+            'contactPhone' => 'Telefon',
+            'firstName' => 'Eesnimi',
+            'lastName' => 'Perekonnanimi',
+            'invoiceRequired' => 'Vajan ettevõttele arvet',
+            'companyName' => 'Ettevõtte nimi',
+            'companyCode' => 'KMKR number',
+            'invoiceAddress' => 'Arve aadress',
+            'invoiceStreet' => 'Tänav, maja number',
+            'invoiceCity' => 'Linn',
+            'invoicePostcode' => 'Postiindeks',
+            'phoneRequired' => 'Sisesta telefoninumber.',
+            'phoneInvalid' => 'Sisesta korrektne telefoninumber.',
+            'invoiceRequiredFields' => 'Täida kõik arve väljad.',
+        ],
+    ];
+    $language = meditrendy_checkout_invoice_language();
+
+    return $labels[$language] ?? $labels['lt'];
+}
+
 function meditrendy_checkout_invoice_required_field_labels() {
+    $labels = function_exists('meditrendy_checkout_invoice_labels') ? meditrendy_checkout_invoice_labels() : [];
+
+    if ($labels) {
+        return [
+            'companyName'     => $labels['companyName'],
+            'companyCode'     => $labels['companyCode'],
+            'invoiceStreet'   => $labels['invoiceStreet'],
+            'invoiceCity'     => $labels['invoiceCity'],
+            'invoicePostcode' => $labels['invoicePostcode'],
+        ];
+    }
+
     return [
         'companyName'     => __('Ä®monÄ—s pavadinimas', 'meditrendy-core'),
         'companyCode'     => __('PVM mokÄ—tojo kodas', 'meditrendy-core'),
@@ -611,6 +702,7 @@ add_action('wp_enqueue_scripts', function() {
     $asset_path = MEDITRENDY_CORE_DIR . 'assets/js/checkout-invoice-fields.js';
     $data       = meditrendy_get_checkout_invoice_session_data();
     $pickup_address = meditrendy_get_checkout_pickup_address();
+    $labels = meditrendy_checkout_invoice_labels();
 
     wp_enqueue_script(
         'meditrendy-checkout-invoice-fields',
@@ -648,6 +740,7 @@ add_action('wp_enqueue_scripts', function() {
                 'phoneRequired'   => 'Įveskite telefono numerį.',
                 'phoneInvalid'    => 'Įveskite teisingą telefono numerį.',
             ],
+            'labels'          => $labels,
         ]
     );
 });

@@ -6,7 +6,7 @@ function meditrendy_side_cart_language() {
         $language = strtolower((string) pll_current_language('slug'));
 
         if ($language) {
-            return $language;
+            return $language === 'ee' ? 'et' : $language;
         }
     }
 
@@ -71,6 +71,27 @@ function meditrendy_side_cart_strings() {
             'upsells_title' => 'Może Ci się spodobać',
             'refresh_failed' => 'Nie udało się odświeżyć koszyka. Spróbuj ponownie.',
             'choose_size' => 'Wybierz rozmiar',
+        ],
+        'et' => [
+            'empty' => 'Sinu ostukorv on tühi.',
+            'remove_item' => 'Eemalda toode',
+            'decrease_quantity' => 'Vähenda kogust',
+            'quantity' => 'Kogus',
+            'increase_quantity' => 'Suurenda kogust',
+            'subtotal' => 'Vahesumma:',
+            'tax_note' => 'Maksud sisalduvad hinnas',
+            'title' => 'Ostukorv — %d',
+            'close' => 'Sulge ostukorv',
+            'checkout' => 'Mine maksma',
+            'cart_unavailable' => 'Ostukorv ei ole saadaval.',
+            'cart_disabled' => 'Ostukorvi moodul on välja lülitatud.',
+            'product_not_found' => 'Toodet ei leitud.',
+            'choose_product_variant' => 'Vali toote „%s” variant.',
+            'add_failed' => 'Toodet ei õnnestunud ostukorvi lisada.',
+            'cart_item_not_found' => 'Toodet ei leitud ostukorvist.',
+            'upsells_title' => 'Sulle võib meeldida ka',
+            'refresh_failed' => 'Ostukorvi ei õnnestunud värskendada. Proovi uuesti.',
+            'choose_size' => 'Vali suurus',
         ],
     ];
 }

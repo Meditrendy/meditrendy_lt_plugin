@@ -42,6 +42,22 @@ function meditrendy_product_card_badge_language() {
 }
 
 function meditrendy_product_card_badge_label($text) {
+    $language = meditrendy_product_card_badge_language();
+
+    if ($language === 'et') {
+        $estonian = [
+            'AKCIJA' => 'SOODUS',
+            'NAUJIENA' => 'UUS',
+            'BESTSELLER' => 'ENIMMÜÜDUD',
+            'Produktų žymos' => 'Tootesildid',
+            'ProduktĹł Ĺľymos' => 'Tootesildid',
+        ];
+
+        if (isset($estonian[$text])) {
+            return $estonian[$text];
+        }
+    }
+
     $translations = [
         'en' => [
             'AKCIJA' => 'SALE',
@@ -70,8 +86,6 @@ function meditrendy_product_card_badge_label($text) {
             'Produktų žymos' => 'Tootesildid',
         ],
     ];
-
-    $language = meditrendy_product_card_badge_language();
 
     if (isset($translations[$language][$text])) {
         return $translations[$language][$text];
