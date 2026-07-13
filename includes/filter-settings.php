@@ -2,6 +2,15 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_core_current_language() {
+    // Separate storefronts use their WordPress Site Language as the source of truth.
+    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+    $locale = strtolower((string) $locale);
+    $locale_language = substr($locale, 0, 2);
+
+    if (in_array($locale_language, ['lt', 'lv', 'et', 'pl', 'en'], true)) {
+        return $locale_language;
+    }
+
     if (function_exists('pll_current_language')) {
         $language = strtolower((string) pll_current_language('slug'));
 
@@ -12,25 +21,6 @@ function meditrendy_core_current_language() {
 
             return $language;
         }
-    }
-
-    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
-    $locale = strtolower((string) $locale);
-
-    if (strpos($locale, 'pl') === 0) {
-        return 'pl';
-    }
-
-    if (strpos($locale, 'lv') === 0) {
-        return 'lv';
-    }
-
-    if (strpos($locale, 'en') === 0) {
-        return 'en';
-    }
-
-    if (strpos($locale, 'et') === 0) {
-        return 'et';
     }
 
     return 'lt';
