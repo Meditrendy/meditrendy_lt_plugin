@@ -2,6 +2,10 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_side_cart_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
     if (function_exists('pll_current_language')) {
         $language = strtolower((string) pll_current_language('slug'));
 
