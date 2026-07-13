@@ -335,8 +335,10 @@ function meditrendy_paysera_pos_schedule_order($order_id) {
         'number' => meditrendy_paysera_pos_order_number($order),
     ]);
 
-    if (function_exists('as_enqueue_async_action')) {
-        as_enqueue_async_action(MEDITRENDY_PAYSERA_POS_ACTION, ['order_id' => $order_id], MEDITRENDY_PAYSERA_POS_GROUP, true);
+    // Use a dated Action Scheduler job. Async actions depend on a loopback HTTP
+    // request, which is not reliable on every hosting environment.
+    if (function_exists('as_schedule_single_action')) {
+        as_schedule_single_action(time() + 5, MEDITRENDY_PAYSERA_POS_ACTION, ['order_id' => $order_id], MEDITRENDY_PAYSERA_POS_GROUP, true);
     } else {
         wp_schedule_single_event(time() + 60, MEDITRENDY_PAYSERA_POS_ACTION, ['order_id' => $order_id]);
     }
@@ -913,6 +915,13 @@ function meditrendy_paysera_pos_retry_action() {
 
     $order = wc_get_order($order_id);
     if ($order instanceof WC_Order) {
+        // Remove a stale async/pending action before scheduling a dated retry.
+        if (function_exists('as_unschedule_all_actions')) {
+            as_unschedule_all_actions(MEDITRENDY_PAYSERA_POS_ACTION, ['order_id' => $order_id], MEDITRENDY_PAYSERA_POS_GROUP);
+        } elseif (function_exists('wp_clear_scheduled_hook')) {
+            wp_clear_scheduled_hook(MEDITRENDY_PAYSERA_POS_ACTION, ['order_id' => $order_id]);
+        }
+
         meditrendy_paysera_pos_set_sync_meta($order, [
             'status' => 'scheduled',
             'last_error' => '',
