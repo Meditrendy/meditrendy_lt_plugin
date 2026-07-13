@@ -31,6 +31,10 @@ function meditrendy_marketing_banner_languages() {
 }
 
 function meditrendy_marketing_banner_current_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
     if (function_exists('pll_current_language')) {
         $language = pll_current_language('slug');
 

@@ -2,6 +2,10 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_side_cart_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
     if (function_exists('pll_current_language')) {
         $language = strtolower((string) pll_current_language('slug'));
 
@@ -50,6 +54,27 @@ function meditrendy_side_cart_strings() {
             'upsells_title' => 'Jums taip pat gali patikti',
             'refresh_failed' => 'Nepavyko atnaujinti krepšelio. Bandykite dar kartą.',
             'choose_size' => 'Pasirinkite dydį',
+        ],
+        'lv' => [
+            'empty' => 'Jūsu grozs ir tukšs.',
+            'remove_item' => 'Noņemt preci',
+            'decrease_quantity' => 'Samazināt daudzumu',
+            'quantity' => 'Daudzums',
+            'increase_quantity' => 'Palielināt daudzumu',
+            'subtotal' => 'Starpsumma:',
+            'tax_note' => 'Nodokļi ir iekļauti cenā',
+            'title' => 'Grozs — %d',
+            'close' => 'Aizvērt grozu',
+            'checkout' => 'Doties uz apmaksu',
+            'cart_unavailable' => 'Grozs nav pieejams.',
+            'cart_disabled' => 'Groza modulis ir atspējots.',
+            'product_not_found' => 'Prece nav atrasta.',
+            'choose_product_variant' => 'Izvēlieties preces variantu “%s”.',
+            'add_failed' => 'Neizdevās pievienot preci grozam.',
+            'cart_item_not_found' => 'Prece grozā nav atrasta.',
+            'upsells_title' => 'Jums varētu patikt arī',
+            'refresh_failed' => 'Neizdevās atjaunināt grozu. Mēģiniet vēlreiz.',
+            'choose_size' => 'Izvēlieties izmēru',
         ],
         'pl' => [
             'empty' => 'Twój koszyk jest pusty.',
@@ -102,7 +127,7 @@ function meditrendy_side_cart_text($key, ...$args) {
     $source = $strings['lt'][$key] ?? $key;
     $text = $source;
 
-    if (function_exists('pll__')) {
+    if (!function_exists('meditrendy_core_current_language') && function_exists('pll__')) {
         $translated = pll__($source);
 
         if ($translated !== $source) {

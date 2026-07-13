@@ -30,7 +30,7 @@ function meditrendy_account_domain_current_language() {
     $requested_url = meditrendy_account_domain_requested_url();
 
     if ($requested_url === '' || !function_exists('PLL')) {
-        return '';
+        return function_exists('meditrendy_core_current_language') ? meditrendy_core_current_language() : '';
     }
 
     $requested_host = wp_parse_url($requested_url, PHP_URL_HOST);

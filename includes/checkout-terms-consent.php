@@ -17,6 +17,18 @@ function meditrendy_checkout_terms_consent_get_page_url($option_name, $fallback_
 }
 
 function meditrendy_checkout_terms_consent_labels() {
+    if (function_exists('meditrendy_core_current_language') && meditrendy_core_current_language() === 'lv') {
+        return [
+            'prefix'      => 'Es piekrītu',
+            'joiner'      => 'un',
+            'terms'       => 'noteikumiem un nosacījumiem',
+            'privacy'     => 'privātuma politikai',
+            'required'    => 'Pirms pasūtījuma veikšanas jums jāpiekrīt noteikumiem un privātuma politikai.',
+            'termsUrl'    => meditrendy_checkout_terms_consent_get_page_url('woocommerce_terms_page_id', '/taisykles/'),
+            'privacyUrl'  => meditrendy_checkout_terms_consent_get_page_url('wp_page_for_privacy_policy', '/privacy-policy/'),
+        ];
+    }
+
     return [
         'prefix'      => __('Sutinku su', 'meditrendy-core'),
         'joiner'      => __('bei', 'meditrendy-core'),
@@ -79,6 +91,10 @@ function meditrendy_checkout_terms_consent_request_value($request = null) {
 }
 
 function meditrendy_checkout_terms_consent_error_message() {
+    if (function_exists('meditrendy_core_current_language') && meditrendy_core_current_language() === 'lv') {
+        return 'Pirms pasūtījuma veikšanas jums jāpiekrīt noteikumiem un privātuma politikai.';
+    }
+
     return __('Prieš pateikdami užsakymą turite sutikti su taisyklėmis ir privatumo politika.', 'meditrendy-core');
 }
 

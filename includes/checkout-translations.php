@@ -6,7 +6,57 @@ if (!defined('ABSPATH')) exit;
  * Meditrendy checkout and order email translation overrides for WooCommerce.
  */
 
+function meditrendy_checkout_current_language() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
+    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+
+    return substr(strtolower((string) $locale), 0, 2);
+}
+
+function meditrendy_checkout_latvian_translation_map() {
+    return [
+        'Checkout' => 'Norēķināšanās',
+        'Order summary' => 'Pasūtījuma kopsavilkums',
+        'Add a discount code' => 'Pievienot atlaides kodu',
+        'Subtotal' => 'Starpsumma',
+        'Delivery' => 'Piegāde',
+        'Total' => 'Kopā',
+        'Including %s VAT' => 'Ieskaitot %s PVN',
+        'Contact information' => 'Kontaktinformācija',
+        'Log in' => 'Pieslēgties',
+        'Email address' => 'E-pasta adrese',
+        'Phone' => 'Tālrunis',
+        'You are currently checking out as a guest.' => 'Jūs pašlaik noformējat pasūtījumu kā viesis.',
+        'Create an account with %s' => 'Izveidot kontu vietnē %s',
+        'Shipping address' => 'Piegādes adrese',
+        'Country/region' => 'Valsts/reģions',
+        'Select a country / region' => 'Izvēlieties valsti/reģionu',
+        'First name' => 'Vārds',
+        'Last name' => 'Uzvārds',
+        'Address' => 'Adrese',
+        'City' => 'Pilsēta',
+        'Postcode' => 'Pasta indekss',
+        'Shipping options' => 'Piegādes iespējas',
+        'Enter an address to see your shipping options.' => 'Ievadiet adresi, lai skatītu piegādes iespējas.',
+        'Payment options' => 'Maksājuma iespējas',
+        'Choose a payment method' => 'Izvēlieties maksājuma veidu',
+        'Please select the country' => 'Lūdzu, izvēlieties valsti',
+        'Add a note to your order' => 'Pievienot piezīmi pasūtījumam',
+        'Place order' => 'Veikt pasūtījumu',
+        'Product' => 'Prece',
+        'Quantity' => 'Daudzums',
+        'Price' => 'Cena',
+    ];
+}
+
 function meditrendy_checkout_translation_map() {
+    if ('lv' === meditrendy_checkout_current_language()) {
+        return meditrendy_checkout_latvian_translation_map();
+    }
+
     return [
         'Coupon code "%s" has been applied to your cart.' => 'Nuolaidos kodas „%s“ pritaikytas jūsų krepšeliui.',
         'Coupon code "%s" has been removed from your cart.' => 'Nuolaidos kodas „%s“ pašalintas iš jūsų krepšelio.',
@@ -164,6 +214,13 @@ function meditrendy_add_checkout_block_translation_script($handle) {
         'Including %s VAT' => ['Įskaitant %s PVM'],
     ];
 
+    $translations = array_map(
+        static function ($translation) {
+            return [$translation];
+        },
+        meditrendy_checkout_translation_map()
+    );
+
     wp_add_inline_script(
         $handle,
         'window.wp && window.wp.i18n && window.wp.i18n.setLocaleData(' . wp_json_encode($translations) . ', "woocommerce");',
@@ -249,4 +306,5 @@ function meditrendy_add_checkout_block_translation_script($handle) {
 JS,
         'after'
     );
+
 }

@@ -19,6 +19,10 @@ add_action('created_product_cat', 'meditrendy_brand_products_bump_cache_version'
 add_action('delete_product_cat', 'meditrendy_brand_products_bump_cache_version');
 
 function meditrendy_brand_products_language_key() {
+    if (function_exists('meditrendy_core_current_language')) {
+        return meditrendy_core_current_language();
+    }
+
     if (function_exists('pll_current_language')) {
         $language = pll_current_language('slug');
 
