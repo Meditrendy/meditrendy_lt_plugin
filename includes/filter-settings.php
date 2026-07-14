@@ -2,26 +2,24 @@
 if (!defined('ABSPATH')) exit;
 
 function meditrendy_core_current_language() {
-    // During the migration, the active Polylang language remains authoritative.
-    // After Polylang is removed, the WordPress Site Language below is used instead.
-    if (function_exists('pll_current_language')) {
-        $language = strtolower((string) pll_current_language('slug'));
-
-        if ($language) {
-            if ($language === 'ee') {
-                return 'et';
-            }
-
-            return $language;
-        }
-    }
-
-    $locale = function_exists('determine_locale') ? determine_locale() : get_locale();
+    // Each split storefront is controlled by its WordPress Site Language.
+    // Polylang remains a fallback only while it is temporarily installed.
+    // Do not use determine_locale() here: it may return the logged-in
+    // administrator's profile language instead of the storefront language.
+    $locale = get_locale();
     $locale = strtolower((string) $locale);
     $locale_language = substr($locale, 0, 2);
 
     if (in_array($locale_language, ['lt', 'lv', 'et', 'pl', 'en'], true)) {
         return $locale_language;
+    }
+
+    if (function_exists('pll_current_language')) {
+        $language = strtolower((string) pll_current_language('slug'));
+
+        if ($language) {
+            return $language === 'ee' ? 'et' : $language;
+        }
     }
 
     return 'lt';
