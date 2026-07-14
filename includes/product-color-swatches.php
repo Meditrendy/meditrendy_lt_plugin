@@ -14,6 +14,24 @@ function meditrendy_color_term_hex($term) {
         return '#111111';
     }
 
+    // Variation Swatches for WooCommerce stores the color selected in the
+    // attribute editor under this key. Prefer it so PDP and loop swatches
+    // always reflect the configured attribute color.
+    $hex = get_term_meta(
+        $term->term_id,
+        'product_attribute_color',
+        true
+    );
+
+    if(is_string($hex)) {
+        $hex = trim($hex);
+    }
+
+    if(is_string($hex) && preg_match('/^#(?:[0-9a-f]{3}){1,2}$/i', $hex)) {
+        return $hex;
+    }
+
+    // Keep supporting the legacy custom color field for terms that still use it.
     $hex = get_term_meta(
         $term->term_id,
         'color_hex',
@@ -108,6 +126,7 @@ function meditrendy_clear_color_swatches_cache_for_product($product_id) {
     $patterns = [
         $wpdb->esc_like('_transient_mt_swatches_v4_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v5_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v6_' . $product_id . '_') . '%',
     ];
 
     foreach($patterns as $pattern) {
@@ -338,7 +357,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     $limit = max(0, absint($atts['limit']));
     $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v5_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_swatches_v6_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
