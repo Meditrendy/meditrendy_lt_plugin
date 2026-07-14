@@ -593,6 +593,18 @@ function meditrendy_side_cart_render_shell() {
 function meditrendy_side_cart_verify_request() {
     check_ajax_referer('meditrendy_side_cart', 'nonce');
 
+    if (function_exists('pll_switch_language') && isset($_POST['mt_side_cart_language'])) {
+        $language = sanitize_key(wp_unslash($_POST['mt_side_cart_language']));
+
+        if ($language === 'ee') {
+            $language = 'et';
+        }
+
+        if (in_array($language, ['lt', 'lv', 'et', 'pl', 'en'], true)) {
+            pll_switch_language($language);
+        }
+    }
+
     if (!function_exists('WC') || !WC()->cart) {
         wp_send_json_error(['message' => __('Krepšelis nepasiekiamas.', 'meditrendy-core')], 400);
     }
@@ -991,6 +1003,7 @@ function meditrendy_side_cart_enqueue_assets() {
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'wcAjaxUrl' => function_exists('WC_AJAX') ? WC_AJAX::get_endpoint('%%endpoint%%') : '',
             'nonce' => wp_create_nonce('meditrendy_side_cart'),
+            'language' => meditrendy_side_cart_language(),
             'count' => meditrendy_side_cart_count(),
             'openOnLoad' => false,
             'upsellsEnabled' => function_exists('meditrendy_side_cart_upsells_has_configured_products') && meditrendy_side_cart_upsells_has_configured_products(),

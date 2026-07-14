@@ -547,6 +547,7 @@
 
     formData.set('action', action);
     formData.set('nonce', currentNonce());
+    formData.set('mt_side_cart_language', currentSettings().language || '');
 
     if (debugEnabled) {
       formData.set('mt_side_cart_debug', '1');
