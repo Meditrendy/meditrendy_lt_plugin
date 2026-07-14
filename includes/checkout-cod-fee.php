@@ -10,7 +10,21 @@ define('MEDITRENDY_COD_FEE_AMOUNT', 2.00);
 define('MEDITRENDY_COD_FEE_TAXABLE', false);
 
 function meditrendy_cod_fee_label() {
-    return 'Apmokėjimo pristatymo metu mokestis';
+    $locale = strtolower((string) (function_exists('determine_locale') ? determine_locale() : get_locale()));
+
+    if (strpos($locale, 'lv') === 0) {
+        return 'Maksa par apmaksu saņemšanas brīdī';
+    }
+
+    if (strpos($locale, 'et') === 0) {
+        return 'Kättesaamisel tasumise tasu';
+    }
+
+    if (strpos($locale, 'pl') === 0) {
+        return 'Opłata za pobranie';
+    }
+
+    return __('Apmokėjimo pristatymo metu mokestis', 'meditrendy-core');
 }
 
 function meditrendy_cod_fee_ensure_session() {
@@ -43,11 +57,41 @@ function meditrendy_cod_fee_get_payment_method() {
     return (string) WC()->session->get('chosen_payment_method', '');
 }
 
+function meditrendy_cod_fee_pickup_markers() {
+    return apply_filters('meditrendy_cod_fee_pickup_markers', [
+        'local_pickup',
+        'pickup',
+        'collection',
+        'atsiimimas',
+        'atsiemimas',
+        'atsiimti',
+        'sanemsana',
+        'iznemsana',
+        'pasizvesana',
+        'odbior',
+    ]);
+}
+
+function meditrendy_cod_fee_normalize_pickup_value($value) {
+    $value = wp_strip_all_tags((string) $value);
+    $value = strtolower(remove_accents($value));
+
+    return preg_replace('/[^a-z0-9_:-]+/', ' ', $value);
+}
+
 function meditrendy_cod_fee_is_pickup_method($method_id) {
-    $method_id = strtolower((string) $method_id);
+    $method_id = meditrendy_cod_fee_normalize_pickup_value($method_id);
 
     if ($method_id === '') {
         return false;
+    }
+
+    foreach (meditrendy_cod_fee_pickup_markers() as $marker) {
+        $marker = meditrendy_cod_fee_normalize_pickup_value($marker);
+
+        if ($marker !== '' && strpos($method_id, $marker) !== false) {
+            return true;
+        }
     }
 
     foreach (['local_pickup', 'pickup', 'collection', 'atsiėmimas', 'atsiimimas', 'atsiemimas', 'atsiimti'] as $marker) {
@@ -227,8 +271,9 @@ add_action('wp_enqueue_scripts', function() {
         'meditrendy-checkout-cod-fee',
         'meditrendyCheckoutCodFee',
         [
-            'ajaxUrl' => admin_url('admin-ajax.php'),
-            'nonce'   => wp_create_nonce('meditrendy_checkout_cod_fee'),
+            'ajaxUrl'       => admin_url('admin-ajax.php'),
+            'nonce'         => wp_create_nonce('meditrendy_checkout_cod_fee'),
+            'pickupMarkers' => meditrendy_cod_fee_pickup_markers(),
         ]
     );
 });

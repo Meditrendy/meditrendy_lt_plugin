@@ -107,7 +107,15 @@
   function getSelectedPaymentMethod() {
     const input = getCheckedPaymentInput();
 
-    return isCodInput(input) ? 'cod' : '';
+    if (!input) {
+      return '';
+    }
+
+    if (isCodInput(input)) {
+      return 'cod';
+    }
+
+    return String(input.value || '').trim();
   }
 
   function refreshClassicCheckout() {
