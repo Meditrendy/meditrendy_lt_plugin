@@ -62,6 +62,48 @@ require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-labels.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-last-comment-column.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/paysera-pos-sync.php';
 
+/**
+ * Load Meditrendy Core storefront translations from the WordPress Site Language.
+ *
+ * Each country storefront is a separate WordPress installation. This prevents a
+ * temporary Polylang selection or an administrator profile locale from changing
+ * customer-facing labels such as the product-set add-to-cart button.
+ */
+function meditrendy_core_load_storefront_translations() {
+    if (is_admin() || !function_exists('meditrendy_core_current_language')) {
+        return;
+    }
+
+    $language = meditrendy_core_current_language();
+    $locales = [
+        'en' => 'en_GB',
+        'et' => 'et',
+        'lt' => null,
+        'lv' => 'lv',
+        'pl' => 'pl_PL',
+    ];
+
+    if (!isset($locales[$language])) {
+        return;
+    }
+
+    unload_textdomain('meditrendy-core', true);
+
+    // Lithuanian is the plugin's source language, so it deliberately has no MO file.
+    if ($locales[$language] === null) {
+        return;
+    }
+
+    $translation_file = MEDITRENDY_CORE_DIR . 'languages/meditrendy-core-' . $locales[$language] . '.mo';
+
+    if (!is_readable($translation_file)) {
+        return;
+    }
+
+    load_textdomain('meditrendy-core', $translation_file);
+}
+add_action('init', 'meditrendy_core_load_storefront_translations', 1);
+
 /* ======================================================
    ACF +SHOP MAMAGER
 ====================================================== */
