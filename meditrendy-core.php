@@ -29,6 +29,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/side-cart.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/edrone-newsletter.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/performance.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-attribute-labels.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-size-order.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-filters.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/filter-settings.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/side-cart-upsells.php';

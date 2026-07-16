@@ -239,6 +239,24 @@ function meditrendy_color_swatches_product_terms($product, $taxonomy, $seen = []
     return [];
 }
 
+function meditrendy_color_swatches_color_terms($product) {
+    foreach (['pa_color', 'pa_kolor'] as $taxonomy) {
+        $terms = meditrendy_color_swatches_product_terms($product, $taxonomy);
+
+        if (!empty($terms)) {
+            return [
+                'taxonomy' => $taxonomy,
+                'terms'    => $terms,
+            ];
+        }
+    }
+
+    return [
+        'taxonomy' => 'pa_color',
+        'terms'    => [],
+    ];
+}
+
 function meditrendy_color_swatches_term_slugs($terms) {
     $slugs = [];
 
@@ -357,7 +375,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     $limit = max(0, absint($atts['limit']));
     $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v6_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_swatches_v7_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -377,7 +395,9 @@ function meditrendy_color_swatches_shortcode($atts = []) {
         return '';
     }
 
-    $current_color_terms = meditrendy_color_swatches_product_terms($product, 'pa_color');
+    $current_color_data = meditrendy_color_swatches_color_terms($product);
+    $current_color_terms = $current_color_data['terms'];
+    $color_taxonomy = $current_color_data['taxonomy'];
     $current_color_name = !empty($current_color_terms) ? $current_color_terms[0]->name : '';
     $swatches = [];
 
@@ -388,7 +408,8 @@ function meditrendy_color_swatches_shortcode($atts = []) {
             continue;
         }
 
-        $color_terms = meditrendy_color_swatches_product_terms($related_product, 'pa_color');
+        $color_data = meditrendy_color_swatches_color_terms($related_product);
+        $color_terms = $color_data['terms'];
 
         if(empty($color_terms)) {
             continue;
@@ -449,7 +470,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
 
     echo '<div class="mt-color-wrapper">';
     echo '<div class="mt-color-label">';
-    echo esc_html(wc_attribute_label('pa_color')) . ': <span class="mt-current-color">' . esc_html($current_color_name) . '</span>';
+    echo esc_html(wc_attribute_label($color_taxonomy)) . ': <span class="mt-current-color">' . esc_html($current_color_name) . '</span>';
     echo '</div>';
     echo '<div class="mt-color-swatches">';
     echo $swatches_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -473,7 +494,7 @@ function meditrendy_add_colors_to_loop() {
 }
 
 add_action('save_post_product', 'meditrendy_clear_related_color_swatches_cache');
-add_action('edited_pa_color', function() {
+function meditrendy_clear_all_color_swatches_cache() {
     global $wpdb;
 
     $transients = $wpdb->get_col(
@@ -486,6 +507,8 @@ add_action('edited_pa_color', function() {
     foreach($transients as $transient) {
         delete_transient(str_replace('_transient_', '', $transient));
     }
-});
+}
+
+add_action('edited_pa_color', 'meditrendy_clear_all_color_swatches_cache');
 add_shortcode('meditrendy_colors', 'meditrendy_color_swatches_shortcode');
 add_action('woocommerce_after_shop_loop_item_title', 'meditrendy_add_colors_to_loop', 15);
