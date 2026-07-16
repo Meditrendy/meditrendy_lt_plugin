@@ -57,6 +57,10 @@ function meditrendy_checkout_translation_map() {
         return meditrendy_checkout_latvian_translation_map();
     }
 
+    if ('lt' !== meditrendy_checkout_current_language()) {
+        return [];
+    }
+
     return [
         'Coupon code "%s" has been applied to your cart.' => 'Nuolaidos kodas „%s“ pritaikytas jūsų krepšeliui.',
         'Coupon code "%s" has been removed from your cart.' => 'Nuolaidos kodas „%s“ pašalintas iš jūsų krepšelio.',
@@ -202,6 +206,12 @@ add_action('wp_enqueue_scripts', 'meditrendy_reapply_checkout_block_translations
 function meditrendy_add_checkout_block_translation_script($handle) {
     static $fallback_added = false;
 
+    $translations = meditrendy_checkout_translation_map();
+
+    if (empty($translations)) {
+        return;
+    }
+
     wp_enqueue_script('wp-i18n');
 
     if (!wp_script_is($handle, 'registered') && !wp_script_is($handle, 'enqueued')) {
@@ -218,7 +228,7 @@ function meditrendy_add_checkout_block_translation_script($handle) {
         static function ($translation) {
             return [$translation];
         },
-        meditrendy_checkout_translation_map()
+        $translations
     );
 
     wp_add_inline_script(
