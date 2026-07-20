@@ -8,11 +8,13 @@ function meditrendy_size_charts_contexts() {
     return apply_filters('meditrendy_size_chart_contexts', [
         'women' => [
             'label'          => __('Women', 'meditrendy-core'),
-            'category_slugs' => ['moterims', 'sievietem', 'naistele'],
+            'category_slugs' => ['moterims', 'sievietem', 'naistele', 'dla-kobiet', 'women'],
+            'category_keywords' => ['moter', 'sieviet', 'naist', 'kobiet', 'women'],
         ],
         'men' => [
             'label'          => __('Men', 'meditrendy-core'),
-            'category_slugs' => ['vyrams', 'viriesiem', 'meestele'],
+            'category_slugs' => ['vyrams', 'viriesiem', 'meestele', 'dla-mezczyzn', 'men'],
+            'category_keywords' => ['vyr', 'viries', 'meeste', 'mezczyzn', 'men'],
         ],
     ]);
 }
@@ -460,7 +462,9 @@ function meditrendy_size_charts_term_chart($term, $context = '') {
         $meta_keys[] = meditrendy_size_charts_context_meta_key($context);
     }
 
-    $meta_keys[] = MEDITRENDY_SIZE_CHART_META_KEY;
+    if (!$meta_keys) {
+        return '';
+    }
 
     foreach (array_unique($meta_keys) as $meta_key) {
         foreach (array_unique(array_filter($term_ids)) as $term_id) {
@@ -564,33 +568,48 @@ function meditrendy_size_charts_product_context($product) {
         return '';
     }
 
-    $slugs = [];
+    $category_values = [];
 
     foreach ($term_ids as $term_id) {
         $term_id = (int) $term_id;
         $term = get_term($term_id, 'product_cat');
 
-        if ($term && !is_wp_error($term) && !empty($term->slug)) {
-            $slugs[] = $term->slug;
+        if ($term && !is_wp_error($term)) {
+            $category_values[] = $term->slug;
+            $category_values[] = $term->name;
         }
 
         foreach (get_ancestors($term_id, 'product_cat', 'taxonomy') as $ancestor_id) {
             $ancestor = get_term((int) $ancestor_id, 'product_cat');
 
-            if ($ancestor && !is_wp_error($ancestor) && !empty($ancestor->slug)) {
-                $slugs[] = $ancestor->slug;
+            if ($ancestor && !is_wp_error($ancestor)) {
+                $category_values[] = $ancestor->slug;
+                $category_values[] = $ancestor->name;
             }
         }
     }
 
-    $slugs = array_unique(array_map('sanitize_title', $slugs));
+    $category_values = array_unique(array_filter(array_map('sanitize_title', $category_values)));
 
     foreach (meditrendy_size_charts_contexts() as $context => $settings) {
         $category_slugs = array_map('sanitize_title', (array) ($settings['category_slugs'] ?? []));
 
-        if (array_intersect($slugs, $category_slugs)) {
+        if (array_intersect($category_values, $category_slugs)) {
             $cache[$product_id] = sanitize_key($context);
             return $cache[$product_id];
+        }
+    }
+
+    foreach (meditrendy_size_charts_contexts() as $context => $settings) {
+        $keywords = array_filter(array_map('sanitize_title', (array) ($settings['category_keywords'] ?? [])));
+
+        foreach ($category_values as $category_value) {
+            foreach ($keywords as $keyword) {
+                if (strpos($category_value, $keyword) !== false) {
+                    $cache[$product_id] = sanitize_key($context);
+                    return $cache[$product_id];
+                }
+            }
         }
     }
 
@@ -724,7 +743,7 @@ function meditrendy_render_size_charts_admin_page() {
                                 <?php endforeach; ?>
                             </select>
                             <p class="description">
-                                <?php esc_html_e('Products using a selected attribute item with a chart will show a size chart link. Category-specific charts are used first, then the generic fallback chart.', 'meditrendy-core'); ?>
+                                <?php esc_html_e('Products using a selected attribute item with a matching women’s or men’s chart will show a size chart link.', 'meditrendy-core'); ?>
                             </p>
                         </td>
                     </tr>
@@ -737,7 +756,6 @@ function meditrendy_render_size_charts_admin_page() {
                         <tr>
                             <th style="width: 240px;"><?php esc_html_e('Item', 'meditrendy-core'); ?></th>
                             <th style="width: 300px;"><?php esc_html_e('Translations', 'meditrendy-core'); ?></th>
-                            <th><?php esc_html_e('Generic fallback chart', 'meditrendy-core'); ?></th>
                             <?php foreach ($contexts as $context) : ?>
                                 <th><?php echo esc_html(sprintf(__('%s chart', 'meditrendy-core'), $context['label'] ?? '')); ?></th>
                             <?php endforeach; ?>
@@ -746,7 +764,6 @@ function meditrendy_render_size_charts_admin_page() {
                     <tbody>
                         <?php if ($terms) : ?>
                             <?php foreach ($terms as $term) : ?>
-                                <?php $chart = (string) get_term_meta($term->term_id, MEDITRENDY_SIZE_CHART_META_KEY, true); ?>
                                 <tr>
                                     <td>
                                         <strong><?php echo esc_html($term->name); ?></strong>
@@ -754,14 +771,6 @@ function meditrendy_render_size_charts_admin_page() {
                                     </td>
                                     <td>
                                         <?php echo meditrendy_size_charts_render_term_translations($term); ?>
-                                    </td>
-                                    <td>
-                                        <textarea
-                                            name="size_charts[<?php echo esc_attr((int) $term->term_id); ?>]"
-                                            rows="6"
-                                            class="large-text code"
-                                            placeholder="<table><tbody><tr><th>Size</th><th>...</th></tr></tbody></table>"
-                                        ><?php echo esc_textarea($chart); ?></textarea>
                                     </td>
                                     <?php foreach ($contexts as $context_key => $context) : ?>
                                         <?php $context_chart = (string) get_term_meta($term->term_id, meditrendy_size_charts_context_meta_key($context_key), true); ?>
@@ -778,7 +787,7 @@ function meditrendy_render_size_charts_admin_page() {
                             <?php endforeach; ?>
                         <?php else : ?>
                             <tr>
-                                <td colspan="<?php echo esc_attr(3 + count($contexts)); ?>"><?php esc_html_e('No items found for this attribute.', 'meditrendy-core'); ?></td>
+                                <td colspan="<?php echo esc_attr(2 + count($contexts)); ?>"><?php esc_html_e('No items found for this attribute.', 'meditrendy-core'); ?></td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -817,20 +826,11 @@ function meditrendy_save_size_charts() {
 
     update_option(MEDITRENDY_SIZE_CHART_OPTION, $taxonomy);
 
-    $charts = isset($_POST['size_charts']) && is_array($_POST['size_charts']) ? $_POST['size_charts'] : [];
     $context_charts = isset($_POST['size_chart_contexts']) && is_array($_POST['size_chart_contexts']) ? $_POST['size_chart_contexts'] : [];
     $contexts = meditrendy_size_charts_contexts();
 
     foreach (meditrendy_size_charts_get_terms($taxonomy) as $term) {
         $term_id = (int) $term->term_id;
-        $chart = meditrendy_size_charts_sanitize_html($charts[$term_id] ?? '', true);
-
-        if ($chart === '') {
-            delete_term_meta($term_id, MEDITRENDY_SIZE_CHART_META_KEY);
-        } else {
-            update_term_meta($term_id, MEDITRENDY_SIZE_CHART_META_KEY, $chart);
-        }
-
         foreach ($contexts as $context_key => $context) {
             $context_key = sanitize_key($context_key);
             $context_chart = meditrendy_size_charts_sanitize_html($context_charts[$context_key][$term_id] ?? '', true);
@@ -974,10 +974,7 @@ function meditrendy_size_charts_debug_product_rows($product, $taxonomy) {
         }
 
         $context = meditrendy_size_charts_product_context($related_product);
-        $meta_keys = array_filter([
-            $context ? meditrendy_size_charts_context_meta_key($context) : '',
-            MEDITRENDY_SIZE_CHART_META_KEY,
-        ]);
+        $meta_keys = $context ? [meditrendy_size_charts_context_meta_key($context)] : [];
 
         foreach ($terms as $term) {
             foreach ($meta_keys as $meta_key) {
