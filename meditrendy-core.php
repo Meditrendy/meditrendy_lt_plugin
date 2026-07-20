@@ -63,6 +63,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-gross-prices.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-labels.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-last-comment-column.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/paysera-pos-sync.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/wc-price-history-recovery.php';
 
 /**
  * Load Meditrendy Core storefront translations from the WordPress Site Language.

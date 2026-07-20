@@ -80,12 +80,116 @@ function meditrendy_product_price_block_sale_html_parts($product) {
     return $parts;
 }
 
+function meditrendy_product_price_block_history_fallback_html($product) {
+    if (
+        !$product instanceof WC_Product
+        || !class_exists('\\PriorPrice\\HistoryStorage')
+        || !class_exists('\\PriorPrice\\SettingsData')
+        || !class_exists('\\PriorPrice\\Taxes')
+    ) {
+        return '';
+    }
+
+    $storage = new \PriorPrice\HistoryStorage();
+    $settings = new \PriorPrice\SettingsData();
+    $history = $storage->get_history($product->get_id(), false);
+
+    if (empty($history)) {
+        return '';
+    }
+
+    ksort($history, SORT_NUMERIC);
+
+    $days = max(1, $settings->get_days_number());
+    $period_end = current_time('timestamp');
+
+    if (
+        in_array($settings->get_count_from(), ['sale_start', 'sale_start_inclusive'], true)
+        && $product->is_on_sale()
+        && $product->get_date_on_sale_from()
+    ) {
+        $period_end = $product->get_date_on_sale_from()->getOffsetTimestamp();
+
+        if ($settings->get_count_from() === 'sale_start_inclusive') {
+            $period_end += DAY_IN_SECONDS;
+        } else {
+            $period_end--;
+        }
+    }
+
+    $period_start = $period_end - ($days * DAY_IN_SECONDS);
+    $prices = [];
+    $price_at_start = 0.0;
+
+    foreach ($history as $timestamp => $price) {
+        $price = (float) $price;
+
+        if ($price <= 0) {
+            continue;
+        }
+
+        if ((int) $timestamp < $period_start) {
+            $price_at_start = $price;
+            continue;
+        }
+
+        if ((int) $timestamp <= $period_end) {
+            $prices[] = $price;
+        }
+    }
+
+    if ($price_at_start > 0) {
+        $prices[] = $price_at_start;
+    }
+
+    if (empty($prices)) {
+        return '';
+    }
+
+    $lowest = (new \PriorPrice\Taxes())->apply_taxes((float) min($prices), $product);
+    $price_format = str_replace(
+        '%2$s',
+        '<span class="wc-price-history-lowest-raw-value">%2$s</span>',
+        get_woocommerce_price_format()
+    );
+
+    return sprintf(
+        '<div class="wc-price-history-shortcode" data-product-id="%1$s" data-original-price="%2$s">%3$s</div>',
+        $product->get_id(),
+        esc_attr($lowest),
+        wc_price($lowest, ['price_format' => $price_format])
+    );
+}
+
 function meditrendy_product_price_block_omnibus_html($product) {
     if (!$product instanceof WC_Product || !shortcode_exists('wc_price_history')) {
         return '';
     }
 
     $price_history = do_shortcode('[wc_price_history id="' . $product->get_id() . '" show_currency="1"]');
+
+    // The plugin shortcode returns an empty string when it cannot find an entry
+    // inside its configured date window. Its normal price renderer handles that
+    // situation through the plugin's configured "old history" fallback, so use
+    // the same public API for product cards as well.
+    if (
+        trim(wp_strip_all_tags($price_history)) === ''
+        && class_exists('\\PriorPrice\\Prices')
+        && class_exists('\\PriorPrice\\HistoryStorage')
+        && class_exists('\\PriorPrice\\SettingsData')
+        && class_exists('\\PriorPrice\\Taxes')
+    ) {
+        $prices = new \PriorPrice\Prices(
+            new \PriorPrice\HistoryStorage(),
+            new \PriorPrice\SettingsData(),
+            new \PriorPrice\Taxes()
+        );
+        $price_history = $prices->lowest_price_html($product);
+    }
+
+    if (trim(wp_strip_all_tags($price_history)) === '') {
+        $price_history = meditrendy_product_price_block_history_fallback_html($product);
+    }
 
     if (
         trim(wp_strip_all_tags($price_history)) === ''
