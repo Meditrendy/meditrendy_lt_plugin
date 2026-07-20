@@ -85,6 +85,7 @@ function meditrendy_render_product_card($product) {
     $image_alt = meditrendy_product_card_image_alt($product);
     $price_html = meditrendy_product_card_price_html($product);
     $badges_html = meditrendy_product_card_badges_shortcode_html($product);
+    $brand_html = function_exists('meditrendy_product_brand_html') ? meditrendy_product_brand_html($product) : '';
 
     ob_start();
     ?>
@@ -101,6 +102,7 @@ function meditrendy_render_product_card($product) {
         <div class="<?php echo esc_attr(meditrendy_product_card_classes('title_wrap')); ?>">
             <div class="x-text-content">
                 <div class="x-text-content-text">
+                    <?php echo wp_kses_post($brand_html); ?>
                     <h3 class="x-text-content-text-primary"><?php echo esc_html($product->get_name()); ?></h3>
                 </div>
             </div>

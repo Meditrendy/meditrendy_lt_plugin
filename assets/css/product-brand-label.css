@@ -1,0 +1,11 @@
+.mt-product-brand {
+    color: #5f6368;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 0 0 5px;
+}
+
+.single-product .summary > .mt-product-brand {
+    margin-bottom: 8px;
+}
