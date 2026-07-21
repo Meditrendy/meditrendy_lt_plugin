@@ -2,7 +2,7 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * Adds the latest WooCommerce order note to the orders list table.
+ * Adds the latest non-system WooCommerce order note to the orders list table.
  */
 
 function meditrendy_admin_order_last_comment_insert_column($columns) {
@@ -32,7 +32,6 @@ function meditrendy_admin_order_last_comment_note($order_id) {
 
     $notes = wc_get_order_notes([
         'order_id' => absint($order_id),
-        'limit' => 1,
         'orderby' => 'date_created',
         'order' => 'DESC',
     ]);
@@ -41,7 +40,13 @@ function meditrendy_admin_order_last_comment_note($order_id) {
         return null;
     }
 
-    return $notes[0];
+    foreach ($notes as $note) {
+        if ((string) ($note->added_by ?? '') !== 'system') {
+            return $note;
+        }
+    }
+
+    return null;
 }
 
 function meditrendy_admin_order_last_comment_render_note($order_id) {
