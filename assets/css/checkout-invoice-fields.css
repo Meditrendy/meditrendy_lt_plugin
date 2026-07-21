@@ -1,0 +1,137 @@
+/* Checkout address fields */
+.wc-block-checkout .wc-block-components-address-form__company + .wc-block-components-country-input {
+    margin-top: 16px;
+}
+
+.wc-block-components-product-metadata__description {
+    display: none;
+}
+
+/* Checkout hidden billing controls */
+.wc-block-checkout__use-address-for-billing {
+    display: none !important;
+}
+
+/* Checkout custom contact and invoice fields */
+.meditrendy-checkout-contact-phone {
+    margin-top: 12px;
+}
+
+.meditrendy-checkout-contact-name {
+    margin-top: 12px;
+}
+
+.meditrendy-checkout-contact-name[hidden] {
+    display: none;
+}
+
+.meditrendy-checkout-invoice-fields {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid #d8d8d8;
+}
+
+.meditrendy-checkout-invoice-fields__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: #111827;
+    font-size: 14px;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.meditrendy-checkout-invoice-fields__toggle input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    flex: 0 0 auto;
+}
+
+.meditrendy-checkout-invoice-fields__details {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.meditrendy-checkout-invoice-fields__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.45fr);
+    gap: 12px;
+}
+
+.meditrendy-checkout-invoice-fields__details[hidden] {
+    display: none;
+}
+
+.meditrendy-checkout-invoice-fields__field {
+    display: grid;
+    gap: 6px;
+}
+
+.meditrendy-checkout-invoice-fields__field label {
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+.wc-block-checkout .meditrendy-checkout-invoice-fields__field input {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 14px;
+    border: 1px solid #000 !important;
+    border-radius: 4px;
+    background: #fff;
+    color: #111827;
+    font: inherit;
+}
+
+.wc-block-checkout .meditrendy-checkout-invoice-fields__field input:focus {
+    border-color: #000;
+    outline: 1px solid #000;
+    outline-offset: 0;
+}
+
+.meditrendy-checkout-invoice-fields__error {
+    color: #b91c1c;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+/* Checkout terms consent links */
+.wc-block-checkout .meditrendy-checkout-terms-consent a,
+form.checkout .meditrendy-checkout-terms-consent a {
+    color: #0057b8;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+}
+
+.wc-block-checkout .meditrendy-checkout-terms-consent a:hover,
+.wc-block-checkout .meditrendy-checkout-terms-consent a:focus-visible,
+form.checkout .meditrendy-checkout-terms-consent a:hover,
+form.checkout .meditrendy-checkout-terms-consent a:focus-visible {
+    color: #003f87;
+    text-decoration-thickness: 2px;
+}
+
+/* The form contains WooCommerce's redundant full summary before the payment
+ * button. The compact summary is in the sidebar after the form, so it is not
+ * affected by this mobile-only rule. */
+@container (max-width: 699px) {
+    .wc-block-checkout__form .wc-block-checkout__actions .checkout-order-summary-block-fill-wrapper {
+        display: none !important;
+    }
+
+    .wc-block-checkout__sidebar > .wp-block-woocommerce-checkout-order-summary-block {
+        display: block !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .meditrendy-checkout-invoice-fields__row {
+        grid-template-columns: 1fr;
+    }
+}

@@ -5,6 +5,8 @@
   const blockClass = 'meditrendy-checkout-invoice-fields';
   const phoneClass = 'meditrendy-checkout-contact-phone';
   const nameClass = 'meditrendy-checkout-contact-name';
+  const orderSummarySelector = '.wp-block-woocommerce-checkout-order-summary-block';
+  const orderSummaryTitleSelector = '.wc-block-components-checkout-order-summary__title[role="button"]';
   const billingAddressLabels = ['Billing address', 'Pirkėjo adresas'];
   const pickupLabels = ['atsiėmimas', 'atsiimimas', 'pickup', 'collection'];
   const billingToggleLabels = ['naudoti tą patį adresą', 'use same address', 'same address'];
@@ -1091,7 +1093,12 @@
   }
 
   function ensureInvoiceBlock() {
-    const target = findCheckoutEndTarget();
+    const phone = getPhoneField();
+    const phoneWrap = phone ? phone.closest(`.${phoneClass}`) : null;
+    const target = phoneWrap && phoneWrap.parentElement ? {
+      container: phoneWrap.parentElement,
+      after: phoneWrap
+    } : findCheckoutEndTarget();
 
     if (!target) {
       return;
@@ -1103,11 +1110,47 @@
       block = createInvoiceBlock();
     }
 
-    if (block.parentElement !== target.container || (target.before && block.nextElementSibling !== target.before)) {
+    if (target.after) {
+      if (block.parentElement !== target.container || block.previousElementSibling !== target.after) {
+        target.after.insertAdjacentElement('afterend', block);
+      }
+    } else if (block.parentElement !== target.container || (target.before && block.nextElementSibling !== target.before)) {
       target.container.insertBefore(block, target.before || null);
     }
 
     bindInvoiceBlock(block);
+  }
+
+  function forceOpenOrderSummary(title) {
+    const summary = title.closest(orderSummarySelector);
+    const contentId = title.getAttribute('aria-controls');
+    const content = contentId ? document.getElementById(contentId) : summary && summary.querySelector('.wc-block-components-checkout-order-summary__content');
+
+    title.setAttribute('aria-expanded', 'true');
+    title.classList.add('is-open');
+
+    if (content) {
+      content.classList.add('is-open');
+      content.hidden = false;
+      content.removeAttribute('hidden');
+      content.removeAttribute('aria-hidden');
+      content.style.display = '';
+    }
+  }
+
+  function syncOrderSummaries() {
+    document.querySelectorAll(`${orderSummarySelector} ${orderSummaryTitleSelector}`).forEach(function (title) {
+      if (title.getAttribute('aria-expanded') === 'false') {
+        title.click();
+
+        window.requestAnimationFrame(function () {
+          if (title.getAttribute('aria-expanded') === 'false') {
+            forceOpenOrderSummary(title);
+          }
+        });
+      }
+    });
+
   }
 
   function syncBillingAddressLabel() {
@@ -1309,6 +1352,7 @@
     forceDefaultDeliveryShipping();
     ensureContactPhoneField();
     ensureInvoiceBlock();
+    syncOrderSummaries();
     syncBillingAddressLabel();
     hideNativeAddressFields();
     if (!isPickupSelected()) {

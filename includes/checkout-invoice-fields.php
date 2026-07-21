@@ -175,6 +175,7 @@ function meditrendy_checkout_invoice_language() {
 }
 
 function meditrendy_checkout_invoice_labels() {
+    if (false) {
     return [
         'contactPhone' => __('Telefonas', 'meditrendy-core'),
         'firstName' => __('Vardas', 'meditrendy-core'),
@@ -190,6 +191,8 @@ function meditrendy_checkout_invoice_labels() {
         'phoneInvalid' => __('Įveskite teisingą telefono numerį.', 'meditrendy-core'),
         'invoiceRequiredFields' => __('Užpildykite visus sąskaitos faktūros laukus.', 'meditrendy-core'),
     ];
+
+    }
 
     $labels = [
         'lt' => [
@@ -240,7 +243,43 @@ function meditrendy_checkout_invoice_labels() {
     ];
     $language = meditrendy_checkout_invoice_language();
 
-    return $labels[$language] ?? $labels['lt'];
+    if ('pl' === $language) {
+        return [
+            'contactPhone' => 'Telefon',
+            'firstName' => 'Imię',
+            'lastName' => 'Nazwisko',
+            'invoiceRequired' => 'Potrzebuję faktury dla firmy',
+            'companyName' => 'Nazwa firmy',
+            'companyCode' => 'NIP',
+            'invoiceAddress' => 'Adres do faktury',
+            'invoiceStreet' => 'Ulica, numer domu',
+            'invoiceCity' => 'Miasto',
+            'invoicePostcode' => 'Kod pocztowy',
+            'phoneRequired' => 'Wpisz numer telefonu.',
+            'phoneInvalid' => 'Wpisz prawidłowy numer telefonu.',
+            'invoiceRequiredFields' => 'Wypełnij wszystkie pola faktury.',
+        ];
+    }
+
+    if ('en' === $language) {
+        return [
+            'contactPhone' => 'Phone',
+            'firstName' => 'First name',
+            'lastName' => 'Last name',
+            'invoiceRequired' => 'I need an invoice for a company',
+            'companyName' => 'Company name',
+            'companyCode' => 'VAT number',
+            'invoiceAddress' => 'Invoice address',
+            'invoiceStreet' => 'Street, house number',
+            'invoiceCity' => 'City',
+            'invoicePostcode' => 'Postcode',
+            'phoneRequired' => 'Enter a phone number.',
+            'phoneInvalid' => 'Enter a valid phone number.',
+            'invoiceRequiredFields' => 'Complete all invoice fields.',
+        ];
+    }
+
+    return $labels[$language] ?? $labels['en'] ?? $labels['lt'];
 }
 
 function meditrendy_checkout_invoice_required_field_labels() {
@@ -716,9 +755,17 @@ add_action('wp_enqueue_scripts', function() {
     }
 
     $asset_path = MEDITRENDY_CORE_DIR . 'assets/js/checkout-invoice-fields.js';
+    $style_path = MEDITRENDY_CORE_DIR . 'assets/css/checkout-invoice-fields.css';
     $data       = meditrendy_get_checkout_invoice_session_data();
     $pickup_address = meditrendy_get_checkout_pickup_address();
     $labels = meditrendy_checkout_invoice_labels();
+
+    wp_enqueue_style(
+        'meditrendy-checkout-invoice-fields',
+        MEDITRENDY_CORE_URL . 'assets/css/checkout-invoice-fields.css',
+        [],
+        file_exists($style_path) ? filemtime($style_path) : '1.0.0'
+    );
 
     wp_enqueue_script(
         'meditrendy-checkout-invoice-fields',
