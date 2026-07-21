@@ -118,6 +118,9 @@ function meditrendy_side_cart_strings() {
             'refresh_failed' => 'Ostukorvi ei õnnestunud värskendada. Proovi uuesti.',
             'choose_size' => 'Vali suurus',
         ],
+        'en' => [
+            'checkout' => 'Proceed to order',
+        ],
     ];
 }
 
@@ -222,9 +225,6 @@ function meditrendy_side_cart_attribute_label($taxonomy) {
             'pa_ilgis'        => 'Ilgis',
             'pa_kelniu-ilgis' => 'Ilgis',
             'pa_pants-length' => 'Ilgis',
-        ],
-        'en' => [
-            'checkout' => 'Proceed to order',
         ],
         'lv' => [
             'pa_rozmiar'      => 'Izmērs',
@@ -405,7 +405,8 @@ function meditrendy_side_cart_items_html() {
                         </button>
                     </div>
 
-                    <?php if ($attributes) : ?>
+                    <?php // Variation choices are already included in standalone variation names. ?>
+                    <?php if ($attributes && $bundle_children) : ?>
                         <div class="mt-side-cart-item-meta"><?php echo esc_html($attributes); ?></div>
                     <?php endif; ?>
 
