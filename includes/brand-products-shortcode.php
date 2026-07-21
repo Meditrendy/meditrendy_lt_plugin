@@ -181,6 +181,52 @@ function meditrendy_brand_products_selected_ids($atts) {
     return $selected_product_ids;
 }
 
+function meditrendy_brand_products_render_card($product) {
+    if (!$product instanceof WC_Product) {
+        return '';
+    }
+
+    $url = $product->get_permalink();
+    $image_url = meditrendy_product_card_image_url($product);
+    $image_alt = meditrendy_product_card_image_alt($product);
+    $brand_html = function_exists('meditrendy_product_brand_html') ? meditrendy_product_brand_html($product) : '';
+    $badges_html = function_exists('meditrendy_product_card_badges_shortcode_html')
+        ? meditrendy_product_card_badges_shortcode_html($product)
+        : '';
+    $price_html = function_exists('meditrendy_product_card_price_html')
+        ? meditrendy_product_card_price_html($product)
+        : wp_kses_post($product->get_price_html());
+
+    ob_start();
+    ?>
+    <div class="<?php echo esc_attr(meditrendy_product_card_classes('card')); ?>">
+        <div class="<?php echo esc_attr(meditrendy_product_card_classes('media')); ?>">
+            <?php echo wp_kses_post($badges_html); ?>
+            <a class="<?php echo esc_attr(meditrendy_product_card_classes('link')); ?>" href="<?php echo esc_url($url); ?>">
+                <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" loading="lazy">
+            </a>
+        </div>
+        <div class="<?php echo esc_attr(meditrendy_product_card_classes('title_wrap')); ?>">
+            <div class="x-text-content">
+                <div class="x-text-content-text">
+                    <?php echo wp_kses_post($brand_html); ?>
+                    <h3 class="x-text-content-text-primary"><?php echo esc_html($product->get_name()); ?></h3>
+                </div>
+            </div>
+        </div>
+        <div class="<?php echo esc_attr(meditrendy_product_card_classes('price_wrap')); ?>">
+            <div class="x-text-content">
+                <div class="x-text-content-text">
+                    <span class="x-text-content-text-primary"><?php echo wp_kses_post($price_html); ?></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+
+    return ob_get_clean();
+}
+
 function meditrendy_brand_products_render($product_ids) {
     if (!$product_ids) {
         return '';
@@ -201,7 +247,23 @@ function meditrendy_brand_products_render($product_ids) {
         return '';
     }
 
-    return meditrendy_render_product_card_grid($query, ['class' => 'mt-brand-products']);
+    ob_start();
+    ?>
+    <div class="<?php echo esc_attr(trim(meditrendy_product_card_classes('grid') . ' mt-brand-products')); ?>">
+        <div class="<?php echo esc_attr(meditrendy_product_card_classes('inner')); ?>">
+            <?php while ($query->have_posts()) : ?>
+                <?php
+                $query->the_post();
+                echo meditrendy_brand_products_render_card(wc_get_product(get_the_ID())); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+                ?>
+            <?php endwhile; ?>
+        </div>
+    </div>
+    <?php
+
+    wp_reset_postdata();
+
+    return ob_get_clean();
 }
 
 function meditrendy_brand_products_shortcode($atts) {
@@ -228,7 +290,7 @@ function meditrendy_brand_products_shortcode($atts) {
     $cache_key = 'mt_brand_products_' . md5(wp_json_encode([
         'atts'     => $atts,
         'language' => meditrendy_brand_products_language_key(),
-        'markup'   => 'product-card-v1',
+        'markup'   => 'brand-product-card-v2',
         'version'  => meditrendy_brand_products_cache_version(),
     ]));
 

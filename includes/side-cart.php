@@ -44,7 +44,7 @@ function meditrendy_side_cart_strings() {
             'tax_note' => 'Mokesčiai įskaičiuoti į kainą',
             'title' => 'Krepšelis — %d',
             'close' => 'Uždaryti krepšelį',
-            'checkout' => 'Pereiti prie apmokėjimo',
+            'checkout' => 'Pereiti prie užsakymo',
             'cart_unavailable' => 'Krepšelis nepasiekiamas.',
             'cart_disabled' => 'Cart module is disabled.',
             'product_not_found' => 'Prekė nerasta.',
@@ -65,7 +65,7 @@ function meditrendy_side_cart_strings() {
             'tax_note' => 'Nodokļi ir iekļauti cenā',
             'title' => 'Grozs — %d',
             'close' => 'Aizvērt grozu',
-            'checkout' => 'Doties uz apmaksu',
+            'checkout' => 'Pāriet uz pasūtījumu',
             'cart_unavailable' => 'Grozs nav pieejams.',
             'cart_disabled' => 'Groza modulis ir atspējots.',
             'product_not_found' => 'Prece nav atrasta.',
@@ -86,7 +86,7 @@ function meditrendy_side_cart_strings() {
             'tax_note' => 'Podatki są wliczone w cenę',
             'title' => 'Koszyk — %d',
             'close' => 'Zamknij koszyk',
-            'checkout' => 'Przejdź do płatności',
+            'checkout' => 'Przejdź do zamówienia',
             'cart_unavailable' => 'Koszyk jest niedostępny.',
             'cart_disabled' => 'Moduł koszyka jest wyłączony.',
             'product_not_found' => 'Nie znaleziono produktu.',
@@ -107,7 +107,7 @@ function meditrendy_side_cart_strings() {
             'tax_note' => 'Maksud sisalduvad hinnas',
             'title' => 'Ostukorv — %d',
             'close' => 'Sulge ostukorv',
-            'checkout' => 'Mine maksma',
+            'checkout' => 'Mine tellimuse juurde',
             'cart_unavailable' => 'Ostukorv ei ole saadaval.',
             'cart_disabled' => 'Ostukorvi moodul on välja lülitatud.',
             'product_not_found' => 'Toodet ei leitud.',
@@ -222,6 +222,9 @@ function meditrendy_side_cart_attribute_label($taxonomy) {
             'pa_ilgis'        => 'Ilgis',
             'pa_kelniu-ilgis' => 'Ilgis',
             'pa_pants-length' => 'Ilgis',
+        ],
+        'en' => [
+            'checkout' => 'Proceed to order',
         ],
         'lv' => [
             'pa_rozmiar'      => 'Izmērs',
@@ -486,7 +489,7 @@ function meditrendy_side_cart_content_html($include_upsells = false) {
         <?php if (function_exists('WC') && WC()->cart && !WC()->cart->is_empty()) : ?>
             <a class="mt-side-cart-checkout" href="<?php echo esc_url(wc_get_checkout_url()); ?>">
                 <span><?php echo wp_kses_post(WC()->cart->get_cart_subtotal()); ?></span>
-                <span><?php esc_html_e('Pereiti prie apmokėjimo', 'meditrendy-core'); ?></span>
+                <span><?php echo esc_html(meditrendy_side_cart_text('checkout')); ?></span>
             </a>
         <?php endif; ?>
     </div>
