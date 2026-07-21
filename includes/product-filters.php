@@ -1404,7 +1404,7 @@ function meditrendy_native_filters_ajax_products() {
     $cache_key = meditrendy_native_filters_cache_key('ajax_products', $source, [
         'paged'          => $paged,
         'per_page'       => $per_page,
-        'product_cards'  => 'v5',
+        'product_cards'  => 'v6',
     ]);
     $cached_response = get_transient($cache_key);
 

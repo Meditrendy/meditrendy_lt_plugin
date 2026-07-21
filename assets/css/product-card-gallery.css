@@ -1,0 +1,108 @@
+/* Product card image gallery: reusable listing-card structure and interaction. */
+.mt-product-card-gallery {
+  width: 100%;
+}
+
+.mt-product-card-gallery__stage {
+  position: relative;
+}
+
+.mt-product-card-gallery__viewport {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+
+.mt-product-card-gallery__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.mt-product-card-gallery__track {
+  display: grid;
+  grid-auto-columns: 100%;
+  grid-auto-flow: column;
+}
+
+.mt-product-card-gallery__slide {
+  display: block;
+  min-width: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.mt-product-card-gallery__slide img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mt-product-card-gallery__arrow {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .88);
+  color: #111111;
+  cursor: pointer;
+  font-size: 24px;
+  line-height: 24px;
+  opacity: .82;
+  transition: opacity .2s ease, background-color .2s ease;
+}
+
+.mt-product-card-gallery__arrow:hover,
+.mt-product-card-gallery__arrow:focus-visible {
+  background: #ffffff;
+  opacity: 1;
+  outline: none;
+}
+
+.mt-product-card-gallery__arrow--previous {
+  left: 8px;
+}
+
+.mt-product-card-gallery__arrow--next {
+  right: 8px;
+}
+
+.mt-product-card-gallery__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  min-height: 14px;
+  padding-top: 7px;
+}
+
+.mt-product-card-gallery__dot {
+  width: 6px;
+  height: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #b3b3b3;
+  cursor: pointer;
+  transition: background-color .2s ease, transform .2s ease;
+}
+
+.mt-product-card-gallery__dot.is-active {
+  background: #111111;
+  transform: scale(1.15);
+}
+
+.mt-product-card-gallery__dot:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .mt-product-card-gallery__arrow {
+    display: none;
+  }
+}

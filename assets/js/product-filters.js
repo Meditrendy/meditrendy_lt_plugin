@@ -490,6 +490,14 @@
     };
   }
 
+  function updateProductCategoryDescription(url) {
+    var isFirstPage = currentPageFromUrl(url) === 1;
+
+    document.querySelectorAll('.mt-product-category-description').forEach(function (description) {
+      description.hidden = !isFirstPage;
+    });
+  }
+
   function paginationSelector() {
     return '.x-paginate, .x-pagination, .woocommerce-pagination, .pagination, .page-numbers, [class*="pagination"], [class*="Pagination"]';
   }
@@ -881,6 +889,7 @@
           scrollToTop();
         }
         setProductsLoadedText(form);
+        updateProductCategoryDescription(url);
 
         if (!options.replaceHistory) {
           window.history.pushState({ mtNativeFilters: true }, '', url.toString());

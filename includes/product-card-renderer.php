@@ -47,6 +47,204 @@ function meditrendy_product_card_image_alt($product) {
     return $alt ?: ($product ? $product->get_name() : '');
 }
 
+/**
+ * Return the featured image and, when available, the first gallery image for a
+ * product card. Keeping this to two images makes catalogue pages predictable
+ * and keeps their image payload small.
+ */
+function meditrendy_product_card_gallery_image_ids($product) {
+    if (!$product instanceof WC_Product) {
+        return [];
+    }
+
+    $gallery_product = $product;
+
+    if ($product->is_type('variation')) {
+        $parent = wc_get_product($product->get_parent_id());
+
+        if ($parent instanceof WC_Product) {
+            $gallery_product = $parent;
+        }
+    }
+
+    $image_ids = array_merge(
+        [meditrendy_product_card_image_id($product)],
+        $gallery_product->get_gallery_image_ids()
+    );
+
+    $image_ids = array_values(array_unique(array_filter(array_map('absint', $image_ids))));
+
+    return array_slice($image_ids, 0, 2);
+}
+
+function meditrendy_product_card_gallery_image_alt($image_id, $product) {
+    $alt = get_post_meta($image_id, '_wp_attachment_image_alt', true);
+
+    return $alt ?: ($product instanceof WC_Product ? $product->get_name() : '');
+}
+
+function meditrendy_product_card_gallery_html($product) {
+    if (!$product instanceof WC_Product) {
+        return '';
+    }
+
+    $image_ids = meditrendy_product_card_gallery_image_ids($product);
+    $url = $product->get_permalink();
+
+    if (!$image_ids) {
+        $image_url = meditrendy_product_card_image_url($product);
+        $image_alt = meditrendy_product_card_image_alt($product);
+
+        return sprintf(
+            '<a class="%1$s" data-x-effect="{&quot;durationBase&quot;:&quot;300ms&quot;}" href="%2$s"><img src="%3$s" alt="%4$s" loading="lazy"></a>',
+            esc_attr(meditrendy_product_card_classes('link')),
+            esc_url($url),
+            esc_url($image_url),
+            esc_attr($image_alt)
+        );
+    }
+
+    $has_multiple_images = count($image_ids) > 1;
+
+    ob_start();
+    ?>
+    <div class="mt-product-card-gallery" data-mt-product-card-gallery>
+        <div class="mt-product-card-gallery__stage">
+            <div class="mt-product-card-gallery__viewport" data-mt-product-card-gallery-viewport>
+                <div class="mt-product-card-gallery__track">
+                    <?php foreach ($image_ids as $index => $image_id) : ?>
+                        <a class="<?php echo esc_attr(meditrendy_product_card_classes('link')); ?> mt-product-card-gallery__slide" data-x-effect="{&quot;durationBase&quot;:&quot;300ms&quot;}" href="<?php echo esc_url($url); ?>">
+                            <?php
+                            echo wp_kses_post(
+                                wp_get_attachment_image(
+                                    $image_id,
+                                    'full',
+                                    false,
+                                    [
+                                        'alt' => meditrendy_product_card_gallery_image_alt($image_id, $product),
+                                        'loading' => 'lazy',
+                                    ]
+                                )
+                            );
+                            ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php if ($has_multiple_images) : ?>
+                <button class="mt-product-card-gallery__arrow mt-product-card-gallery__arrow--previous" type="button" data-mt-product-card-gallery-direction="previous" aria-label="<?php echo esc_attr__('Ankstesnė produkto nuotrauka', 'meditrendy-core'); ?>">
+                    <span aria-hidden="true">&#8249;</span>
+                </button>
+                <button class="mt-product-card-gallery__arrow mt-product-card-gallery__arrow--next" type="button" data-mt-product-card-gallery-direction="next" aria-label="<?php echo esc_attr__('Kita produkto nuotrauka', 'meditrendy-core'); ?>">
+                    <span aria-hidden="true">&#8250;</span>
+                </button>
+            <?php endif; ?>
+        </div>
+        <?php if ($has_multiple_images) : ?>
+            <div class="mt-product-card-gallery__dots" aria-label="<?php echo esc_attr__('Produkto nuotraukos', 'meditrendy-core'); ?>">
+                <?php foreach ($image_ids as $index => $image_id) : ?>
+                    <button class="mt-product-card-gallery__dot<?php echo $index === 0 ? ' is-active' : ''; ?>" type="button" data-mt-product-card-gallery-slide="<?php echo esc_attr($index); ?>" aria-label="<?php echo esc_attr(sprintf(__('Rodyti %d produkto nuotrauką', 'meditrendy-core'), $index + 1)); ?>" aria-current="<?php echo $index === 0 ? 'true' : 'false'; ?>"></button>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+    <?php
+
+    return ob_get_clean();
+}
+
+function meditrendy_product_card_gallery_shortcode($atts = []) {
+    $atts = shortcode_atts(
+        [
+            'id' => '',
+        ],
+        $atts,
+        'mt_product_card_gallery'
+    );
+
+    $product_id_value = (string) $atts['id'];
+
+    // Cornerstone evaluates shortcodes before its dynamic-content pass. Resolve
+    // an ID tag here so a product Looper can supply the current product.
+    if ($product_id_value !== '' && function_exists('cs_dynamic_content')) {
+        $product_id_value = cs_dynamic_content($product_id_value);
+    }
+
+    $product_id = absint($product_id_value);
+
+    if (!$product_id && get_post_type(get_the_ID()) === 'product') {
+        $product_id = get_the_ID();
+    }
+
+    return meditrendy_product_card_gallery_html(wc_get_product($product_id));
+}
+
+add_shortcode('mt_product_card_gallery', 'meditrendy_product_card_gallery_shortcode');
+
+/**
+ * Load the small gallery assets only on product listings or pages that contain
+ * one of the product-card shortcodes.
+ */
+function meditrendy_product_card_gallery_should_enqueue_assets() {
+    if (is_admin()) {
+        return false;
+    }
+
+    $is_product_archive =
+        (function_exists('is_shop') && is_shop())
+        || (function_exists('is_product_category') && is_product_category())
+        || (function_exists('is_product_tag') && is_product_tag())
+        || is_post_type_archive('product');
+
+    if ($is_product_archive) {
+        return true;
+    }
+
+    global $post;
+
+    if (!$post instanceof WP_Post) {
+        return false;
+    }
+
+    foreach (['mt_product_card_gallery', 'meditrendy_product_filters', 'meditrendy_brand_products'] as $shortcode) {
+        if (has_shortcode($post->post_content, $shortcode)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function meditrendy_enqueue_product_card_gallery_assets() {
+    if (!apply_filters('meditrendy_product_card_gallery_enqueue_assets', meditrendy_product_card_gallery_should_enqueue_assets())) {
+        return;
+    }
+
+    $css_path = MEDITRENDY_CORE_DIR . 'assets/css/product-card-gallery.css';
+    $js_path = MEDITRENDY_CORE_DIR . 'assets/js/product-card-gallery.js';
+
+    if (file_exists($css_path)) {
+        wp_enqueue_style(
+            'meditrendy-product-card-gallery',
+            MEDITRENDY_CORE_URL . 'assets/css/product-card-gallery.css',
+            [],
+            filemtime($css_path)
+        );
+    }
+
+    if (file_exists($js_path)) {
+        wp_enqueue_script(
+            'meditrendy-product-card-gallery',
+            MEDITRENDY_CORE_URL . 'assets/js/product-card-gallery.js',
+            [],
+            filemtime($js_path),
+            true
+        );
+    }
+}
+
+add_action('wp_enqueue_scripts', 'meditrendy_enqueue_product_card_gallery_assets', 20);
+
 function meditrendy_product_card_price_text($product) {
     if (!$product) {
         return '';
@@ -81,8 +279,6 @@ function meditrendy_render_product_card($product) {
     }
 
     $url = $product->get_permalink();
-    $image_url = meditrendy_product_card_image_url($product);
-    $image_alt = meditrendy_product_card_image_alt($product);
     $price_html = meditrendy_product_card_price_html($product);
     $badges_html = meditrendy_product_card_badges_shortcode_html($product);
     $brand_html = function_exists('meditrendy_product_brand_html') ? meditrendy_product_brand_html($product) : '';
@@ -95,9 +291,7 @@ function meditrendy_render_product_card($product) {
                 <div class="x-bg-layer-upper-custom"></div>
             </div>
             <?php echo wp_kses_post($badges_html); ?>
-            <a class="<?php echo esc_attr(meditrendy_product_card_classes('link')); ?>" data-x-effect="{&quot;durationBase&quot;:&quot;300ms&quot;}" href="<?php echo esc_url($url); ?>">
-                <img src="<?php echo esc_url($image_url); ?>" alt="<?php echo esc_attr($image_alt); ?>" loading="lazy">
-            </a>
+            <?php echo meditrendy_product_card_gallery_html($product); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
         <div class="<?php echo esc_attr(meditrendy_product_card_classes('title_wrap')); ?>">
             <div class="x-text-content">
