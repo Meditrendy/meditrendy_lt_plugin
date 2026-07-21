@@ -209,6 +209,55 @@ function meditrendy_side_cart_is_hidden_item($cart_item) {
     return (bool) apply_filters('meditrendy_side_cart_is_hidden_item', $hidden, $cart_item);
 }
 
+function meditrendy_side_cart_attribute_label($taxonomy) {
+    $taxonomy = sanitize_title((string) $taxonomy);
+    $language = meditrendy_side_cart_language();
+    $labels = [
+        'lt' => [
+            'pa_rozmiar'      => 'Dydis',
+            'pa_size'         => 'Dydis',
+            'pa_dydis'        => 'Dydis',
+            'pa_length'       => 'Ilgis',
+            'pa_dlugosc'      => 'Ilgis',
+            'pa_ilgis'        => 'Ilgis',
+            'pa_kelniu-ilgis' => 'Ilgis',
+            'pa_pants-length' => 'Ilgis',
+        ],
+        'lv' => [
+            'pa_rozmiar'      => 'Izmērs',
+            'pa_size'         => 'Izmērs',
+            'pa_dydis'        => 'Izmērs',
+            'pa_length'       => 'Garums',
+            'pa_dlugosc'      => 'Garums',
+            'pa_ilgis'        => 'Garums',
+            'pa_kelniu-ilgis' => 'Garums',
+            'pa_pants-length' => 'Garums',
+        ],
+        'pl' => [
+            'pa_rozmiar'      => 'Rozmiar',
+            'pa_size'         => 'Rozmiar',
+            'pa_dydis'        => 'Rozmiar',
+            'pa_length'       => 'Długość',
+            'pa_dlugosc'      => 'Długość',
+            'pa_ilgis'        => 'Długość',
+            'pa_kelniu-ilgis' => 'Długość',
+            'pa_pants-length' => 'Długość',
+        ],
+        'et' => [
+            'pa_rozmiar'      => 'Suurus',
+            'pa_size'         => 'Suurus',
+            'pa_dydis'        => 'Suurus',
+            'pa_length'       => 'Pikkus',
+            'pa_dlugosc'      => 'Pikkus',
+            'pa_ilgis'        => 'Pikkus',
+            'pa_kelniu-ilgis' => 'Pikkus',
+            'pa_pants-length' => 'Pikkus',
+        ],
+    ];
+
+    return $labels[$language][$taxonomy] ?? wc_attribute_label($taxonomy);
+}
+
 function meditrendy_side_cart_item_attributes($cart_item) {
     $parts = [];
 
@@ -226,7 +275,7 @@ function meditrendy_side_cart_item_attributes($cart_item) {
                 $label = $term && !is_wp_error($term) ? $term->name : '';
             }
 
-            $parts[] = $label ?: wc_attribute_label($taxonomy) . ': ' . wc_clean($value);
+            $parts[] = meditrendy_side_cart_attribute_label($taxonomy) . ': ' . ($label ?: wc_clean($value));
         }
     }
 
@@ -242,6 +291,39 @@ function meditrendy_side_cart_item_image($product) {
         'class' => 'mt-side-cart-item-image',
         'loading' => 'lazy',
     ]);
+}
+
+/**
+ * Return the already-loaded bundled child cart items for one visible bundle
+ * parent. This only reads the current cart contents.
+ */
+function meditrendy_side_cart_bundle_children($parent_cart_item_key, $parent_cart_item, $cart_contents = null) {
+    if (!function_exists('WC') || !WC()->cart) {
+        return [];
+    }
+
+    $cart_contents = is_array($cart_contents) ? $cart_contents : WC()->cart->get_cart();
+    $children = [];
+
+    foreach ($cart_contents as $cart_item) {
+        $child_parent_key = (string) ($cart_item['woosb_parent_key'] ?? '');
+
+        if ($child_parent_key === '' || $child_parent_key !== (string) $parent_cart_item_key) {
+            continue;
+        }
+
+        $product = $cart_item['data'] ?? null;
+
+        if (!$product || !is_a($product, 'WC_Product')) {
+            continue;
+        }
+
+        $children[] = [
+            'name' => $product->get_name(),
+        ];
+    }
+
+    return $children;
 }
 
 function meditrendy_side_cart_remove_icon() {
@@ -266,10 +348,12 @@ function meditrendy_side_cart_items_html() {
         return '<div class="mt-side-cart-empty">' . esc_html__('Jūsų krepšelis tuščias.', 'meditrendy-core') . '</div>';
     }
 
+    $cart_contents = WC()->cart->get_cart();
+
     ob_start();
     ?>
     <div class="mt-side-cart-items">
-        <?php foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) :
+        <?php foreach ($cart_contents as $cart_item_key => $cart_item) :
             $product = $cart_item['data'] ?? null;
 
             if (meditrendy_side_cart_is_hidden_item($cart_item)) {
@@ -285,6 +369,7 @@ function meditrendy_side_cart_items_html() {
             $max_quantity = $product->get_max_purchase_quantity();
             $max_attribute = $max_quantity > 0 ? $max_quantity : '';
             $attributes = meditrendy_side_cart_item_attributes($cart_item);
+            $bundle_children = meditrendy_side_cart_bundle_children($cart_item_key, $cart_item, $cart_contents);
             ?>
             <article
                 class="mt-side-cart-item"
@@ -319,6 +404,16 @@ function meditrendy_side_cart_items_html() {
 
                     <?php if ($attributes) : ?>
                         <div class="mt-side-cart-item-meta"><?php echo esc_html($attributes); ?></div>
+                    <?php endif; ?>
+
+                    <?php if ($bundle_children) : ?>
+                        <ul class="mt-side-cart-bundle-selections">
+                            <?php foreach ($bundle_children as $bundle_child) : ?>
+                                <li>
+                                    <span class="mt-side-cart-bundle-selection-name"><?php echo esc_html($bundle_child['name']); ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     <?php endif; ?>
 
                     <div class="mt-side-cart-item-bottom">
@@ -451,7 +546,7 @@ function meditrendy_side_cart_tracking_item_attributes($cart_item) {
             }
 
             $taxonomy = str_replace('attribute_', '', (string) $key);
-            $label = wc_attribute_label($taxonomy);
+            $label = meditrendy_side_cart_attribute_label($taxonomy);
 
             if (taxonomy_exists($taxonomy)) {
                 $term = get_term_by('slug', (string) $value, $taxonomy);
@@ -492,12 +587,10 @@ function meditrendy_side_cart_tracking_cart_value($cart_item_key, $quantity, $pr
     $value = meditrendy_side_cart_tracking_line_value($cart_item);
 
     if ($value <= 0) {
-        $cart_product_id = (string) ($cart_item['product_id'] ?? '');
-
         foreach (WC()->cart->cart_contents as $child_item) {
-            $child_parent_id = (string) ($child_item['woosb_parent_id'] ?? '');
+            $child_parent_key = (string) ($child_item['woosb_parent_key'] ?? '');
 
-            if ($child_parent_id !== (string) $cart_item_key && $child_parent_id !== $cart_product_id) {
+            if ($child_parent_key !== (string) $cart_item_key) {
                 continue;
             }
 

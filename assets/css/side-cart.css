@@ -205,6 +205,21 @@ header .meditrendy-cart-trigger {
     line-height: 1.35;
 }
 
+.mt-side-cart-bundle-selections {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: #31344a;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.mt-side-cart-bundle-selection-name {
+    font-weight: 600;
+}
+
 .mt-side-cart-remove {
     position: relative;
     display: inline-flex;
