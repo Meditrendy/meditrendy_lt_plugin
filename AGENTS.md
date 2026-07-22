@@ -4,9 +4,9 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 
 ## Responsibility
 
-- Put custom WooCommerce behavior, filters, subcategory shortcodes, waitlist logic, AJAX product loading, admin settings, and reusable site features here.
+- Put all changes intended to work across Meditrendy sites here, including reusable WooCommerce behavior, checkout/cart UI, filters, subcategory shortcodes, waitlist logic, AJAX product loading, admin settings, and shared site features.
 - Plugin features must ship the core CSS needed for their markup to work correctly across sites: layout, positioning, visibility states, responsive structure, loading/disabled states, accessibility states, and basic component integrity.
-- Do not put theme-only visual changes here. Brand-specific styling such as colors, typography refinements, decorative spacing, and site-specific polish belongs in the active theme unless it is necessary for the plugin feature to function.
+- Do not put website-specific visual changes here. Brand-specific styling such as colors, typography refinements, decorative spacing, and site-specific polish belongs in the active child theme unless it is necessary for a reusable plugin feature to function.
 - Do not edit WordPress core, WooCommerce core, the Pro parent theme, or third-party plugin files unless the user explicitly asks.
 - If a requested change can be made cleanly in Cornerstone, Pro, WordPress admin, WooCommerce settings, or another editor UI, prefer giving the user exact editor instructions instead of changing code.
 - Use plugin code for editor-controlled areas only when the editor cannot reasonably express the behavior, the change must be reusable/systematic, or the user explicitly asks for a code-level implementation.
@@ -40,7 +40,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 Use existing feature files when possible:
 
 - Product filters: `includes/product-filters.php`, `includes/filter-settings.php`, `assets/js/product-filters.js`, `assets/css/product-filters.css`
-- Subcategories shortcode: `includes/product-subcategories.php`; visual styling lives in the child theme.
+- Subcategories shortcode: `includes/product-subcategories.php`; shared component styling lives with the plugin, while website-specific polish lives in the child theme.
 - Product waitlist: `includes/product-waitlist.php`, `assets/js/product-waitlist.js`, `assets/css/product-waitlist.css`
 
 ## JavaScript And CSS
@@ -72,5 +72,5 @@ Use existing feature files when possible:
 
 ## Boundaries
 
-- If the request is about product data, filtering logic, waitlist emails, product availability, shortcode output, or plugin settings, it probably belongs here.
-- If the request is only about header layout, mobile navigation presentation, cart/checkout styling, or theme shell visuals, it probably belongs in `pro-child`.
+- If a change is intended to apply across sites, it belongs here, including its required PHP, JavaScript, CSS, responsive behavior, and translation-ready strings.
+- If a change is specific to one website's theme, branding, layout, or content, it belongs in that website's child theme.
