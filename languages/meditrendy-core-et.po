@@ -137,6 +137,10 @@ msgstr "Tühjenda"
 msgid "KAINA"
 msgstr "HIND"
 
+#: includes/product-price-block.php:203
+msgid "Mažiausia kaina per 30 d.:"
+msgstr "Madalaim hind viimase 30 päeva jooksul:"
+
 #: includes/generated-translations.php
 msgid "NAUJIENA"
 msgstr "UUS"

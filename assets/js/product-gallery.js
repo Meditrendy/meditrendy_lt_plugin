@@ -82,11 +82,49 @@
     });
   };
 
+  let galleryLayoutRefreshTimer = 0;
+  const observedGalleries = new WeakSet();
+
+  const refreshGalleryLayout = () => {
+    const $ = window.jQuery;
+
+    if (!$ || !$.fn || typeof $.fn.flexslider !== 'function') {
+      return;
+    }
+
+    placeGalleryNavigation();
+    $(window).trigger('resize');
+  };
+
+  const scheduleGalleryLayoutRefresh = (delay = 0) => {
+    window.clearTimeout(galleryLayoutRefreshTimer);
+    galleryLayoutRefreshTimer = window.setTimeout(refreshGalleryLayout, delay);
+  };
+
+  const observeGalleryLayout = () => {
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+
+    document.querySelectorAll('.woocommerce-product-gallery').forEach((gallery) => {
+      if (observedGalleries.has(gallery)) {
+        return;
+      }
+
+      observedGalleries.add(gallery);
+      new ResizeObserver(() => scheduleGalleryLayoutRefresh()).observe(gallery);
+    });
+  };
+
   let attempts = 0;
   let observer = null;
 
   const schedulePlacement = () => {
-    window.requestAnimationFrame(placeGalleryNavigation);
+    window.requestAnimationFrame(() => {
+      placeGalleryNavigation();
+      observeGalleryLayout();
+      scheduleGalleryLayoutRefresh(0);
+    });
   };
 
   if (document.readyState === 'loading') {
@@ -100,9 +138,18 @@
   }
 
   window.addEventListener('load', () => {
-    placeGalleryNavigation();
+    schedulePlacement();
+    window.setTimeout(scheduleGalleryLayoutRefresh, 100);
+    window.setTimeout(scheduleGalleryLayoutRefresh, 500);
+    window.setTimeout(scheduleGalleryLayoutRefresh, 1200);
     scheduleBundleVariationGalleryGuard();
   }, { once: true });
+
+  document.addEventListener('load', (event) => {
+    if (event.target.matches('.woocommerce-product-gallery img')) {
+      scheduleGalleryLayoutRefresh(0);
+    }
+  }, true);
 
   document.addEventListener('click', (event) => {
     if (event.target.closest('.pswp__button--close, .pswp__bg, .pswp__scroll-wrap')) {

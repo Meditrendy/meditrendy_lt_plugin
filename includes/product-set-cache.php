@@ -145,10 +145,8 @@ function meditrendy_product_set_refresh_set($set_id) {
     meditrendy_product_set_clear_display_caches($set_id);
     clean_post_cache($set_id);
 
-    if (function_exists('wc_update_product_lookup_tables')) {
-        wc_update_product_lookup_tables($set_id);
-    }
-
+    // WC_Product::save() refreshes the lookup row for this product. Do not call
+    // wc_update_product_lookup_tables() here: it queues a full-store rebuild.
     $set->save();
 }
 
