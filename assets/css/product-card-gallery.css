@@ -47,7 +47,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, .88);
+  background: none;
   color: #111111;
   cursor: pointer;
   font-size: 24px;
@@ -58,9 +58,9 @@
 
 .mt-product-card-gallery__arrow:hover,
 .mt-product-card-gallery__arrow:focus-visible {
-  background: #ffffff;
   opacity: 1;
   outline: none;
+  transform: scale(1.1);
 }
 
 .mt-product-card-gallery__arrow--previous {
@@ -73,32 +73,44 @@
 
 .mt-product-card-gallery__dots {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 14px;
-  padding-top: 7px;
+  gap: 3px;
+  min-height: 0;
 }
 
 .mt-product-card-gallery__dot {
-  width: 6px;
-  height: 6px;
+  position: relative;
+  width: 18px;
+  height: 3px;
   margin: 0;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: #b3b3b3;
+  border-radius: 0;
+  background: transparent;
   cursor: pointer;
-  transition: background-color .2s ease, transform .2s ease;
 }
 
-.mt-product-card-gallery__dot.is-active {
+.mt-product-card-gallery__dot::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: #c7c7c7;
+  transform: translateY(-50%);
+  transition: background-color .2s ease;
+}
+
+.mt-product-card-gallery__dot.is-active::before {
   background: #111111;
-  transform: scale(1.15);
 }
 
 .mt-product-card-gallery__dot:focus-visible {
   outline: 2px solid #111111;
-  outline-offset: 3px;
+  outline-offset: 1px;
 }
 
 @media (max-width: 767px), (hover: none) and (pointer: coarse) {
