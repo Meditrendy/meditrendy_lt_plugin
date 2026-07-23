@@ -273,6 +273,16 @@ function meditrendy_product_card_badges_shortcode_html($product) {
     return do_shortcode('[mt_product_card_badges id="' . absint($product->get_id()) . '"]');
 }
 
+function meditrendy_product_card_listing_color_swatches_html($product) {
+    if (!$product || !function_exists('meditrendy_listing_color_swatches_shortcode')) {
+        return '';
+    }
+
+    return meditrendy_listing_color_swatches_shortcode([
+        'product_id' => absint($product->get_id()),
+    ]);
+}
+
 function meditrendy_render_product_card($product) {
     if (!$product) {
         return '';
@@ -282,6 +292,7 @@ function meditrendy_render_product_card($product) {
     $price_html = meditrendy_product_card_price_html($product);
     $badges_html = meditrendy_product_card_badges_shortcode_html($product);
     $brand_html = function_exists('meditrendy_product_brand_html') ? meditrendy_product_brand_html($product) : '';
+    $color_swatches_html = meditrendy_product_card_listing_color_swatches_html($product);
 
     ob_start();
     ?>
@@ -308,6 +319,7 @@ function meditrendy_render_product_card($product) {
                 </div>
             </div>
         </div>
+        <?php echo $color_swatches_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
     <?php
 
