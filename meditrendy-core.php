@@ -42,6 +42,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/blog-archive.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-waitlist.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-color-swatches.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-listing-color-swatches.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/product-pdp-upsells.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-size-charts.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-variation-status.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-set-labels.php';

@@ -200,6 +200,13 @@ function meditrendy_product_card_gallery_should_enqueue_assets() {
         return true;
     }
 
+    // The PDP upsells shortcode renders these same gallery cards from a
+    // Cornerstone single-product layout, which is not stored in the product's
+    // post content and therefore cannot be detected with has_shortcode().
+    if (function_exists('is_product') && is_product()) {
+        return true;
+    }
+
     global $post;
 
     if (!$post instanceof WP_Post) {
