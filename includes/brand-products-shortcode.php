@@ -14,6 +14,12 @@ add_action('woocommerce_variation_set_stock_status', 'meditrendy_brand_products_
 add_action('edited_pa_brand', 'meditrendy_brand_products_bump_cache_version');
 add_action('created_pa_brand', 'meditrendy_brand_products_bump_cache_version');
 add_action('delete_pa_brand', 'meditrendy_brand_products_bump_cache_version');
+add_action('edited_pa_color', 'meditrendy_brand_products_bump_cache_version');
+add_action('created_pa_color', 'meditrendy_brand_products_bump_cache_version');
+add_action('delete_pa_color', 'meditrendy_brand_products_bump_cache_version');
+add_action('edited_pa_kolor', 'meditrendy_brand_products_bump_cache_version');
+add_action('created_pa_kolor', 'meditrendy_brand_products_bump_cache_version');
+add_action('delete_pa_kolor', 'meditrendy_brand_products_bump_cache_version');
 add_action('edited_product_cat', 'meditrendy_brand_products_bump_cache_version');
 add_action('created_product_cat', 'meditrendy_brand_products_bump_cache_version');
 add_action('delete_product_cat', 'meditrendy_brand_products_bump_cache_version');
@@ -196,6 +202,13 @@ function meditrendy_brand_products_render_card($product) {
     $price_html = function_exists('meditrendy_product_card_price_html')
         ? meditrendy_product_card_price_html($product)
         : wp_kses_post($product->get_price_html());
+    $color_swatches_html = function_exists('meditrendy_listing_color_swatches_shortcode')
+        ? meditrendy_listing_color_swatches_shortcode([
+            'product_id' => $product->get_id(),
+            'limit'      => 4,
+            'show_more'  => 1,
+        ])
+        : '';
 
     ob_start();
     ?>
@@ -210,7 +223,9 @@ function meditrendy_brand_products_render_card($product) {
             <div class="x-text-content">
                 <div class="x-text-content-text">
                     <?php echo wp_kses_post($brand_html); ?>
-                    <h3 class="x-text-content-text-primary"><?php echo esc_html($product->get_name()); ?></h3>
+                    <a class="<?php echo esc_attr(meditrendy_product_card_classes('link')); ?>" href="<?php echo esc_url($url); ?>">
+                        <h3 class="x-text-content-text-primary"><?php echo esc_html($product->get_name()); ?></h3>
+                    </a>
                 </div>
             </div>
         </div>
@@ -221,6 +236,7 @@ function meditrendy_brand_products_render_card($product) {
                 </div>
             </div>
         </div>
+        <?php echo $color_swatches_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
     </div>
     <?php
 
@@ -290,7 +306,7 @@ function meditrendy_brand_products_shortcode($atts) {
     $cache_key = 'mt_brand_products_' . md5(wp_json_encode([
         'atts'     => $atts,
         'language' => meditrendy_brand_products_language_key(),
-        'markup'   => 'brand-product-card-v2',
+        'markup'   => 'brand-product-card-v3',
         'version'  => meditrendy_brand_products_cache_version(),
     ]));
 
