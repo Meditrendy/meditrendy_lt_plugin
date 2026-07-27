@@ -190,7 +190,7 @@ add_action('woocommerce_after_order_itemmeta', 'meditrendy_admin_order_item_rend
 
 /**
  * Return terms from the product linked to an order item. Variations inherit
- * brand and model terms from their parent product.
+ * product attribute terms from their parent product.
  */
 function meditrendy_admin_order_item_terms($item, $product, $taxonomies) {
     $product_ids = array_filter([
