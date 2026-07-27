@@ -22,6 +22,8 @@ function meditrendy_paysera_pos_defaults() {
         'payment_method'          => 'bankTransfer',
         'language_code'           => 'lt',
         'tax_classifier_21'       => 'PVM1',
+        'tax_classifier_9'        => 'PVM2',
+        'tax_classifier_5'        => 'PVM3',
         'log_level'               => 'error',
         'max_attempts'            => 5,
     ];
@@ -73,6 +75,8 @@ function meditrendy_paysera_pos_sanitize($input) {
         'payment_method'          => in_array(($input['payment_method'] ?? ''), ['bankTransfer', 'wolt', 'bolt'], true) ? $input['payment_method'] : 'bankTransfer',
         'language_code'           => preg_match('/^[a-z]{2}$/', (string) ($input['language_code'] ?? '')) ? (string) $input['language_code'] : 'lt',
         'tax_classifier_21'       => sanitize_text_field($input['tax_classifier_21'] ?? $defaults['tax_classifier_21']),
+        'tax_classifier_9'        => sanitize_text_field($input['tax_classifier_9'] ?? $defaults['tax_classifier_9']),
+        'tax_classifier_5'        => sanitize_text_field($input['tax_classifier_5'] ?? $defaults['tax_classifier_5']),
         'log_level'               => in_array(($input['log_level'] ?? ''), ['none', 'error', 'info'], true) ? $input['log_level'] : 'error',
         'max_attempts'            => max(1, absint($input['max_attempts'] ?? $defaults['max_attempts'])),
     ];
@@ -165,6 +169,14 @@ function meditrendy_paysera_pos_render_settings_page() {
                 <tr>
                     <th scope="row">21% VAT classifier</th>
                     <td><input class="regular-text" type="text" name="<?php echo esc_attr(MEDITRENDY_PAYSERA_POS_OPTION); ?>[tax_classifier_21]" value="<?php echo esc_attr($settings['tax_classifier_21']); ?>"></td>
+                </tr>
+                <tr>
+                    <th scope="row">9% VAT classifier</th>
+                    <td><input class="regular-text" type="text" name="<?php echo esc_attr(MEDITRENDY_PAYSERA_POS_OPTION); ?>[tax_classifier_9]" value="<?php echo esc_attr($settings['tax_classifier_9']); ?>"></td>
+                </tr>
+                <tr>
+                    <th scope="row">5% VAT classifier</th>
+                    <td><input class="regular-text" type="text" name="<?php echo esc_attr(MEDITRENDY_PAYSERA_POS_OPTION); ?>[tax_classifier_5]" value="<?php echo esc_attr($settings['tax_classifier_5']); ?>"></td>
                 </tr>
                 <tr>
                     <th scope="row">Log level</th>
@@ -378,7 +390,7 @@ function meditrendy_paysera_pos_product_sku(WC_Order_Item_Product $item) {
     $product = $item->get_product();
 
     if (!$product) {
-        return null;
+        return 'WC-PRODUCT-' . $item->get_product_id();
     }
 
     $sku = $product->get_sku();
@@ -388,7 +400,10 @@ function meditrendy_paysera_pos_product_sku(WC_Order_Item_Product $item) {
         $sku = $parent ? $parent->get_sku() : '';
     }
 
-    return $sku ? $sku : null;
+    // Paysera POS requires a product reference. WooCommerce products without a
+    // SKU (including variations whose parent has no SKU) use a stable internal
+    // reference instead of sending productSKU: null.
+    return $sku ? $sku : 'WC-PRODUCT-' . $product->get_id();
 }
 
 function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Order $order) {
@@ -417,7 +432,14 @@ function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Ord
     }
 
     $settings = meditrendy_paysera_pos_settings();
-    $classifier = abs($rate - 21.0) < 0.01 ? $settings['tax_classifier_21'] : $settings['tax_classifier_21'];
+    $classifier = '';
+    if (abs($rate - 21.0) < 0.01) {
+        $classifier = $settings['tax_classifier_21'];
+    } elseif (abs($rate - 9.0) < 0.01) {
+        $classifier = $settings['tax_classifier_9'];
+    } elseif (abs($rate - 5.0) < 0.01) {
+        $classifier = $settings['tax_classifier_5'];
+    }
 
     return [
         'taxRate' => $rate,
@@ -834,6 +856,20 @@ function meditrendy_paysera_pos_sync_order($order_id) {
             return;
         }
     }
+
+    // The POS API can return a generic 409 message. Keep the order positions,
+    // totals and structured API response in the WooCommerce log so an
+    // order-specific rejection can be diagnosed. The logger removes customer
+    // data from `payload`; bearer tokens are never part of this context.
+    meditrendy_paysera_pos_log('error', 'Paysera POS create request rejected', [
+        'order_id'      => $order->get_id(),
+        'http_status'   => $status,
+        'payload'       => $payload,
+        'response_body' => $response['body'] ?? [],
+        'response_raw'  => empty($response['body'])
+            ? substr((string) ($response['raw'] ?? ''), 0, 2000)
+            : '',
+    ]);
 
     $message = !empty($response['body']['message']) ? $response['body']['message'] : 'Paysera POS request failed';
     meditrendy_paysera_pos_fail_or_retry($order, $attempts, $message, $status);
