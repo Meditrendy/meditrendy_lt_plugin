@@ -82,6 +82,29 @@ function meditrendy_color_term_hex($term) {
     return '#cccccc';
 }
 
+function meditrendy_color_term_swatch_image_url($term) {
+    if(!$term || !isset($term->term_id)) {
+        return '';
+    }
+
+    // Variation Swatches for WooCommerce stores the image selected in
+    // "Custom Tooltip image" under this term meta key. Use that same image
+    // for Meditrendy's custom related-product color swatch.
+    $image_id = absint(get_term_meta($term->term_id, 'tooltip_image_id', true));
+
+    if(!$image_id) {
+        return '';
+    }
+
+    $image_url = wp_get_attachment_image_url($image_id, 'thumbnail');
+
+    if(!$image_url) {
+        $image_url = wp_get_attachment_image_url($image_id, 'full');
+    }
+
+    return is_string($image_url) ? $image_url : '';
+}
+
 function meditrendy_color_swatches_text($key) {
     $language = function_exists('meditrendy_core_current_language') ? meditrendy_core_current_language() : '';
     $language = $language === 'ee' ? 'et' : $language;
@@ -127,6 +150,8 @@ function meditrendy_clear_color_swatches_cache_for_product($product_id) {
         $wpdb->esc_like('_transient_mt_swatches_v4_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v5_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v6_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v7_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v8_' . $product_id . '_') . '%',
     ];
 
     foreach($patterns as $pattern) {
@@ -375,7 +400,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     $limit = max(0, absint($atts['limit']));
     $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v7_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_swatches_v8_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -417,12 +442,14 @@ function meditrendy_color_swatches_shortcode($atts = []) {
 
         $color_term = $color_terms[0];
         $hex = meditrendy_color_term_hex($color_term);
+        $image_url = meditrendy_color_term_swatch_image_url($color_term);
         $is_active = (int) $p_id === (int) $product_id;
 
         $swatches[] = [
             'url'       => get_permalink($p_id),
             'name'      => $color_term->name,
             'hex'       => $hex,
+            'image_url' => $image_url,
             'is_active' => $is_active,
         ];
     }
@@ -448,9 +475,18 @@ function meditrendy_color_swatches_shortcode($atts = []) {
 
     foreach($visible_swatches as $swatch) {
         $is_active = !empty($swatch['is_active']) ? ' active' : '';
+        $swatch_style = 'background-color:' . $swatch['hex'] . ';';
+
+        if(!empty($swatch['image_url'])) {
+            $swatch_style .= 'background-image:url("' . esc_url($swatch['image_url']) . '");'
+                . 'background-position:center;'
+                . 'background-repeat:no-repeat;'
+                . 'background-size:cover;';
+        }
+
         $swatches_html .= '<a href="' . esc_url($swatch['url']) . '"
         class="mt-swatch' . esc_attr($is_active) . '"
-        style="background:' . esc_attr($swatch['hex']) . '"
+        style="' . esc_attr($swatch_style) . '"
         title="' . esc_attr($swatch['name']) . '"
         aria-label="' . esc_attr($swatch['name']) . '"></a>';
     }
