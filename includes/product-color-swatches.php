@@ -152,6 +152,7 @@ function meditrendy_clear_color_swatches_cache_for_product($product_id) {
         $wpdb->esc_like('_transient_mt_swatches_v6_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v7_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v8_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v9_' . $product_id . '_') . '%',
     ];
 
     foreach($patterns as $pattern) {
@@ -400,7 +401,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     $limit = max(0, absint($atts['limit']));
     $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v8_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_swatches_v9_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -475,6 +476,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
 
     foreach($visible_swatches as $swatch) {
         $is_active = !empty($swatch['is_active']) ? ' active' : '';
+        $has_image = !empty($swatch['image_url']) ? ' has-image' : '';
         $swatch_style = 'background-color:' . $swatch['hex'] . ';';
 
         if(!empty($swatch['image_url'])) {
@@ -485,9 +487,9 @@ function meditrendy_color_swatches_shortcode($atts = []) {
         }
 
         $swatches_html .= '<a href="' . esc_url($swatch['url']) . '"
-        class="mt-swatch' . esc_attr($is_active) . '"
+        class="mt-swatch' . esc_attr($is_active . $has_image) . '"
         style="' . esc_attr($swatch_style) . '"
-        title="' . esc_attr($swatch['name']) . '"
+        ' . (empty($swatch['image_url']) ? 'title="' . esc_attr($swatch['name']) . '"' : '') . '
         aria-label="' . esc_attr($swatch['name']) . '"></a>';
     }
 
