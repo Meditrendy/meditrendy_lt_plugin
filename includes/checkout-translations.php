@@ -224,13 +224,6 @@ function meditrendy_add_checkout_block_translation_script($handle) {
         'Including %s VAT' => ['Įskaitant %s PVM'],
     ];
 
-    $translations = array_map(
-        static function ($translation) {
-            return [$translation];
-        },
-        $translations
-    );
-
     wp_add_inline_script(
         $handle,
         'window.wp && window.wp.i18n && window.wp.i18n.setLocaleData(' . wp_json_encode($translations) . ', "woocommerce");',
