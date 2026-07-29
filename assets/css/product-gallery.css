@@ -1,0 +1,106 @@
+.woocommerce-product-gallery {
+    position: relative;
+}
+
+.mt-product-gallery-ai-notice {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 12;
+}
+
+.mt-product-gallery-ai-notice__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(20, 20, 20, 0.55);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    color: #171717;
+    font: 700 17px/1 Georgia, serif;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mt-product-gallery-ai-notice__button:hover,
+.mt-product-gallery-ai-notice__button:focus-visible,
+.mt-product-gallery-ai-notice.is-open .mt-product-gallery-ai-notice__button {
+    border-color: #171717;
+    background: #fff;
+}
+
+.mt-product-gallery-ai-notice__button:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 3px;
+}
+
+.mt-product-gallery-ai-notice__tooltip {
+    position: absolute;
+    top: calc(100% + 9px);
+    right: 0;
+    width: min(290px, calc(100vw - 44px));
+    padding: 11px 13px;
+    border-radius: 4px;
+    background: #242424;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    font: 400 13px/1.45 Arial, sans-serif;
+    text-align: left;
+    text-transform: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition:
+        opacity 140ms ease,
+        transform 140ms ease,
+        visibility 140ms ease;
+}
+
+.mt-product-gallery-ai-notice__tooltip::before {
+    content: "";
+    position: absolute;
+    right: 10px;
+    bottom: 100%;
+    border: 6px solid transparent;
+    border-bottom-color: #242424;
+}
+
+.mt-product-gallery-ai-notice.is-open .mt-product-gallery-ai-notice__tooltip {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .mt-product-gallery-ai-notice:hover .mt-product-gallery-ai-notice__tooltip {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 767px) {
+    .mt-product-gallery-ai-notice {
+        top: 10px;
+        right: 10px;
+    }
+
+    .mt-product-gallery-ai-notice__button {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mt-product-gallery-ai-notice__tooltip {
+        transition: none;
+    }
+}

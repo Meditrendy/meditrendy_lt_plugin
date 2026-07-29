@@ -228,3 +228,10 @@ msgstr "Suurus"
 #: includes/generated-translations.php
 msgid "Length"
 msgstr "Pikkus"
+#: includes/product-gallery.php:47
+msgid "Informacija apie produkto nuotraukas"
+msgstr "Teave tootepiltide kohta"
+
+#: includes/product-gallery.php:48
+msgid "Kai kurios mūsų svetainėje naudojamos nuotraukos gali būti sukurtos arba pakoreguotos naudojant dirbtinį intelektą."
+msgstr "Mõned meie veebisaidil kasutatavad pildid võivad olla loodud või töödeldud tehisintellekti abil."

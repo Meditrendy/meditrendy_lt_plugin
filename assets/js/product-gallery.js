@@ -1,4 +1,63 @@
 (() => {
+  let aiNoticeId = 0;
+
+  const closeAiNotices = (exception = null) => {
+    document.querySelectorAll('.mt-product-gallery-ai-notice.is-open').forEach((notice) => {
+      if (notice === exception) {
+        return;
+      }
+
+      notice.classList.remove('is-open');
+
+      const button = notice.querySelector('.mt-product-gallery-ai-notice__button');
+
+      if (button) {
+        button.setAttribute('aria-expanded', 'false');
+      }
+    });
+  };
+
+  const installAiNotices = () => {
+    const config = window.MeditrendyProductGallery?.aiNotice;
+
+    if (!config?.text || !config?.label) {
+      return;
+    }
+
+    document.querySelectorAll('.woocommerce-product-gallery').forEach((gallery) => {
+      if (
+        gallery.querySelector(':scope > .mt-product-gallery-ai-notice')
+        || !gallery.querySelector('.woocommerce-product-gallery__image')
+      ) {
+        return;
+      }
+
+      aiNoticeId += 1;
+
+      const tooltipId = `mt-product-gallery-ai-tooltip-${aiNoticeId}`;
+      const notice = document.createElement('div');
+      const button = document.createElement('button');
+      const tooltip = document.createElement('span');
+
+      notice.className = 'mt-product-gallery-ai-notice';
+
+      button.type = 'button';
+      button.className = 'mt-product-gallery-ai-notice__button';
+      button.setAttribute('aria-label', config.label);
+      button.setAttribute('aria-describedby', tooltipId);
+      button.setAttribute('aria-expanded', 'false');
+      button.textContent = 'i';
+
+      tooltip.id = tooltipId;
+      tooltip.className = 'mt-product-gallery-ai-notice__tooltip';
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = config.text;
+
+      notice.append(button, tooltip);
+      gallery.appendChild(notice);
+    });
+  };
+
   const installBundleVariationGalleryGuard = () => {
     const $ = window.jQuery;
 
@@ -121,6 +180,7 @@
 
   const schedulePlacement = () => {
     window.requestAnimationFrame(() => {
+      installAiNotices();
       placeGalleryNavigation();
       observeGalleryLayout();
       scheduleGalleryLayoutRefresh(0);
@@ -152,6 +212,23 @@
   }, true);
 
   document.addEventListener('click', (event) => {
+    const aiNoticeButton = event.target.closest('.mt-product-gallery-ai-notice__button');
+
+    if (aiNoticeButton) {
+      const notice = aiNoticeButton.closest('.mt-product-gallery-ai-notice');
+      const willOpen = !notice.classList.contains('is-open');
+
+      event.preventDefault();
+      event.stopPropagation();
+      closeAiNotices(notice);
+      notice.classList.toggle('is-open', willOpen);
+      aiNoticeButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+      return;
+    }
+
+    closeAiNotices();
+
     if (event.target.closest('.pswp__button--close, .pswp__bg, .pswp__scroll-wrap')) {
       window.setTimeout(closeMeditrendyViewers, 0);
       window.setTimeout(closeMeditrendyViewers, 250);
@@ -160,6 +237,7 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      closeAiNotices();
       closeMeditrendyViewers();
     }
   });

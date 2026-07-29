@@ -1,5 +1,17 @@
 msgid ""
-msgstr "Project-Id-Version: Meditrendy Core\\nReport-Msgid-Bugs-To: \\nPOT-Creation-Date: 2026-06-22 12:27+0000\\nPO-Revision-Date: 2026-06-23 00:00+0000\\nLast-Translator: Meditrendy\\nLanguage-Team: Meditrendy\\nLanguage: pl_PL\\nPlural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\\nMIME-Version: 1.0\\nContent-Type: text/plain; charset=UTF-8\\nContent-Transfer-Encoding: 8bit\\nX-Domain: meditrendy-core\\n"
+msgstr ""
+"Project-Id-Version: Meditrendy Core\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-22 12:27+0000\n"
+"PO-Revision-Date: 2026-06-23 00:00+0000\n"
+"Last-Translator: Meditrendy\n"
+"Language-Team: Meditrendy\n"
+"Language: pl_PL\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: meditrendy-core\n"
 
 #: includes/product-size-charts.php:502
 #, php-format
@@ -809,3 +821,10 @@ msgstr "Rozmiar"
 #: includes/generated-translations.php
 msgid "Length"
 msgstr "Długość"
+#: includes/product-gallery.php:47
+msgid "Informacija apie produkto nuotraukas"
+msgstr "Informacja o zdjęciach produktu"
+
+#: includes/product-gallery.php:48
+msgid "Kai kurios mūsų svetainėje naudojamos nuotraukos gali būti sukurtos arba pakoreguotos naudojant dirbtinį intelektą."
+msgstr "Niektóre zdjęcia w naszym serwisie mogą być wygenerowane lub edytowane przy użyciu sztucznej inteligencji."
