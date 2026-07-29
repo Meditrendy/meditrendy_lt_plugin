@@ -25,36 +25,51 @@
     }
 
     document.querySelectorAll('.woocommerce-product-gallery').forEach((gallery) => {
-      if (
-        gallery.querySelector(':scope > .mt-product-gallery-ai-notice')
-        || !gallery.querySelector('.woocommerce-product-gallery__image')
-      ) {
+      if (!gallery.querySelector('.woocommerce-product-gallery__image')) {
         return;
       }
 
-      aiNoticeId += 1;
+      let controls = gallery.querySelector(':scope > .mt-product-gallery-meta');
+      let notice = gallery.querySelector('.mt-product-gallery-ai-notice');
 
-      const tooltipId = `mt-product-gallery-ai-tooltip-${aiNoticeId}`;
-      const notice = document.createElement('div');
-      const button = document.createElement('button');
-      const tooltip = document.createElement('span');
+      if (!controls) {
+        controls = document.createElement('div');
+        controls.className = 'mt-product-gallery-meta';
+        gallery.appendChild(controls);
+      }
 
-      notice.className = 'mt-product-gallery-ai-notice';
+      if (!notice) {
+        aiNoticeId += 1;
 
-      button.type = 'button';
-      button.className = 'mt-product-gallery-ai-notice__button';
-      button.setAttribute('aria-label', config.label);
-      button.setAttribute('aria-describedby', tooltipId);
-      button.setAttribute('aria-expanded', 'false');
-      button.textContent = 'i';
+        const tooltipId = `mt-product-gallery-ai-tooltip-${aiNoticeId}`;
+        const button = document.createElement('button');
+        const tooltip = document.createElement('span');
 
-      tooltip.id = tooltipId;
-      tooltip.className = 'mt-product-gallery-ai-notice__tooltip';
-      tooltip.setAttribute('role', 'tooltip');
-      tooltip.textContent = config.text;
+        notice = document.createElement('div');
+        notice.className = 'mt-product-gallery-ai-notice';
 
-      notice.append(button, tooltip);
-      gallery.appendChild(notice);
+        button.type = 'button';
+        button.className = 'mt-product-gallery-ai-notice__button';
+        button.setAttribute('aria-label', config.label);
+        button.setAttribute('aria-describedby', tooltipId);
+        button.setAttribute('aria-expanded', 'false');
+        button.textContent = 'i';
+
+        tooltip.id = tooltipId;
+        tooltip.className = 'mt-product-gallery-ai-notice__tooltip';
+        tooltip.setAttribute('role', 'tooltip');
+        tooltip.textContent = config.text;
+
+        notice.append(button, tooltip);
+      }
+
+      const counter = gallery.querySelector(':scope > .product-gallery-counter');
+
+      if (counter) {
+        controls.appendChild(counter);
+      }
+
+      controls.appendChild(notice);
     });
   };
 
