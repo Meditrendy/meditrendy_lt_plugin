@@ -21,6 +21,7 @@ function meditrendy_edrone_newsletter_translate( $text ) {
         'lt' => array(
             'First name' => 'Vardas',
             'Phone number' => 'Telefono numeris',
+            'Phone number (optional)' => 'Telefono numeris (neprivaloma)',
             'Format: +37060000000' => 'Formatas: +37060000000',
             'Use the international format, for example +37060000000.' => 'Naudokite tarptautinį formatą, pavyzdžiui, +37060000000.',
             'Enter your first name.' => 'Įveskite savo vardą.',
@@ -29,6 +30,7 @@ function meditrendy_edrone_newsletter_translate( $text ) {
         'lv' => array(
             'First name' => 'Vārds',
             'Phone number' => 'Tālruņa numurs',
+            'Phone number (optional)' => 'Tālruņa numurs (nav obligāts)',
             'Format: +37060000000' => 'Formāts: +37060000000',
             'Use the international format, for example +37060000000.' => 'Izmantojiet starptautisko formātu, piemēram, +37060000000.',
             'Enter your first name.' => 'Ievadiet savu vārdu.',
@@ -37,6 +39,7 @@ function meditrendy_edrone_newsletter_translate( $text ) {
         'et' => array(
             'First name' => 'Eesnimi',
             'Phone number' => 'Telefoninumber',
+            'Phone number (optional)' => 'Telefoninumber (valikuline)',
             'Format: +37060000000' => 'Vorming: +37060000000',
             'Use the international format, for example +37060000000.' => 'Kasutage rahvusvahelist vormingut, näiteks +37060000000.',
             'Enter your first name.' => 'Sisestage oma eesnimi.',
@@ -45,6 +48,7 @@ function meditrendy_edrone_newsletter_translate( $text ) {
         'pl' => array(
             'First name' => 'Imię',
             'Phone number' => 'Numer telefonu',
+            'Phone number (optional)' => 'Numer telefonu (opcjonalnie)',
             'Format: +37060000000' => 'Format: +37060000000',
             'Use the international format, for example +37060000000.' => 'Użyj formatu międzynarodowego, na przykład +37060000000.',
             'Enter your first name.' => 'Wpisz swoje imię.',
@@ -259,8 +263,8 @@ function meditrendy_edrone_newsletter_shortcode( $atts ) {
             </label>
 
             <label class="mt-edrone-newsletter-field">
-                <span><?php echo esc_html( meditrendy_edrone_newsletter_translate( 'Phone number' ) ); ?></span>
-                <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="+37060000000" pattern="\+[0-9\s().-]{7,20}" title="<?php echo esc_attr( meditrendy_edrone_newsletter_translate( 'Use the international format, for example +37060000000.' ) ); ?>" aria-describedby="mt-edrone-phone-format" required>
+                <span><?php echo esc_html( meditrendy_edrone_newsletter_translate( 'Phone number (optional)' ) ); ?></span>
+                <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="+37060000000" pattern="\+[0-9\s().-]{7,20}" title="<?php echo esc_attr( meditrendy_edrone_newsletter_translate( 'Use the international format, for example +37060000000.' ) ); ?>" aria-describedby="mt-edrone-phone-format">
             </label>
 
             <button class="mt-edrone-newsletter-button" type="submit"><?php echo esc_html( $atts['button'] ); ?></button>
@@ -305,7 +309,7 @@ function meditrendy_edrone_newsletter_subscribe() {
         wp_send_json_error( array( 'message' => meditrendy_edrone_newsletter_translate( 'Enter your first name.' ) ), 400 );
     }
 
-    if ( ! preg_match( '/^\+[1-9][0-9]{6,14}$/', $phone ) ) {
+    if ( $phone && ! preg_match( '/^\+[1-9][0-9]{6,14}$/', $phone ) ) {
         wp_send_json_error( array( 'message' => meditrendy_edrone_newsletter_translate( 'Enter your phone number with a country code, for example +37060000000.' ) ), 400 );
     }
 
@@ -322,11 +326,14 @@ function meditrendy_edrone_newsletter_subscribe() {
         'action_type'       => 'subscribe',
         'email'             => $email,
         'first_name'        => $first_name,
-        'phone'             => $phone,
         'subscriber_status' => '1',
         'customer_tags'     => $tag,
         'sender_type'       => 'server',
     );
+
+    if ( $phone ) {
+        $request_body['phone'] = $phone;
+    }
 
     $response = wp_remote_post(
         'https://api.edrone.me/trace',
