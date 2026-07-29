@@ -828,3 +828,12 @@ msgstr "Informācija par produkta attēliem"
 #: includes/product-gallery.php:48
 msgid "Kai kurios mūsų svetainėje naudojamos nuotraukos gali būti sukurtos arba pakoreguotos naudojant dirbtinį intelektą."
 msgstr "Daži mūsu vietnē izmantotie attēli var būt ģenerēti vai rediģēti, izmantojot mākslīgo intelektu."
+
+#: includes/cart-estimated-delivery.php
+msgid "Numatomas pristatymo laikas"
+msgstr "Paredzamais piegādes laiks"
+
+#: includes/cart-estimated-delivery.php
+#, php-format
+msgid "%d d."
+msgstr "%d dienas"

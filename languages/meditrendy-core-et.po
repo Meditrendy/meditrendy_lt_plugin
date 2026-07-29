@@ -235,3 +235,12 @@ msgstr "Teave tootepiltide kohta"
 #: includes/product-gallery.php:48
 msgid "Kai kurios mūsų svetainėje naudojamos nuotraukos gali būti sukurtos arba pakoreguotos naudojant dirbtinį intelektą."
 msgstr "Mõned meie veebisaidil kasutatavad pildid võivad olla loodud või töödeldud tehisintellekti abil."
+
+#: includes/cart-estimated-delivery.php
+msgid "Numatomas pristatymo laikas"
+msgstr "Eeldatav tarneaeg"
+
+#: includes/cart-estimated-delivery.php
+#, php-format
+msgid "%d d."
+msgstr "%d päeva"
