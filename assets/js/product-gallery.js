@@ -1,5 +1,37 @@
 (() => {
   let aiNoticeId = 0;
+  const aiNoticeTimers = new WeakMap();
+
+  const clearAiNoticeTimer = (notice) => {
+    const timer = aiNoticeTimers.get(notice);
+
+    if (timer) {
+      window.clearTimeout(timer);
+      aiNoticeTimers.delete(notice);
+    }
+  };
+
+  const hideAiNotice = (notice, suppressHover = false) => {
+    clearAiNoticeTimer(notice);
+    notice.classList.remove('is-open');
+    notice.classList.toggle('is-auto-hidden', suppressHover);
+
+    const button = notice.querySelector('.mt-product-gallery-ai-notice__button');
+
+    if (button) {
+      button.setAttribute('aria-expanded', 'false');
+    }
+  };
+
+  const scheduleAiNoticeHide = (notice) => {
+    clearAiNoticeTimer(notice);
+
+    const timer = window.setTimeout(() => {
+      hideAiNotice(notice, true);
+    }, 4000);
+
+    aiNoticeTimers.set(notice, timer);
+  };
 
   const closeAiNotices = (exception = null) => {
     document.querySelectorAll('.mt-product-gallery-ai-notice.is-open').forEach((notice) => {
@@ -7,13 +39,7 @@
         return;
       }
 
-      notice.classList.remove('is-open');
-
-      const button = notice.querySelector('.mt-product-gallery-ai-notice__button');
-
-      if (button) {
-        button.setAttribute('aria-expanded', 'false');
-      }
+      hideAiNotice(notice);
     });
   };
 
@@ -61,6 +87,17 @@
         tooltip.textContent = config.text;
 
         notice.append(button, tooltip);
+        notice.addEventListener('mouseenter', () => {
+          notice.classList.remove('is-auto-hidden');
+          scheduleAiNoticeHide(notice);
+        });
+        notice.addEventListener('mouseleave', () => {
+          if (!notice.classList.contains('is-open')) {
+            clearAiNoticeTimer(notice);
+          }
+
+          notice.classList.remove('is-auto-hidden');
+        });
       }
 
       const counter = gallery.querySelector(':scope > .product-gallery-counter');
@@ -236,8 +273,15 @@
       event.preventDefault();
       event.stopPropagation();
       closeAiNotices(notice);
+      notice.classList.remove('is-auto-hidden');
       notice.classList.toggle('is-open', willOpen);
       aiNoticeButton.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+
+      if (willOpen) {
+        scheduleAiNoticeHide(notice);
+      } else {
+        clearAiNoticeTimer(notice);
+      }
 
       return;
     }
