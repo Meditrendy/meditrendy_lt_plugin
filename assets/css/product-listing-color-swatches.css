@@ -32,7 +32,11 @@
     flex: 0 0 1.5rem;
     border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 50%;
-    background: var(--mt-listing-swatch-color);
+    background-color: var(--mt-listing-swatch-color);
+    background-image: var(--mt-listing-swatch-image, none);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
     transition: transform 150ms ease;
 }
 

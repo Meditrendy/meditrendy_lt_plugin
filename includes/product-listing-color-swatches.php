@@ -82,7 +82,8 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
         !function_exists('meditrendy_color_swatches_product_terms') ||
         !function_exists('meditrendy_color_swatches_related_product_ids') ||
         !function_exists('meditrendy_color_swatches_color_terms') ||
-        !function_exists('meditrendy_color_term_hex')) {
+        !function_exists('meditrendy_color_term_hex') ||
+        !function_exists('meditrendy_color_term_swatch_image_url')) {
         return '';
     }
 
@@ -118,7 +119,7 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
     $language  = function_exists('meditrendy_core_current_language')
         ? meditrendy_core_current_language()
         : 'lt';
-    $cache_key = 'mt_listing_swatches_v1_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_listing_swatches_v2_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
     $cached    = get_transient($cache_key);
 
     if (false !== $cached) {
@@ -152,10 +153,11 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
         $color_term = $color_terms[0];
 
         $swatches[] = [
-            'active' => (int) $related_id === $product_id,
-            'hex'    => meditrendy_color_term_hex($color_term),
-            'name'   => $color_term->name,
-            'url'    => get_permalink($related_id),
+            'active'    => (int) $related_id === $product_id,
+            'hex'       => meditrendy_color_term_hex($color_term),
+            'image_url' => meditrendy_color_term_swatch_image_url($color_term),
+            'name'      => $color_term->name,
+            'url'       => get_permalink($related_id),
         ];
     }
 
@@ -182,10 +184,18 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
         </div>
         <div class="mt-listing-color-swatches__items">
             <?php foreach ($visible as $swatch) : ?>
+                <?php
+                $has_image = !empty($swatch['image_url']);
+                $style = '--mt-listing-swatch-color:' . $swatch['hex'] . ';';
+
+                if ($has_image) {
+                    $style .= '--mt-listing-swatch-image:url("' . esc_url($swatch['image_url']) . '");';
+                }
+                ?>
                 <a
-                    class="mt-listing-color-swatches__swatch<?php echo $swatch['active'] ? ' is-active' : ''; ?>"
+                    class="mt-listing-color-swatches__swatch<?php echo $swatch['active'] ? ' is-active' : ''; ?><?php echo $has_image ? ' has-image' : ''; ?>"
                     href="<?php echo esc_url($swatch['url']); ?>"
-                    style="--mt-listing-swatch-color: <?php echo esc_attr($swatch['hex']); ?>"
+                    style="<?php echo esc_attr($style); ?>"
                     title="<?php echo esc_attr($swatch['name']); ?>"
                     aria-label="<?php echo esc_attr($swatch['name']); ?>"
                 ></a>
@@ -219,12 +229,19 @@ function meditrendy_listing_color_swatches_clear_cache_for_product($product_id) 
 
     global $wpdb;
 
-    $transients = $wpdb->get_col(
-        $wpdb->prepare(
-            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-            $wpdb->esc_like('_transient_mt_listing_swatches_v1_' . $product_id . '_') . '%'
-        )
-    );
+    $transients = [];
+
+    foreach (['v1', 'v2'] as $version) {
+        $transients = array_merge(
+            $transients,
+            $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+                    $wpdb->esc_like('_transient_mt_listing_swatches_' . $version . '_' . $product_id . '_') . '%'
+                )
+            )
+        );
+    }
 
     foreach ($transients as $transient) {
         delete_transient(str_replace('_transient_', '', $transient));
@@ -262,7 +279,7 @@ function meditrendy_listing_color_swatches_clear_all_cache() {
     $transients = $wpdb->get_col(
         $wpdb->prepare(
             "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-            $wpdb->esc_like('_transient_mt_listing_swatches_v1_') . '%'
+            $wpdb->esc_like('_transient_mt_listing_swatches_') . '%'
         )
     );
 
