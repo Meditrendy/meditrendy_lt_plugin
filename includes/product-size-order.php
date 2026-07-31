@@ -26,7 +26,7 @@ function meditrendy_size_option_sort_weight($option) {
 function meditrendy_sort_variation_size_options($args) {
     $taxonomy = isset($args['attribute']) ? sanitize_title((string) $args['attribute']) : '';
 
-    if (!in_array($taxonomy, ['pa_rozmiar', 'pa_size', 'pa_dydis'], true) || empty($args['options']) || !is_array($args['options'])) {
+    if ($taxonomy !== 'pa_size' || empty($args['options']) || !is_array($args['options'])) {
         return $args;
     }
 
@@ -48,3 +48,18 @@ function meditrendy_sort_variation_size_options($args) {
     return $args;
 }
 add_filter('woocommerce_dropdown_variation_attribute_options_args', 'meditrendy_sort_variation_size_options', 5);
+function meditrendy_sort_size_swatch_terms($terms, $product_id, $taxonomy, $args) {
+    if ($taxonomy !== 'pa_size' || !is_array($terms)) {
+        return $terms;
+    }
+
+    usort($terms, function($left, $right) {
+        $left_weight = meditrendy_size_option_sort_weight($left->slug ?? $left->name ?? '');
+        $right_weight = meditrendy_size_option_sort_weight($right->slug ?? $right->name ?? '');
+
+        return $left_weight <=> $right_weight;
+    });
+
+    return $terms;
+}
+add_filter('woocommerce_get_product_terms', 'meditrendy_sort_size_swatch_terms', 10, 4);
