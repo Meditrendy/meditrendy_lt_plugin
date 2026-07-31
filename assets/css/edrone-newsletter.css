@@ -81,6 +81,7 @@
   line-height: 1;
   cursor: pointer;
   margin-top: 14px;
+  box-shadow: none;
 }
 
 .mt-edrone-newsletter-consent {
