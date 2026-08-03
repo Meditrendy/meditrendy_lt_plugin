@@ -16,6 +16,31 @@ function meditrendy_checkout_current_language() {
     return substr(strtolower((string) $locale), 0, 2);
 }
 
+function meditrendy_checkout_order_pay_translation_map() {
+    $translations = [
+        'lt' => [
+            'You are paying for a guest order. Please continue with payment only if you recognize this order.' => 'Mokate už svečio užsakymą. Tęskite mokėjimą tik tuo atveju, jei atpažįstate šį užsakymą.',
+            'Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our %s.' => 'Jūsų asmens duomenys bus naudojami jūsų užsakymui apdoroti, jūsų naudojimosi šia svetaine patirčiai gerinti ir kitais tikslais, aprašytais mūsų %s.',
+        ],
+        'lv' => [
+            'You are paying for a guest order. Please continue with payment only if you recognize this order.' => 'Jūs maksājat par viesa pasūtījumu. Turpiniet maksājumu tikai tad, ja atpazīstat šo pasūtījumu.',
+            'Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our %s.' => 'Jūsu personas dati tiks izmantoti, lai apstrādātu jūsu pasūtījumu, uzlabotu jūsu pieredzi šajā tīmekļa vietnē un citiem mērķiem, kas aprakstīti mūsu %s.',
+        ],
+        'pl' => [
+            'You are paying for a guest order. Please continue with payment only if you recognize this order.' => 'Płacisz za zamówienie gościa. Proszę kontynuować płatność tylko wtedy, gdy rozpoznajesz to zamówienie.',
+            'Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our %s.' => 'Twoje dane osobowe będą użyte do przetworzenia zamówienia, ułatwienia korzystania ze strony internetowej oraz innych celów opisanych w naszej %s.',
+        ],
+        'et' => [
+            'You are paying for a guest order. Please continue with payment only if you recognize this order.' => 'Maksate külalisena esitatud tellimuse eest. Jätkake maksmist ainult siis, kui tunnete selle tellimuse ära.',
+            'Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our %s.' => 'Teie isikuandmeid kasutatakse teie tellimuse töötlemiseks, teie kasutuskogemuse toetamiseks sellel veebisaidil ja muudel eesmärkidel, mida on kirjeldatud meie %s.',
+        ],
+    ];
+
+    $language = meditrendy_checkout_current_language();
+
+    return $translations[$language] ?? [];
+}
+
 function meditrendy_checkout_latvian_translation_map() {
     return [
         'Checkout' => 'Norēķināšanās',
@@ -53,15 +78,17 @@ function meditrendy_checkout_latvian_translation_map() {
 }
 
 function meditrendy_checkout_translation_map() {
+    $order_pay_translations = meditrendy_checkout_order_pay_translation_map();
+
     if ('lv' === meditrendy_checkout_current_language()) {
-        return meditrendy_checkout_latvian_translation_map();
+        return array_merge(meditrendy_checkout_latvian_translation_map(), $order_pay_translations);
     }
 
     if ('lt' !== meditrendy_checkout_current_language()) {
-        return [];
+        return $order_pay_translations;
     }
 
-    return [
+    return $order_pay_translations + [
         'Coupon code "%s" has been applied to your cart.' => 'Nuolaidos kodas „%s“ pritaikytas jūsų krepšeliui.',
         'Coupon code "%s" has been removed from your cart.' => 'Nuolaidos kodas „%s“ pašalintas iš jūsų krepšelio.',
         'Including %s VAT' => 'Įskaitant %s PVM',
@@ -113,6 +140,29 @@ function meditrendy_translate_woocommerce_checkout_string($translation, $text, $
 }
 
 add_filter('gettext_woocommerce', 'meditrendy_translate_woocommerce_checkout_string', 20, 3);
+
+function meditrendy_translate_checkout_privacy_policy_text($text, $type) {
+    if ('checkout' !== $type) {
+        return $text;
+    }
+
+    $source = 'Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our %s.';
+    $translations = meditrendy_checkout_order_pay_translation_map();
+
+    if (!isset($translations[$source])) {
+        return $text;
+    }
+
+    $english_text = sprintf($source, '[privacy_policy]');
+
+    if ($english_text !== $text) {
+        return $text;
+    }
+
+    return sprintf($translations[$source], '[privacy_policy]');
+}
+
+add_filter('woocommerce_get_privacy_policy_text', 'meditrendy_translate_checkout_privacy_policy_text', 20, 2);
 
 function meditrendy_translate_woocommerce_email_content($content) {
     if (!is_string($content) || '' === $content) {
