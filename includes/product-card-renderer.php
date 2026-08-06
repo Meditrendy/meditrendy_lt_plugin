@@ -192,8 +192,7 @@ function meditrendy_product_card_gallery_should_enqueue_assets() {
 
     $is_product_archive =
         (function_exists('is_shop') && is_shop())
-        || (function_exists('is_product_category') && is_product_category())
-        || (function_exists('is_product_tag') && is_product_tag())
+        || (function_exists('is_product_taxonomy') && is_product_taxonomy())
         || is_post_type_archive('product');
 
     if ($is_product_archive) {
