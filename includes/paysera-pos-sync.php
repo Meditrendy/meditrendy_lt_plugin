@@ -12,6 +12,11 @@ define('MEDITRENDY_PAYSERA_POS_ACTION', 'meditrendy_paysera_pos_sync_order');
 define('MEDITRENDY_PAYSERA_POS_GROUP', 'meditrendy-paysera-pos');
 define('MEDITRENDY_PAYSERA_POS_LOG_SOURCE', 'meditrendy-paysera-pos');
 
+// The site uses a real server cron to run wp-cron.php every minute. Process
+// Action Scheduler jobs through that runner instead of loopback HTTP requests,
+// which can be terminated by the hosting environment and leave actions stale.
+add_filter('action_scheduler_allow_async_request_runner', '__return_false');
+
 function meditrendy_paysera_pos_defaults() {
     return [
         'enabled'                 => 0,
