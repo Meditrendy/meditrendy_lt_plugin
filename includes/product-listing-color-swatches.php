@@ -119,7 +119,7 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
     $language  = function_exists('meditrendy_core_current_language')
         ? meditrendy_core_current_language()
         : 'lt';
-    $cache_key = 'mt_listing_swatches_v2_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_listing_swatches_v3_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
     $cached    = get_transient($cache_key);
 
     if (false !== $cached) {
@@ -231,7 +231,7 @@ function meditrendy_listing_color_swatches_clear_cache_for_product($product_id) 
 
     $transients = [];
 
-    foreach (['v1', 'v2'] as $version) {
+    foreach (['v1', 'v2', 'v3'] as $version) {
         $transients = array_merge(
             $transients,
             $wpdb->get_col(
@@ -291,3 +291,35 @@ function meditrendy_listing_color_swatches_clear_all_cache() {
 add_action('save_post_product', 'meditrendy_listing_color_swatches_clear_related_cache');
 add_action('edited_pa_color', 'meditrendy_listing_color_swatches_clear_all_cache');
 add_action('edited_pa_kolor', 'meditrendy_listing_color_swatches_clear_all_cache');
+
+/**
+ * Invalidate related-product swatches when WooCommerce changes stock without
+ * saving the parent product, for example after editing or syncing a variation.
+ */
+function meditrendy_color_swatches_clear_after_stock_change($product) {
+    if (is_numeric($product)) {
+        $product = wc_get_product(absint($product));
+    }
+
+    if (!$product || !is_a($product, 'WC_Product')) {
+        return;
+    }
+
+    $product_id = $product->is_type('variation')
+        ? absint($product->get_parent_id())
+        : absint($product->get_id());
+
+    if (!$product_id) {
+        return;
+    }
+
+    meditrendy_clear_related_color_swatches_cache($product_id);
+    meditrendy_listing_color_swatches_clear_related_cache($product_id);
+}
+
+function meditrendy_color_swatches_clear_after_stock_status_change($product_id, $stock_status, $product) {
+    meditrendy_color_swatches_clear_after_stock_change($product ?: $product_id);
+}
+
+add_action('woocommerce_product_set_stock_status', 'meditrendy_color_swatches_clear_after_stock_status_change', 10, 3);
+add_action('woocommerce_variation_set_stock_status', 'meditrendy_color_swatches_clear_after_stock_status_change', 10, 3);
