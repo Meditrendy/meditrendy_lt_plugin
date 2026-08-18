@@ -244,3 +244,8 @@ msgstr "Eeldatav tarneaeg"
 #, php-format
 msgid "%d d."
 msgstr "%d päeva"
+
+#: includes/customer-note-email.php
+#, php-format
+msgid "Prie Jūsų užsakymo pridėta pastaba iš %s"
+msgstr "Teie %s tellimusele on lisatud märkus"

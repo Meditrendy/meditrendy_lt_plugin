@@ -837,3 +837,8 @@ msgstr "Szacowany czas dostawy"
 #, php-format
 msgid "%d d."
 msgstr "%d dni"
+
+#: includes/customer-note-email.php
+#, php-format
+msgid "Prie Jūsų užsakymo pridėta pastaba iš %s"
+msgstr "Do Twojego zamówienia z %s została dodana notatka"

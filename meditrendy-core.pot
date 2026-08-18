@@ -825,3 +825,8 @@ msgstr ""
 #, php-format
 msgid "%d d."
 msgstr ""
+
+#: includes/customer-note-email.php
+#, php-format
+msgid "Prie Jūsų užsakymo pridėta pastaba iš %s"
+msgstr ""

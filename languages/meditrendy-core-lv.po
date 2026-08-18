@@ -837,3 +837,8 @@ msgstr "Paredzamais piegādes laiks"
 #, php-format
 msgid "%d d."
 msgstr "%d dienas"
+
+#: includes/customer-note-email.php
+#, php-format
+msgid "Prie Jūsų užsakymo pridėta pastaba iš %s"
+msgstr "Jūsu pasūtījumam no %s ir pievienota piezīme"
