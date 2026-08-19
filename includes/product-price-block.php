@@ -25,9 +25,100 @@ function meditrendy_product_price_block_product($product_id = 0) {
     return false;
 }
 
+function meditrendy_product_price_block_dynamic_set_price($product, $min_or_max = 'min') {
+    if (
+        !$product instanceof WC_Product
+        || !$product->is_type('woosb')
+        || !method_exists($product, 'get_items')
+        || (method_exists($product, 'is_fixed_price') && $product->is_fixed_price())
+    ) {
+        return '';
+    }
+
+    $items = (array) $product->get_items();
+
+    if (!$items) {
+        return '';
+    }
+
+    $helper = function_exists('WPCleverWoosb_Helper') ? WPCleverWoosb_Helper() : null;
+    $price = 0.0;
+    $has_priced_item = false;
+
+    foreach ($items as $item) {
+        if (empty($item['id'])) {
+            continue;
+        }
+
+        $item_product = wc_get_product(absint($item['id']));
+
+        if (!$item_product instanceof WC_Product || !$item_product->exists() || $item_product->is_type('woosb')) {
+            continue;
+        }
+
+        if (
+            method_exists($product, 'exclude_unpurchasable')
+            && $product->exclude_unpurchasable()
+            && (!$item_product->is_purchasable() || !$item_product->is_in_stock())
+        ) {
+            continue;
+        }
+
+        $qty = isset($item['qty']) ? (float) $item['qty'] : 1.0;
+
+        if (!empty($item['optional'])) {
+            $qty = isset($item['min']) ? (float) $item['min'] : 0.0;
+        }
+
+        if ($qty <= 0) {
+            continue;
+        }
+
+        if ($helper && method_exists($helper, 'get_price')) {
+            $item_price = (float) $helper->get_price($item_product, $min_or_max, false);
+        } elseif ($item_product->is_type('variable')) {
+            $item_price = (float) $item_product->get_variation_price($min_or_max, false);
+        } else {
+            $item_price = (float) $item_product->get_price();
+        }
+
+        $price += $item_price * $qty;
+        $has_priced_item = true;
+    }
+
+    if (!$has_priced_item) {
+        return '';
+    }
+
+    $discount_amount = method_exists($product, 'get_discount_amount') ? (float) $product->get_discount_amount() : 0.0;
+    $discount_percentage = method_exists($product, 'get_discount_percentage') ? (float) $product->get_discount_percentage() : 0.0;
+
+    if ($discount_amount > 0) {
+        $price -= $discount_amount;
+    } elseif ($discount_percentage > 0 && $discount_percentage < 100) {
+        $price *= (100 - $discount_percentage) / 100;
+    }
+
+    if ($helper && method_exists($helper, 'round_price')) {
+        $price = $helper->round_price($price);
+    } else {
+        $price = (float) wc_format_decimal($price, wc_get_price_decimals());
+    }
+
+    return max(0, (float) $price);
+}
+
 function meditrendy_product_price_block_raw_price($product, $price_type) {
     if (!$product instanceof WC_Product) {
         return '';
+    }
+
+    if ($price_type !== 'regular') {
+        $dynamic_set_price = meditrendy_product_price_block_dynamic_set_price($product);
+
+        if ($dynamic_set_price !== '') {
+            return $dynamic_set_price;
+        }
     }
 
     if ($product->is_type('variable')) {
@@ -44,6 +135,13 @@ function meditrendy_product_price_block_raw_price($product, $price_type) {
 
     return $product->get_price();
 }
+
+function meditrendy_product_price_block_price_history_raw_price($price, $product) {
+    $dynamic_set_price = meditrendy_product_price_block_dynamic_set_price($product);
+
+    return $dynamic_set_price !== '' ? $dynamic_set_price : $price;
+}
+add_filter('wc_price_history_price_raw_non_taxed', 'meditrendy_product_price_block_price_history_raw_price', 20, 2);
 
 function meditrendy_product_price_block_price_html($product, $raw_price) {
     if (!$product instanceof WC_Product || $raw_price === '' || !is_numeric($raw_price)) {
