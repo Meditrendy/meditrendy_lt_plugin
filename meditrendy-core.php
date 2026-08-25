@@ -68,6 +68,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-image-preview.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-orders-pdf.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/cart-estimated-delivery.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-last-comment-column.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/order-statuses.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/paysera-pos-sync.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/wc-price-history-recovery.php';
 
