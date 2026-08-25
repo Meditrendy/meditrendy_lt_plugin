@@ -452,17 +452,34 @@ function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Ord
     ];
 }
 
-function meditrendy_paysera_pos_position($title, $sku, $qty, $gross_minor, $tax = null) {
+function meditrendy_paysera_pos_position($title, $sku, $qty, $gross_minor, $tax = null, $regular_gross_minor = null) {
     $qty = (float) $qty;
     $unit_minor = $qty > 0 ? (int) round($gross_minor / $qty) : $gross_minor;
+    $regular_gross_minor = $regular_gross_minor === null
+        ? $gross_minor
+        : max($gross_minor, (int) $regular_gross_minor);
+    $regular_unit_minor = $qty > 0
+        ? (int) round($regular_gross_minor / $qty)
+        : $regular_gross_minor;
+
+    $unit_price = [
+        'regular' => (float) meditrendy_paysera_pos_minor_to_decimal($regular_unit_minor),
+    ];
+
+    // Paysera resolves product data from productSKU. A discounted WooCommerce
+    // total sent as the regular price can therefore be replaced by the POS
+    // catalogue price and the order-level difference redistributed across
+    // positions. Preserve WooCommerce's line-level allocation by sending the
+    // pre-discount price as regular and the charged price as special.
+    if ($unit_minor < $regular_unit_minor) {
+        $unit_price['special'] = (float) meditrendy_paysera_pos_minor_to_decimal($unit_minor);
+    }
 
     $position = [
         'title' => (string) $title,
         'productSKU' => $sku ?: null,
         'quantity' => $qty,
-        'unitPrice' => [
-            'regular' => (float) meditrendy_paysera_pos_minor_to_decimal($unit_minor),
-        ],
+        'unitPrice' => $unit_price,
         'measureUnit' => 'unit',
     ];
 
@@ -475,6 +492,10 @@ function meditrendy_paysera_pos_position($title, $sku, $qty, $gross_minor, $tax 
 
 function meditrendy_paysera_pos_item_gross_minor(WC_Order_Item_Product $item) {
     return meditrendy_paysera_pos_round_minor((float) $item->get_total() + (float) $item->get_total_tax());
+}
+
+function meditrendy_paysera_pos_item_subtotal_gross_minor(WC_Order_Item_Product $item) {
+    return meditrendy_paysera_pos_round_minor((float) $item->get_subtotal() + (float) $item->get_subtotal_tax());
 }
 
 function meditrendy_paysera_pos_item_regular_gross_minor(WC_Order_Item_Product $item) {
@@ -587,6 +608,11 @@ function meditrendy_paysera_pos_map_product_positions(WC_Order $order) {
             $gross = is_array($allocated)
                 ? (int) ($allocated[$child->get_id()] ?? 0)
                 : meditrendy_paysera_pos_item_gross_minor($child);
+            $regular_gross = meditrendy_paysera_pos_item_subtotal_gross_minor($child);
+
+            if ($regular_gross <= 0) {
+                $regular_gross = meditrendy_paysera_pos_item_regular_gross_minor($child);
+            }
 
             if ($gross <= 0) {
                 continue;
@@ -597,13 +623,15 @@ function meditrendy_paysera_pos_map_product_positions(WC_Order $order) {
                 meditrendy_paysera_pos_product_sku($child),
                 $child->get_quantity(),
                 $gross,
-                meditrendy_paysera_pos_tax_for_item($child, $order)
+                meditrendy_paysera_pos_tax_for_item($child, $order),
+                $regular_gross
             );
         }
     }
 
     foreach ($normal as $item) {
         $gross = meditrendy_paysera_pos_item_gross_minor($item);
+        $regular_gross = meditrendy_paysera_pos_item_subtotal_gross_minor($item);
 
         if ($gross <= 0) {
             continue;
@@ -614,7 +642,8 @@ function meditrendy_paysera_pos_map_product_positions(WC_Order $order) {
             meditrendy_paysera_pos_product_sku($item),
             $item->get_quantity(),
             $gross,
-            meditrendy_paysera_pos_tax_for_item($item, $order)
+            meditrendy_paysera_pos_tax_for_item($item, $order),
+            $regular_gross
         );
     }
 
