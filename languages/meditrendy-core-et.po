@@ -249,3 +249,23 @@ msgstr "%d päeva"
 #, php-format
 msgid "Prie Jūsų užsakymo pridėta pastaba iš %s"
 msgstr "Teie %s tellimusele on lisatud märkus"
+
+#: includes/product-waitlist.php
+msgid "Prekė vėl prekyboje"
+msgstr "Toode on taas saadaval"
+
+#: includes/product-waitlist.php
+msgid "Sveiki,"
+msgstr "Tere,"
+
+#: includes/product-waitlist.php
+msgid "Prekė"
+msgstr "Toode"
+
+#: includes/product-waitlist.php
+msgid "vėl yra prekyboje."
+msgstr "on taas saadaval."
+
+#: includes/product-waitlist.php
+msgid "Peržiūrėti prekę"
+msgstr "Vaata toodet"
