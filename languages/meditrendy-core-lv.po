@@ -13,6 +13,23 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: meditrendy-core\n"
 
+#: includes/product-card-renderer.php:135
+msgid "Ankstesnė produkto nuotrauka"
+msgstr "Iepriekšējais produkta attēls"
+
+#: includes/product-card-renderer.php:138
+msgid "Kita produkto nuotrauka"
+msgstr "Nākamais produkta attēls"
+
+#: includes/product-card-renderer.php:144
+msgid "Produkto nuotraukos"
+msgstr "Produkta attēli"
+
+#: includes/product-card-renderer.php:146
+#, php-format
+msgid "Rodyti %d produkto nuotrauką"
+msgstr "Rādīt %d. produkta attēlu"
+
 #: includes/product-size-charts.php:502
 #, php-format
 msgid "%s chart"

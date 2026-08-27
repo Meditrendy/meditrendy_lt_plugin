@@ -16,6 +16,23 @@ msgstr ""
 "X-Loco-Version: 2.8.5; wp-7.0; php-8.4.21\n"
 "X-Domain: meditrendy-core"
 
+#: includes/product-card-renderer.php:135
+msgid "Ankstesnė produkto nuotrauka"
+msgstr ""
+
+#: includes/product-card-renderer.php:138
+msgid "Kita produkto nuotrauka"
+msgstr ""
+
+#: includes/product-card-renderer.php:144
+msgid "Produkto nuotraukos"
+msgstr ""
+
+#: includes/product-card-renderer.php:146
+#, php-format
+msgid "Rodyti %d produkto nuotrauką"
+msgstr ""
+
 #: includes/product-size-charts.php:502
 #, php-format
 msgid "%s chart"
