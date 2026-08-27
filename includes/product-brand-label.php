@@ -51,7 +51,11 @@ function meditrendy_product_brand_html($source_product = null) {
     if (!$source_product && function_exists('wc_get_product')) {
         global $product;
 
-        $source_product = $product ?: wc_get_product(get_the_ID());
+        $loop_product = get_post_type(get_the_ID()) === 'product'
+            ? wc_get_product(get_the_ID())
+            : null;
+
+        $source_product = $loop_product ?: $product;
     }
 
     $terms = meditrendy_product_brand_terms($source_product);
@@ -85,8 +89,14 @@ function meditrendy_product_brand_shortcode($atts = []) {
         'meditrendy_product_brand'
     );
 
-    $product = !empty($atts['id']) && function_exists('wc_get_product')
-        ? wc_get_product(absint($atts['id']))
+    $product_id_value = (string) $atts['id'];
+
+    if ($product_id_value !== '' && function_exists('cs_dynamic_content')) {
+        $product_id_value = cs_dynamic_content($product_id_value);
+    }
+
+    $product = $product_id_value !== '' && function_exists('wc_get_product')
+        ? wc_get_product(absint($product_id_value))
         : null;
 
     return meditrendy_product_brand_html($product);

@@ -74,3 +74,4 @@ Use existing feature files when possible:
 
 - If a change is intended to apply across sites, it belongs here, including its required PHP, JavaScript, CSS, responsive behavior, and translation-ready strings.
 - If a change is specific to one website's theme, branding, layout, or content, it belongs in that website's child theme.
+- Never overwrite or edit plugin code through the WordPress admin panel, including the built-in Plugin File Editor. Make plugin code changes only in the repository and deploy them through the established version-controlled workflow.
