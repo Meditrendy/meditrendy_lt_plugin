@@ -5,9 +5,11 @@
 
 .mt-product-card-gallery__stage {
   position: relative;
+  aspect-ratio: 3 / 4;
 }
 
 .mt-product-card-gallery__viewport {
+  height: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
@@ -20,12 +22,14 @@
 
 .mt-product-card-gallery__track {
   display: grid;
+  height: 100%;
   grid-auto-columns: 100%;
   grid-auto-flow: column;
 }
 
 .mt-product-card-gallery__slide {
   display: block;
+  height: 100%;
   min-width: 0;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -34,7 +38,8 @@
 .mt-product-card-gallery__slide img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
 }
 
 .mt-product-card-gallery__arrow {
