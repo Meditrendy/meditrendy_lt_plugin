@@ -967,3 +967,9 @@
     box-shadow: 0 0 0 3px rgba(17, 17, 17, .12);
   }
 }
+
+/* Keep the end of filtered product listings separated from the footer. */
+.woocommerce-pagination,
+.x-paginate {
+  margin-bottom: 48px !important;
+}
