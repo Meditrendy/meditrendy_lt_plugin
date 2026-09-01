@@ -127,6 +127,116 @@ function meditrendy_internal_product_name_admin_column_styles() {
 add_action('admin_head', 'meditrendy_internal_product_name_admin_column_styles', 100);
 
 /**
+ * Check whether WooCommerce is searching from the main Products admin table.
+ *
+ * WooCommerce handles this search through its product data store and removes
+ * the normal WP_Query search value, so the posts_search integration below does
+ * not run for this screen.
+ *
+ * @param string $term Search phrase received by WooCommerce.
+ * @return bool
+ */
+function meditrendy_is_products_admin_list_search($term) {
+    global $pagenow, $typenow;
+
+    if (!is_admin() || $pagenow !== 'edit.php' || $typenow !== 'product' || !isset($_GET['s'])) {
+        return false;
+    }
+
+    $requested_term = wc_clean(wp_unslash($_GET['s']));
+
+    return $requested_term !== '' && $requested_term === $term;
+}
+
+/**
+ * Return product IDs whose private internal name matches the admin search.
+ *
+ * Each word in a phrase must occur in the internal name, matching the useful
+ * multi-word behavior of WooCommerce's built-in product search.
+ *
+ * @param string $term Search phrase.
+ * @return int[]
+ */
+function meditrendy_find_products_by_internal_name($term) {
+    global $wpdb;
+
+    $terms = preg_split('/[\s,+]+/u', trim((string) $term), -1, PREG_SPLIT_NO_EMPTY);
+
+    if (!$terms) {
+        return [];
+    }
+
+    $conditions = [];
+
+    foreach ($terms as $search_term) {
+        $conditions[] = $wpdb->prepare(
+            'internal_name.meta_value LIKE %s',
+            '%' . $wpdb->esc_like($search_term) . '%'
+        );
+    }
+
+    $meta_key_condition = $wpdb->prepare(
+        'internal_name.meta_key = %s',
+        MEDITRENDY_INTERNAL_PRODUCT_NAME_META_KEY
+    );
+
+    $query = "SELECT DISTINCT products.ID
+        FROM {$wpdb->posts} AS products
+        INNER JOIN {$wpdb->postmeta} AS internal_name
+            ON products.ID = internal_name.post_id
+            AND {$meta_key_condition}
+        WHERE products.post_type = 'product'
+        AND " . implode(' AND ', $conditions);
+
+    // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+    return array_map('absint', $wpdb->get_col($query));
+}
+
+/**
+ * Extend the WooCommerce Products admin search with private-name matches.
+ *
+ * @param false|int[] $results            Existing short-circuit value.
+ * @param string      $term               Search phrase.
+ * @param string      $type               Optional product type.
+ * @param bool        $include_variations Whether variations are included.
+ * @param bool        $all_statuses       Whether all statuses are included.
+ * @param int|null    $limit              Optional result limit.
+ * @return false|int[]
+ */
+function meditrendy_admin_search_products_by_internal_name(
+    $results,
+    $term,
+    $type,
+    $include_variations,
+    $all_statuses,
+    $limit
+) {
+    if (is_array($results) || !meditrendy_is_products_admin_list_search($term)) {
+        return $results;
+    }
+
+    remove_filter('woocommerce_product_pre_search_products', 'meditrendy_admin_search_products_by_internal_name', 10);
+
+    try {
+        $data_store = WC_Data_Store::load('product');
+        $product_ids = $data_store->search_products(
+            $term,
+            $type,
+            $include_variations,
+            $all_statuses,
+            $limit
+        );
+    } finally {
+        add_filter('woocommerce_product_pre_search_products', 'meditrendy_admin_search_products_by_internal_name', 10, 6);
+    }
+
+    $product_ids = array_merge($product_ids, meditrendy_find_products_by_internal_name($term));
+
+    return wp_parse_id_list($product_ids);
+}
+add_filter('woocommerce_product_pre_search_products', 'meditrendy_admin_search_products_by_internal_name', 10, 6);
+
+/**
  * Determine whether a WordPress search is scoped to WooCommerce products.
  *
  * @param WP_Query $query Current query.
