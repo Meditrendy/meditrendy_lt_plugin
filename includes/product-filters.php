@@ -660,19 +660,27 @@ function meditrendy_native_filter_term_product_counts($filter, $terms, $context 
 }
 
 function meditrendy_native_color_group_hex($term) {
-    $hex = get_term_meta($term->term_id, 'color_hex', true);
+    $stored_color = trim((string) get_term_meta($term->term_id, 'color_hex', true));
+    $hex = sanitize_hex_color($stored_color);
 
     if ($hex) {
         return $hex;
     }
 
-    $key = strtolower(str_replace('group-', '', $term->slug));
+    $key = strtolower(implode(' ', [
+        str_replace('group-', '', $term->slug),
+        $term->name,
+        $stored_color,
+    ]));
     $fallbacks = [
         'beige'    => '#d8c7aa',
         'black'    => '#111111',
         'blue'     => '#2f6fbd',
         'brown'    => '#7a4a2b',
         'burgundy' => '#7b1f35',
+        'bordeaux' => '#722f37',
+        'bordo'    => '#722f37',
+        'wine'     => '#722f37',
         'green'    => '#3f7a4d',
         'grey'     => '#8e8e8e',
         'gray'     => '#8e8e8e',
@@ -686,7 +694,7 @@ function meditrendy_native_color_group_hex($term) {
     ];
 
     foreach ($fallbacks as $needle => $color) {
-        if (strpos($key, $needle) !== false || stripos($term->name, $needle) !== false) {
+        if (strpos($key, $needle) !== false) {
             return $color;
         }
     }

@@ -193,15 +193,9 @@ add_shortcode('med_filter_colors', function(){
 
     foreach($terms as $term){
 
-        $hex = get_term_meta(
-            $term->term_id,
-            'color_hex',
-            true
-        );
-
-        if(empty($hex)){
-            $hex = '#cccccc';
-        }
+        $hex = function_exists('meditrendy_native_color_group_hex')
+            ? meditrendy_native_color_group_hex($term)
+            : '#cccccc';
 
         $is_active = in_array(
             $term->slug,
