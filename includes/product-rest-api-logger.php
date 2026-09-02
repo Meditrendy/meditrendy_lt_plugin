@@ -12,9 +12,16 @@ if (!defined('ABSPATH')) exit;
 define('MEDITRENDY_PRODUCT_REST_LOG_SOURCE', 'meditrendy-product-rest-api');
 
 function meditrendy_product_rest_log_enabled() {
-    $enabled = defined('MEDITRENDY_PRODUCT_REST_LOG_ENABLED')
-        ? (bool) MEDITRENDY_PRODUCT_REST_LOG_ENABLED
-        : true;
+    $settings = function_exists('meditrendy_module_settings')
+        ? meditrendy_module_settings()
+        : [];
+    $enabled = !array_key_exists('product_rest_log_enabled', $settings)
+        || !empty($settings['product_rest_log_enabled']);
+
+    // An explicit wp-config.php value remains available as an emergency override.
+    if (defined('MEDITRENDY_PRODUCT_REST_LOG_ENABLED')) {
+        $enabled = (bool) MEDITRENDY_PRODUCT_REST_LOG_ENABLED;
+    }
 
     return (bool) apply_filters('meditrendy_product_rest_log_enabled', $enabled);
 }

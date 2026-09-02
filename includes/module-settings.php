@@ -3,7 +3,8 @@ if (!defined('ABSPATH')) exit;
 
 function meditrendy_module_settings_defaults() {
     return [
-        'cart_enabled' => 1,
+        'cart_enabled'             => 1,
+        'product_rest_log_enabled' => 1,
     ];
 }
 
@@ -27,7 +28,8 @@ function meditrendy_module_settings_sanitize($input) {
     $input = is_array($input) ? $input : [];
 
     return [
-        'cart_enabled' => !empty($input['cart_enabled']) ? 1 : 0,
+        'cart_enabled'             => !empty($input['cart_enabled']) ? 1 : 0,
+        'product_rest_log_enabled' => !empty($input['product_rest_log_enabled']) ? 1 : 0,
     ];
 }
 
@@ -78,6 +80,16 @@ function meditrendy_render_module_settings_page() {
                             Enabled
                         </label>
                         <p class="description">Controls the custom side cart shell, AJAX add/update handlers, cart badge assets, and side-cart styling.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">Product REST API logging</th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="meditrendy_module_settings[product_rest_log_enabled]" value="1" <?php checked(!empty($settings['product_rest_log_enabled'])); ?>>
+                            Enabled
+                        </label>
+                        <p class="description">Logs incoming WooCommerce product REST API requests. View entries under WooCommerce &gt; Status &gt; Logs using source <code>meditrendy-product-rest-api</code>.</p>
                     </td>
                 </tr>
             </table>
