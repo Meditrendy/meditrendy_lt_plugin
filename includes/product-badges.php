@@ -43,27 +43,14 @@ function meditrendy_product_card_badge_language() {
 
 function meditrendy_product_card_badge_label($text) {
     $language = meditrendy_product_card_badge_language();
-    $gettext = __($text, 'meditrendy-core');
-
-    if ($gettext !== $text) {
-        return $gettext;
-    }
-
-    if ($language === 'et') {
-        $estonian = [
-            'AKCIJA' => 'SOODUS',
-            'NAUJIENA' => 'UUS',
-            'BESTSELLER' => 'ENIMMÜÜDUD',
-            'Produktų žymos' => 'Tootesildid',
-            'ProduktĹł Ĺľymos' => 'Tootesildid',
-        ];
-
-        if (isset($estonian[$text])) {
-            return $estonian[$text];
-        }
-    }
 
     $translations = [
+        'lt' => [
+            'AKCIJA' => 'AKCIJA',
+            'NAUJIENA' => 'NAUJIENA',
+            'BESTSELLER' => 'BESTSELLER',
+            'Produktų žymos' => 'Produktų žymos',
+        ],
         'en' => [
             'AKCIJA' => 'SALE',
             'NAUJIENA' => 'NEW',
@@ -89,11 +76,21 @@ function meditrendy_product_card_badge_label($text) {
             'NAUJIENA' => 'UUS',
             'BESTSELLER' => 'ENIMMÜÜDUD',
             'Produktų žymos' => 'Tootesildid',
+            'ProduktĹł Ĺľymos' => 'Tootesildid',
         ],
     ];
 
+    // Country storefronts are separate installations. Their resolved storefront
+    // language must take precedence over a text domain loaded from an administrator
+    // profile locale (for example Polish gettext strings leaking onto the EE shop).
     if (isset($translations[$language][$text])) {
         return $translations[$language][$text];
+    }
+
+    $gettext = __($text, 'meditrendy-core');
+
+    if ($gettext !== $text) {
+        return $gettext;
     }
 
     if (function_exists('meditrendy_core_translate_ui_text')) {
