@@ -13,6 +13,14 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: meditrendy-core\n"
 
+#: includes/product-gallery.php
+msgid "Ankstesnis"
+msgstr "Poprzedni"
+
+#: includes/product-gallery.php
+msgid "Kitas"
+msgstr "Następny"
+
 #: includes/product-size-charts.php:502
 #, php-format
 msgid "%s chart"

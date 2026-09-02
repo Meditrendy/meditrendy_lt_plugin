@@ -269,3 +269,23 @@ msgstr "on taas saadaval."
 #: includes/product-waitlist.php
 msgid "Peržiūrėti prekę"
 msgstr "Vaata toodet"
+
+#: includes/product-gallery.php
+msgid "Ankstesnis"
+msgstr "Eelmine"
+
+#: includes/product-gallery.php
+msgid "Kitas"
+msgstr "Järgmine"
+
+#: includes/product-size-charts.php
+msgid "Dydžių lentelė"
+msgstr "Suuruste tabel"
+
+#: includes/product-complete-set.php
+msgid "Užbaikite komplektą"
+msgstr "Täienda komplekti"
+
+#: includes/product-complete-set.php
+msgid "Spalva:"
+msgstr "Värv:"

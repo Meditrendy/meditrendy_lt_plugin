@@ -10,6 +10,8 @@ function meditrendy_product_gallery_carousel_options($options) {
     $options['slideshow'] = false;
     $options['controlNav'] = 'thumbnails';
     $options['directionNav'] = true;
+    $options['prevText'] = __('Ankstesnis', 'meditrendy-core');
+    $options['nextText'] = __('Kitas', 'meditrendy-core');
     $options['smoothHeight'] = true;
     $options['animation'] = 'slide';
 
