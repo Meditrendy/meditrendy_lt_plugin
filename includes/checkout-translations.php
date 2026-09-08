@@ -87,6 +87,20 @@ function meditrendy_checkout_latvian_translation_map() {
 function meditrendy_woocommerce_email_translation_map() {
     $language = meditrendy_checkout_current_language();
     $translations = [
+        'Billing address' => [
+            'lt' => 'Adresas sąskaitai',
+            'lv' => 'Norēķinu adrese',
+            'et' => 'Arveldusaadress',
+            'pl' => 'Adres rozliczeniowy',
+            'en' => 'Billing address',
+        ],
+        'Shipping address' => [
+            'lt' => 'Pristatymo adresas',
+            'lv' => 'Piegādes adrese',
+            'et' => 'Tarneaadress',
+            'pl' => 'Adres dostawy',
+            'en' => 'Shipping address',
+        ],
         'A payment gateway was just enabled on %s.' => [
             'lt' => 'Svetainėje %s ką tik įjungtas mokėjimo būdas.',
             'lv' => 'Vietnē %s tikko tika iespējots maksājuma veids.',

@@ -17,7 +17,11 @@ function meditrendy_admin_order_labels_is_order_screen() {
 }
 
 function meditrendy_admin_order_labels_buyer_address($translation, $text, $domain) {
-    if ($domain !== 'woocommerce' || !meditrendy_admin_order_labels_is_order_screen()) {
+    if (
+        $domain !== 'woocommerce'
+        || !meditrendy_admin_order_labels_is_order_screen()
+        || doing_action('woocommerce_email_customer_details')
+    ) {
         return $translation;
     }
 
