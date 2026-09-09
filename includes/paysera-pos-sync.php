@@ -411,8 +411,7 @@ function meditrendy_paysera_pos_product_sku(WC_Order_Item_Product $item) {
     return $sku ? $sku : 'WC-PRODUCT-' . $product->get_id();
 }
 
-function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Order $order) {
-    $taxes = $item->get_taxes();
+function meditrendy_paysera_pos_tax($taxes, $net) {
     $tax_total = 0.0;
     $tax_rate_id = 0;
 
@@ -432,7 +431,7 @@ function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Ord
 
     $rate = $tax_rate_id ? (float) WC_Tax::get_rate_percent_value($tax_rate_id) : 0.0;
     if ($rate <= 0) {
-        $net = (float) $item->get_total();
+        $net = (float) $net;
         $rate = $net > 0 ? round(($tax_total / $net) * 100, 2) : 0.0;
     }
 
@@ -450,6 +449,14 @@ function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Ord
         'taxRate' => $rate,
         'taxClassifier' => $classifier,
     ];
+}
+
+function meditrendy_paysera_pos_tax_for_item(WC_Order_Item_Product $item, WC_Order $order) {
+    return meditrendy_paysera_pos_tax($item->get_taxes(), $item->get_total());
+}
+
+function meditrendy_paysera_pos_tax_for_shipping(WC_Order_Item_Shipping $item) {
+    return meditrendy_paysera_pos_tax($item->get_taxes(), $item->get_total());
 }
 
 function meditrendy_paysera_pos_position($title, $sku, $qty, $gross_minor, $tax = null, $regular_gross_minor = null) {
@@ -665,7 +672,7 @@ function meditrendy_paysera_pos_map_shipping_positions(WC_Order $order) {
             'SHIPPING',
             1,
             $gross,
-            null
+            meditrendy_paysera_pos_tax_for_shipping($item)
         );
     }
 
