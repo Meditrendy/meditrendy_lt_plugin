@@ -46,6 +46,8 @@ function meditrendy_checkout_latvian_translation_map() {
         'Checkout' => 'Norēķināšanās',
         'Order summary' => 'Pasūtījuma kopsavilkums',
         'Add a discount code' => 'Pievienot atlaides kodu',
+        'Add coupons' => 'Pievienot kuponus',
+        'Enter code' => 'Ievadiet kodu',
         'Subtotal' => 'Starpsumma',
         'Delivery' => 'Piegāde',
         'Total' => 'Kopā',
@@ -760,6 +762,31 @@ function meditrendy_reapply_checkout_block_translations() {
 
 add_action('wp_enqueue_scripts', 'meditrendy_reapply_checkout_block_translations', 100);
 
+function meditrendy_enqueue_checkout_dynamic_translations() {
+    if (is_admin()) {
+        return;
+    }
+
+    $is_cart_or_checkout = (function_exists('is_cart') && is_cart()) || (function_exists('is_checkout') && is_checkout());
+
+    if (!$is_cart_or_checkout) {
+        return;
+    }
+
+    $relative_path = 'assets/js/checkout-dynamic-translations.js';
+    $asset_path = MEDITRENDY_CORE_DIR . $relative_path;
+
+    wp_enqueue_script(
+        'meditrendy-checkout-dynamic-translations',
+        MEDITRENDY_CORE_URL . $relative_path,
+        [],
+        file_exists($asset_path) ? (string) filemtime($asset_path) : null,
+        true
+    );
+}
+
+add_action('wp_enqueue_scripts', 'meditrendy_enqueue_checkout_dynamic_translations', 110);
+
 function meditrendy_add_checkout_block_translation_script($handle) {
     static $fallback_added = false;
 
@@ -775,11 +802,12 @@ function meditrendy_add_checkout_block_translation_script($handle) {
         return;
     }
 
-    $translations = [
-        'Coupon code "%s" has been applied to your cart.' => ['Nuolaidos kodas „%s“ pritaikytas jūsų krepšeliui.'],
-        'Coupon code "%s" has been removed from your cart.' => ['Nuolaidos kodas „%s“ pašalintas iš jūsų krepšelio.'],
-        'Including %s VAT' => ['Įskaitant %s PVM'],
-    ];
+    $translations = array_map(
+        static function ($translation) {
+            return [$translation];
+        },
+        $translations
+    );
 
     wp_add_inline_script(
         $handle,
