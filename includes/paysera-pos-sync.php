@@ -706,14 +706,54 @@ function meditrendy_paysera_pos_customer_payload(WC_Order $order) {
     $phone = trim((string) $order->get_billing_phone());
     $customer = [];
 
+    $customer_fields = [
+        'firstName'   => $order->get_billing_first_name(),
+        'lastName'    => $order->get_billing_last_name(),
+        'companyName' => $order->get_meta('_meditrendy_company_name') ?: $order->get_billing_company(),
+    ];
+
+    foreach ($customer_fields as $key => $value) {
+        $value = trim((string) $value);
+
+        if ($value !== '') {
+            $customer[$key] = $value;
+        }
+    }
+
+    if (function_exists('meditrendy_checkout_invoice_identifier_fields')) {
+        $language = function_exists('meditrendy_checkout_invoice_order_language')
+            ? meditrendy_checkout_invoice_order_language($order)
+            : null;
+
+        foreach (meditrendy_checkout_invoice_identifier_fields($language) as $field) {
+            $paysera_key = (string) ($field['paysera_key'] ?? '');
+            $meta_key = (string) ($field['meta_key'] ?? '');
+            $value = $meta_key !== '' ? trim((string) $order->get_meta($meta_key)) : '';
+
+            if ($paysera_key !== '' && $value !== '') {
+                $customer[$paysera_key] = $value;
+            }
+        }
+    }
+
     if ($email !== '') {
         $customer['email'] = $email;
     }
 
-    if ($phone !== '') {
-        $customer['billingAddress'] = [
-            'phone' => $phone,
-        ];
+    $billing_address = [
+        'phone'    => $phone,
+        'address1' => trim((string) $order->get_billing_address_1()),
+        'address2' => trim((string) $order->get_billing_address_2()),
+        'city'     => trim((string) $order->get_billing_city()),
+        'zip'      => trim((string) $order->get_billing_postcode()),
+        'country'  => trim((string) $order->get_billing_country()),
+    ];
+    $billing_address = array_filter($billing_address, static function($value) {
+        return $value !== '';
+    });
+
+    if ($billing_address) {
+        $customer['billingAddress'] = $billing_address;
     }
 
     return $customer;

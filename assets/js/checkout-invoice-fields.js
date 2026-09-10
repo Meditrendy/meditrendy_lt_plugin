@@ -22,6 +22,16 @@
     invoiceCity: 'Miestas',
     invoicePostcode: 'Pašto kodas'
   }, settings.labels || {});
+  const identifierFields = Array.isArray(settings.identifierFields) && settings.identifierFields.length
+    ? settings.identifierFields
+    : [{
+        key: 'companyCode',
+        inputKey: 'company_code',
+        paymentKey: 'meditrendy_company_code',
+        label: labels.companyCode,
+        required: true,
+        value: settings.companyCode || ''
+      }];
 
   let saveTimer = null;
   let addressSyncTimer = null;
@@ -117,9 +127,21 @@
       createTextInput('meditrendy_invoice_postcode', labels.invoicePostcode, settings.invoicePostcode, 'postal-code')
     );
 
+    fields.append(createTextInput('meditrendy_company_name', labels.companyName, settings.companyName, 'organization'));
+
+    identifierFields.forEach(function (field) {
+      const identifier = createTextInput(`meditrendy_${field.inputKey}`, field.label, field.value, 'off');
+      const input = identifier.querySelector('input');
+
+      if (input) {
+        input.dataset.invoiceIdentifier = field.key;
+        input.dataset.invoiceRequired = field.required ? '1' : '0';
+      }
+
+      fields.append(identifier);
+    });
+
     fields.append(
-      createTextInput('meditrendy_company_name', labels.companyName, settings.companyName, 'organization'),
-      createTextInput('meditrendy_company_code', labels.companyCode, settings.companyCode, 'off'),
       createTextInput('meditrendy_invoice_street', labels.invoiceStreet, settings.invoiceStreet, 'address-line1'),
       cityRow
     );
@@ -182,8 +204,9 @@
     details.hidden = !checkbox.checked;
 
     details.querySelectorAll('input').forEach(function (input) {
-      input.required = checkbox.checked;
-      input.setAttribute('aria-required', checkbox.checked ? 'true' : 'false');
+      const requiredForInvoice = input.dataset.invoiceRequired !== '0';
+      input.required = checkbox.checked && requiredForInvoice;
+      input.setAttribute('aria-required', input.required ? 'true' : 'false');
 
       if (!checkbox.checked) {
         setFieldError(input, '');
@@ -268,7 +291,7 @@
 
     const fields = [
       block.querySelector('#meditrendy_company_name'),
-      block.querySelector('#meditrendy_company_code'),
+      ...Array.from(block.querySelectorAll('[data-invoice-identifier][data-invoice-required="1"]')),
       block.querySelector('#meditrendy_invoice_street'),
       block.querySelector('#meditrendy_invoice_city'),
       block.querySelector('#meditrendy_invoice_postcode')
@@ -306,7 +329,6 @@
   function getPayload(block) {
     const checkbox = block.querySelector('#meditrendy_invoice_required');
     const companyName = block.querySelector('#meditrendy_company_name');
-    const companyCode = block.querySelector('#meditrendy_company_code');
     const invoiceStreet = block.querySelector('#meditrendy_invoice_street');
     const invoiceCity = block.querySelector('#meditrendy_invoice_city');
     const invoicePostcode = block.querySelector('#meditrendy_invoice_postcode');
@@ -318,7 +340,12 @@
     payload.set('invoice_required', checkbox && checkbox.checked ? '1' : '');
     payload.set('contact_phone', contactPhone ? contactPhone.value : '');
     payload.set('company_name', companyName ? companyName.value : '');
-    payload.set('company_code', companyCode ? companyCode.value : '');
+
+    identifierFields.forEach(function (field) {
+      const input = block.querySelector(`#meditrendy_${field.inputKey}`);
+      payload.set(field.inputKey, input ? input.value : '');
+    });
+
     payload.set('invoice_street', invoiceStreet ? invoiceStreet.value : '');
     payload.set('invoice_city', invoiceCity ? invoiceCity.value : '');
     payload.set('invoice_postcode', invoicePostcode ? invoicePostcode.value : '');
@@ -439,10 +466,17 @@
     const block = document.querySelector(`.${blockClass}`);
     const checkbox = block ? block.querySelector('#meditrendy_invoice_required') : null;
 
+    const identifiers = {};
+
+    identifierFields.forEach(function (field) {
+      const input = block ? block.querySelector(`#meditrendy_${field.inputKey}`) : null;
+      identifiers[field.key] = input ? input.value : '';
+    });
+
     return {
       invoiceRequired: !!(checkbox && checkbox.checked),
       company: block && block.querySelector('#meditrendy_company_name') ? block.querySelector('#meditrendy_company_name').value : '',
-      companyCode: block && block.querySelector('#meditrendy_company_code') ? block.querySelector('#meditrendy_company_code').value : '',
+      identifiers: identifiers,
       address_1: block && block.querySelector('#meditrendy_invoice_street') ? block.querySelector('#meditrendy_invoice_street').value : '',
       city: block && block.querySelector('#meditrendy_invoice_city') ? block.querySelector('#meditrendy_invoice_city').value : '',
       postcode: block && block.querySelector('#meditrendy_invoice_postcode') ? block.querySelector('#meditrendy_invoice_postcode').value : ''
@@ -721,11 +755,14 @@
       meditrendy_invoice_required: invoice.invoiceRequired ? '1' : '',
       meditrendy_contact_phone: contactPhone,
       meditrendy_company_name: invoice.company || '',
-      meditrendy_company_code: invoice.companyCode || '',
       meditrendy_invoice_street: invoice.address_1 || '',
       meditrendy_invoice_city: invoice.city || '',
       meditrendy_invoice_postcode: invoice.postcode || ''
     };
+
+    identifierFields.forEach(function (field) {
+      invoiceData[field.paymentKey] = invoice.identifiers[field.key] || '';
+    });
 
     if (!Array.isArray(payload.payment_data)) {
       payload.payment_data = [];
