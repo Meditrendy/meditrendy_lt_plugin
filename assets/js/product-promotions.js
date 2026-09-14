@@ -30,6 +30,28 @@
     });
   }
 
+  function removeExpiredCoupons() {
+    const now = Math.floor(Date.now() / 1000);
+
+    document.querySelectorAll('[data-mt-coupon-expires]').forEach(function (promotion) {
+      const timestamp = parseInt(promotion.getAttribute('data-mt-coupon-expires'), 10);
+
+      if (timestamp && timestamp < now) {
+        const promotions = promotion.closest('[data-mt-pdp-promotions]');
+        promotion.remove();
+
+        if (promotions && !promotions.querySelector('.mt-pdp-promotion')) {
+          promotions.remove();
+        }
+      }
+    });
+  }
+
+  function updatePromotions() {
+    removeExpiredCoupons();
+    updateCountdowns();
+  }
+
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       return navigator.clipboard.writeText(text);
@@ -70,6 +92,6 @@
     });
   });
 
-  updateCountdowns();
-  window.setInterval(updateCountdowns, 1000);
+  updatePromotions();
+  window.setInterval(updatePromotions, 1000);
 }());

@@ -356,6 +356,12 @@
 
   function buildFilterUrl(form) {
     var url = new URL(form.getAttribute('action') || window.location.href, window.location.href);
+    const currentUrl = new URL(window.location.href);
+    // The form action can predate AJAX navigation; retain the current catalog sort.
+    url.searchParams.delete('orderby');
+    if (currentUrl.searchParams.has('orderby')) {
+      url.searchParams.set('orderby', currentUrl.searchParams.get('orderby'));
+    }
     var paramsToRemove = [
       'paged',
       'product-page',
@@ -820,6 +826,9 @@
     data.append('action', 'meditrendy_native_filters_products');
     data.append('mt_filter_paged', String(currentPageFromUrl(url)));
     data.append('mt_filter_url', url.toString());
+    if (url.searchParams.has('orderby')) {
+      data.append('orderby', url.searchParams.get('orderby'));
+    }
 
     url.searchParams.forEach(function (value, key) {
       if (key.indexOf('mt_') === 0 && key !== 'mt_filter_paged' && key !== 'mt_filter_url') {

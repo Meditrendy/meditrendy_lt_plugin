@@ -1,0 +1,7 @@
+.med-custom-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 10px 0; }
+.med-custom-fields label { display: flex; flex-direction: column; gap: 4px; }
+.med-custom-fields input { width: 100%; box-sizing: border-box; }
+.med-custom-details { margin-top: 6px; }
+.med-custom-item > .quantity > .edit,
+.med-custom-item > .line_cost > .edit,
+.med-custom-item > .line_tax > .edit { display: none !important; }

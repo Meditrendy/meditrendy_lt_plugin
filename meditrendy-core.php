@@ -63,6 +63,7 @@ require_once MEDITRENDY_CORE_DIR . 'includes/product-set-cache.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/wpc-bundle-variation-json-compat.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-badges.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-gross-prices.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-custom-items.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-labels.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-item-color.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-order-image-preview.php';

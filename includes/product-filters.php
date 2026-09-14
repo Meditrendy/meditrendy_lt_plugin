@@ -3,7 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 const MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION = 'meditrendy_native_filters_cache_version';
 const MEDITRENDY_NATIVE_FILTERS_CACHE_TTL = 30 * MINUTE_IN_SECONDS;
-const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260529-counts-fix';
+const MEDITRENDY_NATIVE_FILTERS_RESPONSE_VERSION = '20260914-catalog-ordering';
 
 function meditrendy_native_filters_cache_version() {
     $version = (string) get_option(MEDITRENDY_NATIVE_FILTERS_CACHE_VERSION_OPTION, '');
@@ -53,6 +53,7 @@ function meditrendy_native_filters_cache_source($source, $extra = []) {
         'mt_filter_paged',
         'mt_min_price',
         'mt_max_price',
+        'orderby',
     ];
 
     foreach (meditrendy_native_filter_config() as $filter) {
@@ -1409,14 +1410,27 @@ function meditrendy_native_filters_ajax_products() {
     $source = meditrendy_native_filters_request_source($_POST);
     $paged = !empty($source['mt_filter_paged']) ? max(1, absint($source['mt_filter_paged'])) : 1;
     $per_page = meditrendy_native_filters_products_per_page();
+    // Resolve the archive's default or selected sorting through WooCommerce.
+    $orderby = isset($source['orderby']) && is_scalar($source['orderby'])
+        ? wc_clean(wp_unslash((string) $source['orderby']))
+        : '';
+    if ($orderby === '') {
+        $orderby = apply_filters('woocommerce_default_catalog_orderby', get_option('woocommerce_default_catalog_orderby', 'menu_order'));
+    }
+    $ordering_parts = explode('-', (string) $orderby);
+    $catalog_query = WC()->query;
+    $ordering = $catalog_query->get_catalog_ordering_args($ordering_parts[0], $ordering_parts[1] ?? '');
     $cache_key = meditrendy_native_filters_cache_key('ajax_products', $source, [
         'paged'          => $paged,
         'per_page'       => $per_page,
         'product_cards'  => 'v7',
+        'catalog_orderby' => $orderby,
+        'catalog_ordering' => $ordering,
     ]);
     $cached_response = get_transient($cache_key);
 
     if (is_array($cached_response)) {
+        $catalog_query->remove_ordering_args();
         wp_send_json_success($cached_response);
     }
 
@@ -1442,7 +1456,16 @@ function meditrendy_native_filters_ajax_products() {
         $args['meta_query'] = $meta_query;
     }
 
-    $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
+    $args = array_merge($args, $ordering);
+    // Include catalog visibility exclusions just as the normal archive does.
+    $args['tax_query'] = $catalog_query->get_tax_query($args['tax_query'] ?? [], true);
+    $args['meta_query'] = $catalog_query->get_meta_query($args['meta_query'] ?? [], true);
+    try {
+        $query = new WP_Query(meditrendy_native_filters_apply_stock_visibility_to_args($args));
+    } finally {
+        // Price/popularity/rating sorting must not leak into facet/count queries.
+        $catalog_query->remove_ordering_args();
+    }
 
     if (function_exists('wc_set_loop_prop')) {
         wc_set_loop_prop('total', (int) $query->found_posts);

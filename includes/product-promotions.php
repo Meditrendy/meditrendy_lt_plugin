@@ -445,6 +445,12 @@ function meditrendy_product_promotions_product_term_ids($product_id, $taxonomy) 
 }
 
 function meditrendy_product_promotions_coupon_matches_product($coupon_id, $product_id) {
+    $coupon = new WC_Coupon($coupon_id);
+
+    if (!meditrendy_product_promotions_coupon_is_active($coupon)) {
+        return false;
+    }
+
     $settings = meditrendy_product_promotions_settings();
     $rules = $settings[$coupon_id] ?? null;
 
@@ -619,7 +625,11 @@ function meditrendy_product_promotions_render($product_id = 0, $display = '') {
             </div>
         <?php endif; ?>
         <?php foreach ($coupons as $coupon) : ?>
-            <div class="mt-pdp-promotion">
+            <?php $expires = $coupon->get_date_expires(); ?>
+            <div
+                class="mt-pdp-promotion"
+                <?php if ($expires) : ?>data-mt-coupon-expires="<?php echo esc_attr($expires->getTimestamp()); ?>"<?php endif; ?>
+            >
                 <div class="mt-pdp-promotion-main">
                     <span class="mt-pdp-promotion-label"><?php esc_html_e('Nuolaidos kodas', 'meditrendy-core'); ?></span>
                     <span class="mt-pdp-promotion-discount"><?php echo esc_html(meditrendy_product_promotions_discount_label($coupon)); ?></span>
