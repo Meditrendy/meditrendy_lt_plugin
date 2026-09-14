@@ -11,7 +11,7 @@ function meditrendy_custom_item_fields($key, $values = []) {
         'name' => ['Nazwa', 'text', '', ''],
         'gross' => ['Cena jednostkowa brutto', 'number', '0', '0.01'],
         'rate' => ['VAT (%) — wpisz 0 dla braku VAT', 'number', '0', '0.0001'],
-        'days' => ['Dostawa (dni kalendarzowe, tylko administracja)', 'number', '0', '1'],
+        'days' => ['Dostawa (dni kalendarzowe)', 'number', '0', '1'],
         'qty' => ['Ilość', 'number', '1', '1'],
     ];
     echo '<div class="med-custom-fields">';
@@ -43,7 +43,7 @@ add_action('woocommerce_before_order_itemmeta', function($id, $item) {
     printf('<div class="view med-custom-details" data-unit-gross="%s" data-total-gross="%s">',
         esc_attr(wc_price(((float) $item->get_subtotal() + (float) $item->get_subtotal_tax()) / max(1, $item->get_quantity()), $currency)),
         esc_attr(wc_price((float) $item->get_total() + (float) $item->get_total_tax(), $currency)));
-    printf('Dostawa: %s dni kalendarzowych (tylko administracja); VAT: %s%%',
+    printf('Dostawa: %s dni kalendarzowych; VAT: %s%%',
         esc_html($item->get_meta('_meditrendy_delivery_days')), esc_html($item->get_meta('_meditrendy_tax_percent')));
     echo '</div><div class="edit" style="display:none">';
     meditrendy_custom_item_fields($id, [
