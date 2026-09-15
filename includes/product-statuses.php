@@ -26,8 +26,8 @@ function meditrendy_product_workflow_statuses() {
         ],
         'med-ready' => [
             'label'      => __('Do publikacji', 'meditrendy-core'),
-            'color'      => '#075f54',
-            'background' => '#ccebe6',
+            'color'      => '#6b4f00',
+            'background' => '#fff0a6',
         ],
     ];
 }
@@ -228,8 +228,8 @@ function meditrendy_product_status_badge($status) {
         ],
         'pending' => [
             'label'      => __('Oczekuje na przegląd', 'meditrendy-core'),
-            'color'      => '#7a4b00',
-            'background' => '#f6e5bd',
+            'color'      => '#8a3b00',
+            'background' => '#f8dcc5',
         ],
         'future' => [
             'label'      => __('Zaplanowano', 'meditrendy-core'),
