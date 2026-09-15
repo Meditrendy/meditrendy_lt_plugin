@@ -78,6 +78,66 @@ function meditrendy_internal_product_name_admin_column($columns) {
 add_filter('manage_edit-product_columns', 'meditrendy_internal_product_name_admin_column', 20);
 
 /**
+ * Make the internal-name column sortable in the Products list.
+ *
+ * A custom orderby value is used so products without an internal name remain
+ * in the list. Setting meta_key on WP_Query would exclude those products.
+ *
+ * @param array $columns Sortable product list columns.
+ * @return array
+ */
+function meditrendy_internal_product_name_sortable_admin_column($columns) {
+    $columns['meditrendy_internal_product_name'] = 'meditrendy_internal_product_name';
+
+    return $columns;
+}
+add_filter('manage_edit-product_sortable_columns', 'meditrendy_internal_product_name_sortable_admin_column');
+
+/**
+ * Order the Products admin query by the internal-name metadata.
+ *
+ * The LEFT JOIN keeps products with no internal name visible and places them
+ * after named products in both sort directions.
+ *
+ * @param array    $clauses Query SQL clauses.
+ * @param WP_Query $query   Current query.
+ * @return array
+ */
+function meditrendy_order_products_by_internal_name($clauses, $query) {
+    global $pagenow, $typenow, $wpdb;
+
+    if (
+        !is_admin()
+        || !$query instanceof WP_Query
+        || !$query->is_main_query()
+        || $pagenow !== 'edit.php'
+        || $typenow !== 'product'
+        || $query->get('orderby') !== 'meditrendy_internal_product_name'
+    ) {
+        return $clauses;
+    }
+
+    $alias = 'meditrendy_internal_name_sort';
+
+    if (strpos($clauses['join'], $alias) === false) {
+        $clauses['join'] .= $wpdb->prepare(
+            " LEFT JOIN {$wpdb->postmeta} AS {$alias}
+            ON ({$wpdb->posts}.ID = {$alias}.post_id
+            AND {$alias}.meta_key = %s)",
+            MEDITRENDY_INTERNAL_PRODUCT_NAME_META_KEY
+        );
+    }
+
+    $direction = strtoupper((string) $query->get('order')) === 'DESC' ? 'DESC' : 'ASC';
+    $clauses['orderby'] = "CASE WHEN COALESCE({$alias}.meta_value, '') = '' THEN 1 ELSE 0 END ASC,
+        {$alias}.meta_value {$direction},
+        {$wpdb->posts}.post_title {$direction}";
+
+    return $clauses;
+}
+add_filter('posts_clauses', 'meditrendy_order_products_by_internal_name', 20, 2);
+
+/**
  * Render the private name in the Products list.
  *
  * @param string $column  Current column key.
