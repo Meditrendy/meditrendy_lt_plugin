@@ -42,6 +42,25 @@ function meditrendy_product_workflow_status_slugs() {
 }
 
 /**
+ * Return statuses available in the inline Products-list status picker.
+ *
+ * @return array<string, string>
+ */
+function meditrendy_product_inline_edit_statuses() {
+    $statuses = [
+        'publish' => __('Opublikowany', 'meditrendy-core'),
+        'pending' => __('Oczekuje na przegląd', 'meditrendy-core'),
+        'draft'   => __('Szkic', 'meditrendy-core'),
+    ];
+
+    foreach (meditrendy_product_workflow_statuses() as $status => $settings) {
+        $statuses[$status] = $settings['label'];
+    }
+
+    return $statuses;
+}
+
+/**
  * Check a product (or a variation's parent product) for a workflow status.
  *
  * @param int $product_id Product or variation ID.
@@ -219,8 +238,18 @@ function meditrendy_product_status_badge($status) {
         ],
         'private' => [
             'label'      => __('Prywatny', 'meditrendy-core'),
-            'color'      => '#663399',
-            'background' => '#eadcf5',
+            'color'      => '#8a245d',
+            'background' => '#f3dce9',
+        ],
+        'trash' => [
+            'label'      => __('Kosz', 'meditrendy-core'),
+            'color'      => '#7c2d12',
+            'background' => '#f4ded4',
+        ],
+        'auto-draft' => [
+            'label'      => __('Automatyczny szkic', 'meditrendy-core'),
+            'color'      => '#4d5055',
+            'background' => '#d9dee3',
         ],
     ];
 
@@ -250,12 +279,21 @@ function meditrendy_render_product_status_admin_column($column, $post_id) {
         return;
     }
 
-    $badge = meditrendy_product_status_badge(get_post_status($post_id));
+    $current_status = get_post_status($post_id);
+    $badge          = meditrendy_product_status_badge($current_status);
 
     printf(
-        '<span class="meditrendy-product-status-badge" style="--med-status-color:%1$s;--med-status-background:%2$s">%3$s</span>',
+        '<button type="button" class="meditrendy-product-status-badge" data-product-id="%1$d" data-current-status="%2$s" style="--med-status-color:%3$s;--med-status-background:%4$s" aria-label="%5$s" title="%6$s">%7$s</button>',
+        absint($post_id),
+        esc_attr($current_status),
         esc_attr($badge['color']),
         esc_attr($badge['background']),
+        esc_attr(sprintf(
+            /* translators: %s: current product status. */
+            __('Status: %s. Kliknij, aby szybko zmienić.', 'meditrendy-core'),
+            $badge['label']
+        )),
+        esc_attr__('Kliknij, aby szybko zmienić status', 'meditrendy-core'),
         esc_html($badge['label'])
     );
 }
@@ -279,6 +317,7 @@ function meditrendy_product_status_admin_styles() {
         }
 
         .meditrendy-product-status-badge {
+            appearance: none;
             display: inline-block;
             max-width: 100%;
             padding: 3px 8px;
@@ -286,9 +325,26 @@ function meditrendy_product_status_admin_styles() {
             border-radius: 999px;
             color: var(--med-status-color);
             background: var(--med-status-background);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
             font-weight: 600;
             line-height: 1.35;
             overflow-wrap: anywhere;
+        }
+
+        .meditrendy-product-status-badge:hover {
+            box-shadow: 0 0 0 1px var(--med-status-color);
+        }
+
+        .meditrendy-product-status-badge:focus-visible {
+            outline: 2px solid var(--med-status-color);
+            outline-offset: 2px;
+        }
+
+        .meditrendy-product-status-select {
+            width: 100%;
+            min-width: 16ch;
         }
 
         @media screen and (max-width: 782px) {
@@ -302,6 +358,196 @@ function meditrendy_product_status_admin_styles() {
     <?php
 }
 add_action('admin_head', 'meditrendy_product_status_admin_styles', 100);
+
+/**
+ * Replace a clicked badge with the compact inline status selector.
+ *
+ * @param string $hook_suffix Current admin page.
+ */
+function meditrendy_product_status_quick_edit_script($hook_suffix) {
+    if ($hook_suffix !== 'edit.php') {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if (!$screen || $screen->id !== 'edit-product') {
+        return;
+    }
+
+    $statuses = [];
+    foreach (meditrendy_product_inline_edit_statuses() as $status => $label) {
+        $statuses[$status] = [
+            'label' => $label,
+        ];
+    }
+
+    $config = [
+        'ajaxUrl'       => admin_url('admin-ajax.php'),
+        'nonce'         => wp_create_nonce('meditrendy_update_product_status'),
+        'statuses'      => $statuses,
+        'selectLabel'   => __('Wybierz nowy status produktu', 'meditrendy-core'),
+        'badgeTitle'    => __('Kliknij, aby szybko zmienić status', 'meditrendy-core'),
+        'badgeAria'     => __('Status: %s. Kliknij, aby szybko zmienić.', 'meditrendy-core'),
+        'errorMessage'  => __('Nie udało się zmienić statusu produktu. Odśwież stronę i spróbuj ponownie.', 'meditrendy-core'),
+    ];
+
+    $script = sprintf(<<<'JS'
+(function () {
+const config = %s;
+
+document.addEventListener('click', (event) => {
+    const badge = event.target.closest('.meditrendy-product-status-badge');
+    if (!badge) {
+        return;
+    }
+
+    event.preventDefault();
+    const select = document.createElement('select');
+    select.className = 'meditrendy-product-status-select';
+    select.setAttribute('aria-label', config.selectLabel);
+
+    Object.entries(config.statuses).forEach(([status, settings]) => {
+        select.add(new Option(settings.label, status, false, status === badge.dataset.currentStatus));
+    });
+
+    if (!Object.prototype.hasOwnProperty.call(config.statuses, badge.dataset.currentStatus)) {
+        select.add(new Option(badge.textContent, badge.dataset.currentStatus, true, true), 0);
+    }
+
+    badge.replaceWith(select);
+    select.focus({ preventScroll: true });
+
+    let saving = false;
+    const restoreBadge = () => {
+        if (select.isConnected) {
+            select.replaceWith(badge);
+        }
+    };
+
+    select.addEventListener('blur', () => {
+        window.setTimeout(() => {
+            if (!saving) {
+                restoreBadge();
+            }
+        }, 0);
+    });
+
+    select.addEventListener('keydown', (keyEvent) => {
+        if (keyEvent.key === 'Escape') {
+            keyEvent.preventDefault();
+            restoreBadge();
+            badge.focus();
+        }
+    });
+
+    select.addEventListener('change', async () => {
+        const newStatus = select.value;
+        if (newStatus === badge.dataset.currentStatus) {
+            restoreBadge();
+            return;
+        }
+
+        saving = true;
+        select.disabled = true;
+
+        const request = new URLSearchParams({
+            action: 'meditrendy_update_product_status',
+            nonce: config.nonce,
+            product_id: badge.dataset.productId,
+            status: newStatus,
+        });
+
+        try {
+            const response = await fetch(config.ajaxUrl, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                body: request.toString(),
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error('Status update failed');
+            }
+
+            const updated = result.data;
+            badge.dataset.currentStatus = updated.status;
+            badge.textContent = updated.label;
+            badge.style.setProperty('--med-status-color', updated.color);
+            badge.style.setProperty('--med-status-background', updated.background);
+            badge.title = config.badgeTitle;
+            badge.setAttribute('aria-label', config.badgeAria.replace('%%s', updated.label));
+            select.replaceWith(badge);
+            badge.focus();
+        } catch (error) {
+            restoreBadge();
+            window.alert(config.errorMessage);
+        }
+    });
+
+    if (typeof select.showPicker === 'function') {
+        try {
+            select.showPicker();
+        } catch (error) {
+            // The focused select remains usable when the browser blocks showPicker().
+        }
+    }
+});
+}());
+JS,
+        wp_json_encode($config)
+    );
+
+    wp_add_inline_script('inline-edit-post', $script, 'after');
+}
+add_action('admin_enqueue_scripts', 'meditrendy_product_status_quick_edit_script');
+
+/**
+ * Save a product status selected from the inline Products-list picker.
+ */
+function meditrendy_ajax_update_product_status() {
+    check_ajax_referer('meditrendy_update_product_status', 'nonce');
+
+    $product_id = isset($_POST['product_id']) ? absint($_POST['product_id']) : 0;
+    $status     = isset($_POST['status']) ? sanitize_key(wp_unslash($_POST['status'])) : '';
+    $allowed    = meditrendy_product_inline_edit_statuses();
+
+    if (
+        !$product_id
+        || get_post_type($product_id) !== 'product'
+        || !current_user_can('edit_post', $product_id)
+        || !isset($allowed[$status])
+    ) {
+        wp_send_json_error(['message' => __('Nieprawidłowa zmiana statusu produktu.', 'meditrendy-core')], 403);
+    }
+
+    $product_type = get_post_type_object('product');
+    if (
+        $status === 'publish'
+        && (!$product_type || !current_user_can($product_type->cap->publish_posts))
+    ) {
+        wp_send_json_error(['message' => __('Nie masz uprawnień do publikowania produktów.', 'meditrendy-core')], 403);
+    }
+
+    $result = wp_update_post([
+        'ID'          => $product_id,
+        'post_status' => $status,
+    ], true);
+
+    if (is_wp_error($result)) {
+        wp_send_json_error(['message' => $result->get_error_message()], 500);
+    }
+
+    $badge = meditrendy_product_status_badge($status);
+
+    wp_send_json_success([
+        'status'     => $status,
+        'label'      => $badge['label'],
+        'color'      => $badge['color'],
+        'background' => $badge['background'],
+    ]);
+}
+add_action('wp_ajax_meditrendy_update_product_status', 'meditrendy_ajax_update_product_status');
 
 /**
  * Never expose a custom-workflow product through a direct storefront request.
