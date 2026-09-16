@@ -119,7 +119,7 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
     $language  = function_exists('meditrendy_core_current_language')
         ? meditrendy_core_current_language()
         : 'lt';
-    $cache_key = 'mt_listing_swatches_v3_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_listing_swatches_v4_' . $product_id . '_' . $language . '_' . $limit . '_' . (int) $show_more;
     $cached    = get_transient($cache_key);
 
     if (false !== $cached) {
@@ -139,7 +139,10 @@ function meditrendy_listing_color_swatches_shortcode($atts = []) {
     foreach ((array) $related_ids as $related_id) {
         $related_product = wc_get_product($related_id);
 
-        if (!$related_product || !$related_product->is_in_stock()) {
+        // Keep the current product's colour visible even when it is sold out.
+        // Otherwise an out-of-stock card is labelled as the first available
+        // related colour and its only swatch links to a different product.
+        if (!$related_product || (!$related_product->is_in_stock() && (int) $related_id !== $product_id)) {
             continue;
         }
 
@@ -231,7 +234,7 @@ function meditrendy_listing_color_swatches_clear_cache_for_product($product_id) 
 
     $transients = [];
 
-    foreach (['v1', 'v2', 'v3'] as $version) {
+    foreach (['v1', 'v2', 'v3', 'v4'] as $version) {
         $transients = array_merge(
             $transients,
             $wpdb->get_col(

@@ -209,6 +209,87 @@ function meditrendy_product_status_admin_column($columns) {
 add_filter('manage_edit-product_columns', 'meditrendy_product_status_admin_column', 20);
 
 /**
+ * Make the status column sortable from its table header.
+ *
+ * @param array<string, string> $columns Sortable product columns.
+ * @return array<string, string>
+ */
+function meditrendy_product_status_sortable_column($columns) {
+    $columns['meditrendy_product_status'] = 'meditrendy_product_status';
+
+    return $columns;
+}
+add_filter('manage_edit-product_sortable_columns', 'meditrendy_product_status_sortable_column');
+
+/**
+ * Mark Products-list queries that request sorting by the status column.
+ *
+ * @param WP_Query $query Current query.
+ */
+function meditrendy_prepare_product_status_sorting($query) {
+    global $pagenow;
+
+    if (
+        !is_admin()
+        || $pagenow !== 'edit.php'
+        || !$query->is_main_query()
+        || $query->get('post_type') !== 'product'
+        || $query->get('orderby') !== 'meditrendy_product_status'
+    ) {
+        return;
+    }
+
+    $query->set('meditrendy_product_status_sort', strtoupper((string) $query->get('order')) === 'DESC' ? 'DESC' : 'ASC');
+    $query->set('orderby', 'none');
+}
+add_action('pre_get_posts', 'meditrendy_prepare_product_status_sorting');
+
+/**
+ * Sort products alphabetically by their displayed status labels.
+ *
+ * @param array<string, string> $clauses Query SQL clauses.
+ * @param WP_Query              $query   Current query.
+ * @return array<string, string>
+ */
+function meditrendy_apply_product_status_sorting($clauses, $query) {
+    global $wpdb;
+
+    $direction = $query->get('meditrendy_product_status_sort');
+    if (!in_array($direction, ['ASC', 'DESC'], true)) {
+        return $clauses;
+    }
+
+    $labels = [
+        'publish'    => __('Opublikowano', 'meditrendy-core'),
+        'draft'      => __('Szkic', 'meditrendy-core'),
+        'pending'    => __('Oczekuje na przegląd', 'meditrendy-core'),
+        'future'     => __('Zaplanowano', 'meditrendy-core'),
+        'private'    => __('Prywatny', 'meditrendy-core'),
+        'trash'      => __('Kosz', 'meditrendy-core'),
+        'auto-draft' => __('Automatyczny szkic', 'meditrendy-core'),
+    ];
+
+    foreach (meditrendy_product_workflow_statuses() as $status => $settings) {
+        $labels[$status] = $settings['label'];
+    }
+
+    $cases = [];
+    foreach ($labels as $status => $label) {
+        $cases[] = $wpdb->prepare('WHEN %s THEN %s', $status, $label);
+    }
+
+    $clauses['orderby'] = sprintf(
+        'CASE %1$s.post_status %2$s ELSE %1$s.post_status END %3$s, %1$s.post_title %3$s',
+        $wpdb->posts,
+        implode(' ', $cases),
+        $direction
+    );
+
+    return $clauses;
+}
+add_filter('posts_clauses', 'meditrendy_apply_product_status_sorting', 20, 2);
+
+/**
  * Return display settings for built-in and custom product statuses.
  *
  * @param string $status Post status slug.

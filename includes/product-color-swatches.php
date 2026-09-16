@@ -154,6 +154,7 @@ function meditrendy_clear_color_swatches_cache_for_product($product_id) {
         $wpdb->esc_like('_transient_mt_swatches_v8_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v9_' . $product_id . '_') . '%',
         $wpdb->esc_like('_transient_mt_swatches_v10_' . $product_id . '_') . '%',
+        $wpdb->esc_like('_transient_mt_swatches_v11_' . $product_id . '_') . '%',
     ];
 
     foreach($patterns as $pattern) {
@@ -402,7 +403,7 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     $limit = max(0, absint($atts['limit']));
     $show_more = meditrendy_color_swatches_bool($atts['show_more']);
     $product_id = $product->get_id();
-    $cache_key = 'mt_swatches_v10_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
+    $cache_key = 'mt_swatches_v11_' . $product_id . '_' . meditrendy_current_language_slug() . '_' . $limit . '_' . (int) $show_more;
     $cached = get_transient($cache_key);
 
     if($cached !== false) {
@@ -431,7 +432,10 @@ function meditrendy_color_swatches_shortcode($atts = []) {
     foreach($related_product_ids as $p_id){
         $related_product = wc_get_product($p_id);
 
-        if(!$related_product || !$related_product->is_in_stock()) {
+        // Always retain the current colour so sold-out products do not appear
+        // to be a different, available colour. Other sold-out colours remain
+        // hidden from the related-product swatches.
+        if(!$related_product || (!$related_product->is_in_stock() && (int) $p_id !== (int) $product_id)) {
             continue;
         }
 
