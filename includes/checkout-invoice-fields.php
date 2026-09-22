@@ -882,6 +882,9 @@ add_action('wp_enqueue_scripts', function() {
     $asset_path = MEDITRENDY_CORE_DIR . 'assets/js/checkout-invoice-fields.js';
     $style_path = MEDITRENDY_CORE_DIR . 'assets/css/checkout-invoice-fields.css';
     $data       = meditrendy_get_checkout_invoice_session_data();
+    $billing_email = function_exists('WC') && WC()->customer
+        ? (string) WC()->customer->get_billing_email()
+        : '';
     $pickup_address = meditrendy_get_checkout_pickup_address();
     $labels = meditrendy_checkout_invoice_labels();
     $identifier_fields = [];
@@ -926,6 +929,7 @@ add_action('wp_enqueue_scripts', function() {
         [
             'ajaxUrl'         => admin_url('admin-ajax.php'),
             'nonce'           => wp_create_nonce('meditrendy_checkout_invoice_fields'),
+            'billingEmail'    => $billing_email,
             'invoiceRequired' => $data['invoiceRequired'],
             'contactPhone'    => $data['contactPhone'],
             'companyName'     => $data['companyName'],

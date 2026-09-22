@@ -40,6 +40,7 @@
   let lastBillingSignature = '';
   let lastShippingSignature = '';
   let lastComputedBillingAddress = null;
+  let lastKnownEmail = String(settings.billingEmail || '');
   let defaultDeliveryStartedAt = 0;
   let defaultDeliveryTimer = 0;
   let customerTouchedShippingChoice = false;
@@ -370,6 +371,35 @@
     return input ? input.value || '' : '';
   }
 
+  function getVisibleEmailField() {
+    return Array.from(document.querySelectorAll('#email, input[type="email"], input[autocomplete="email"]')).find(function (field) {
+      return field.offsetParent !== null && field.closest('[hidden]') === null;
+    }) || null;
+  }
+
+  /**
+   * Keep the contact email stable while WooCommerce Blocks replaces checkout
+   * fields. During a refresh the new email input can briefly be empty, even
+   * though the cart store or the field it replaced still contains the value.
+   */
+  function getCheckoutEmail(currentBillingEmail) {
+    const field = getVisibleEmailField();
+    const fieldValue = field ? String(field.value || '') : '';
+    const storedValue = String(currentBillingEmail || '');
+
+    if (field && (fieldValue || document.activeElement === field)) {
+      lastKnownEmail = fieldValue;
+      return fieldValue;
+    }
+
+    if (storedValue) {
+      lastKnownEmail = storedValue;
+      return storedValue;
+    }
+
+    return lastKnownEmail;
+  }
+
   function isVisibleCustomerField(field) {
     return !!field &&
       field.offsetParent !== null &&
@@ -519,10 +549,11 @@
     const currentShipping = compactAddress(cartData.shippingAddress || {});
     const currentBilling = compactAddress(cartData.billingAddress || {});
     const visibleShipping = getVisibleShippingAddress();
+    const visibleBilling = getVisibleBillingAddress();
     const invoice = getInvoiceAddress();
     const pickup = isPickupSelected();
     const contactPhone = getPhoneField() ? getPhoneField().value : '';
-    const email = getInputValue('#email, input[type="email"], input[autocomplete="email"]') || currentBilling.email || '';
+    const email = getCheckoutEmail(currentBilling.email);
     const mergedShipping = compactAddress(Object.assign(
       {},
       currentShipping,
@@ -685,7 +716,7 @@
     const firstName = currentBilling.first_name || visibleBilling.first_name || currentShipping.first_name || visibleShipping.first_name;
     const lastName = currentBilling.last_name || visibleBilling.last_name || currentShipping.last_name || visibleShipping.last_name;
     const phone = contactPhone || currentShipping.phone || currentBilling.phone;
-    const email = currentBilling.email || getInputValue('#email, input[type="email"], input[autocomplete="email"]');
+    const email = getCheckoutEmail(currentBilling.email);
     const invoiceAddress = invoice.invoiceRequired ? {
       company: invoice.company || visibleBilling.company || currentBilling.company,
       address_1: invoice.address_1 || visibleBilling.address_1 || currentBilling.address_1,
@@ -1409,6 +1440,10 @@
 
     document.addEventListener('change', function (event) {
       if (event.target && event.target.matches('input, select')) {
+        if (event.target.matches('#email, input[type="email"], input[autocomplete="email"]')) {
+          lastKnownEmail = String(event.target.value || '');
+        }
+
         if (event.isTrusted && event.target.matches('input[type="radio"]') && shippingChoiceText(event.target)) {
           customerTouchedShippingChoice = true;
         }
@@ -1424,6 +1459,10 @@
 
     document.addEventListener('input', function (event) {
       if (event.target && event.target.matches('input, select, textarea')) {
+        if (event.target.matches('#email, input[type="email"], input[autocomplete="email"]')) {
+          lastKnownEmail = String(event.target.value || '');
+        }
+
         window.clearTimeout(addressSyncTimer);
         addressSyncTimer = window.setTimeout(function () {
           if (!isPickupSelected()) {
