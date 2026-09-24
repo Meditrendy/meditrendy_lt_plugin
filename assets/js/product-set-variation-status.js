@@ -81,6 +81,19 @@
         });
     }
 
+    function hasMatchingVariation(variations, selectedAttributes, attributeName, optionValue) {
+        const testAttributes = Object.assign({}, selectedAttributes, {
+            [attributeName]: optionValue
+        });
+
+        return variations.some(function (variation) {
+            return variation
+                && variation.variation_is_active !== false
+                && variation.variation_is_visible !== false
+                && variationMatches(variation.attributes, testAttributes);
+        });
+    }
+
     function getSwatchItems(form, attributeName, optionValue) {
         const wrapper = form.querySelector(
             '.variable-items-wrapper[data-attribute_name="' + cssEscape(attributeName) + '"]'
@@ -97,10 +110,13 @@
 
     function setSwatchState(item, isOutOfStock) {
         item.classList.toggle(outOfStockClass, isOutOfStock);
-        item.classList.remove('no-stock');
-        item.removeAttribute('aria-disabled');
 
         if (isOutOfStock) {
+            item.classList.remove('disabled');
+            item.classList.add('no-stock');
+            item.removeAttribute('aria-disabled');
+            item.setAttribute('tabindex', '0');
+
             if (!item.getAttribute('data-wvstooltip-out-of-stock')) {
                 item.setAttribute('data-wvstooltip-out-of-stock', getStockTooltip());
                 item.dataset[tooltipMarker] = '1';
@@ -108,6 +124,8 @@
 
             return;
         }
+
+        item.classList.remove('no-stock');
 
         if (item.dataset[tooltipMarker] === '1') {
             item.removeAttribute('data-wvstooltip-out-of-stock');
@@ -120,8 +138,11 @@
 
         if (isOutOfStock) {
             option.dataset.mtWoosbOutOfStock = '1';
+            option.disabled = false;
+            option.classList.add('enabled', 'out-of-stock');
         } else {
             delete option.dataset.mtWoosbOutOfStock;
+            option.classList.remove('enabled', 'out-of-stock');
         }
 
         getSwatchItems(form, getAttributeName(select), option.value).forEach(function (item) {
@@ -130,10 +151,6 @@
     }
 
     function refreshForm(form) {
-        if (form.classList.contains('woosb_variations_form')) {
-            return;
-        }
-
         const variations = readVariations(form);
 
         if (!variations.length) {
@@ -154,7 +171,13 @@
                     return;
                 }
 
-                const isOutOfStock = !hasAvailableVariation(
+                const hasVariation = hasMatchingVariation(
+                    variations,
+                    selectedAttributes,
+                    attributeName,
+                    option.value
+                );
+                const isOutOfStock = hasVariation && !hasAvailableVariation(
                     variations,
                     selectedAttributes,
                     attributeName,
