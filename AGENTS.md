@@ -13,6 +13,7 @@ This repository contains the Meditrendy custom plugin. Treat it as the business 
 
 ## Project Conventions
 
+- Do not create Git commits, push branches, or open pull requests unless the user explicitly requests that action in the current conversation. Leave completed changes uncommitted by default.
 - Storefront/customer-facing strings must be translation-ready for Loco Translate or a similar WordPress translation plugin. Wrap PHP strings with the appropriate WordPress i18n helper (`__()`, `_e()`, `esc_html__()`, `esc_attr__()`, etc.) and use the plugin text domain. For JavaScript-facing strings, localize them from PHP or use the established WordPress i18n flow rather than hardcoding untranslatable text.
 - Prefer storefront labels and links to support Lithuanian, Polish, and English. Lithuanian remains the default storefront language unless the active multilingual/translation setup supplies Polish or English, but new frontend URLs, link text, slugs, and navigation-facing strings should be designed so Lithuanian, Polish, and English translations can be managed in Loco Translate or the active translation plugin.
 - Admin/editor-facing labels may be English or Polish.
