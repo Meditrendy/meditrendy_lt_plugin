@@ -1,0 +1,50 @@
+.column-meditrendy_inline_price {
+    width: 12ch;
+}
+
+.meditrendy-inline-price {
+    appearance: none;
+    border: 0;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    padding: 2px 3px;
+    text-align: left;
+}
+
+.meditrendy-inline-price:hover,
+.meditrendy-inline-price:focus-visible {
+    outline: 1px solid #2271b1;
+}
+
+.meditrendy-inline-price-editor {
+    display: grid;
+    gap: 5px;
+    min-width: 13ch;
+}
+
+.meditrendy-inline-price-editor label {
+    display: grid;
+    gap: 2px;
+    font-size: 12px;
+}
+
+.meditrendy-inline-price-editor input {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+}
+
+.meditrendy-inline-price-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.meditrendy-inline-price-error {
+    color: #b32d2e;
+    font-size: 12px;
+}
