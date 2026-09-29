@@ -26,6 +26,15 @@ function meditrendy_inline_price_sortable_column($columns) {
 }
 add_filter('manage_edit-product_sortable_columns', 'meditrendy_inline_price_sortable_column', 30);
 
+/** WooCommerce attaches its standard edit fields to the original price column key. */
+function meditrendy_inline_price_preserve_edit_fields($column, $post_type) {
+    if ($column === 'meditrendy_inline_price' && $post_type === 'product') {
+        do_action(current_filter(), 'price', $post_type);
+    }
+}
+add_action('quick_edit_custom_box', 'meditrendy_inline_price_preserve_edit_fields', 20, 2);
+add_action('bulk_edit_custom_box', 'meditrendy_inline_price_preserve_edit_fields', 20, 2);
+
 /**
  * Return one editable price pair, or null when a product has differing variation prices.
  * Checking every child avoids overwriting hidden or out-of-stock variations unnoticed.

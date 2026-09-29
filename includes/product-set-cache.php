@@ -250,6 +250,15 @@ function meditrendy_product_set_refresh_containing_product($product_id = 0) {
         return;
     }
 
+    // Bulk variation pricing refreshes affected sets once after the parent is synced.
+    $deferred_parent = absint($GLOBALS['meditrendy_bulk_price_deferred_parent'] ?? 0);
+    if ($deferred_parent && (
+        $product_id === $deferred_parent
+        || ($product->is_type('variation') && (int) $product->get_parent_id() === $deferred_parent)
+    )) {
+        return;
+    }
+
     $set_ids = meditrendy_product_set_find_containing_product($product_id);
 
     if (!$set_ids) {
