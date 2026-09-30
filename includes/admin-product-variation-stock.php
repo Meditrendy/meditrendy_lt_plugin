@@ -50,7 +50,7 @@ function meditrendy_variation_stock_ajax() {
     }
     ob_start();
     echo '<div class="meditrendy-variation-stock-panel"><table><caption>' . esc_html(sprintf(__('Warianty: %s', 'meditrendy-core'), $product->get_name())) . '</caption><thead><tr>';
-    foreach ([__('Wariant', 'meditrendy-core'), __('SKU', 'meditrendy-core'), __('Stan magazynowy', 'meditrendy-core'), __('Ilość', 'meditrendy-core'), __('Zarządzanie zapasem', 'meditrendy-core')] as $label) {
+    foreach ([__('Wariant', 'meditrendy-core'), __('SKU', 'meditrendy-core'), __('Cena', 'meditrendy-core'), __('Stan magazynowy', 'meditrendy-core'), __('Ilość', 'meditrendy-core'), __('Zarządzanie zapasem', 'meditrendy-core')] as $label) {
         echo '<th scope="col">' . esc_html($label) . '</th>';
     }
     echo '</tr></thead><tbody>';
@@ -73,14 +73,15 @@ function meditrendy_variation_stock_ajax() {
         $quantity = $owner->managing_stock() ? $owner->get_stock_quantity() : null;
         $management = !$owner->managing_stock() ? __('Bez śledzenia ilości', 'meditrendy-core') : ($owner_id === $id ? __('Wspólny zapas produktu', 'meditrendy-core') : __('Zapas wariantu', 'meditrendy-core'));
         $status = $variation->get_stock_status();
+        $price = $variation->get_price_html();
         echo '<tr><td>' . esc_html($attributes ?: sprintf(__('Wariant #%d', 'meditrendy-core'), $variation_id)) . ' <small>#' . absint($variation_id) . '</small>';
         if ($variation->get_status() !== 'publish') {
             echo ' <small>(' . esc_html__('Wyłączony', 'meditrendy-core') . ')</small>';
         }
-        echo '</td><td>' . esc_html($variation->get_sku() ?: '—') . '</td><td>' . esc_html($statuses[$status] ?? $status) . '</td><td>' . esc_html($quantity === null ? '—' : wc_format_localized_decimal($quantity)) . '</td><td>' . esc_html($management) . '</td></tr>';
+        echo '</td><td>' . esc_html($variation->get_sku() ?: '—') . '</td><td>' . ($price !== '' ? wp_kses_post($price) : '—') . '</td><td>' . esc_html($statuses[$status] ?? $status) . '</td><td>' . esc_html($quantity === null ? '—' : wc_format_localized_decimal($quantity)) . '</td><td>' . esc_html($management) . '</td></tr>';
     }
     if (!$count) {
-        echo '<tr><td colspan="5">' . esc_html__('Brak wariantów.', 'meditrendy-core') . '</td></tr>';
+        echo '<tr><td colspan="6">' . esc_html__('Brak wariantów.', 'meditrendy-core') . '</td></tr>';
     }
     echo '</tbody></table></div>';
     wp_send_json_success(['html' => ob_get_clean()]);
