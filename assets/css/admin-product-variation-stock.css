@@ -1,0 +1,7 @@
+.meditrendy-variation-stock-row[hidden] { display: none; }
+.meditrendy-variation-stock-panel { overflow-x: auto; padding: 8px; }
+.meditrendy-variation-stock-panel table { width: 100%; border-collapse: collapse; background: #fff; }
+.meditrendy-variation-stock-panel caption { text-align: left; font-weight: 600; padding: 8px; }
+.meditrendy-variation-stock-panel th,
+.meditrendy-variation-stock-panel td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #dcdcde; }
+.meditrendy-variation-stock-panel small { color: #646970; }

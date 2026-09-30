@@ -20,6 +20,7 @@ add_action('plugins_loaded', function() {
 require_once MEDITRENDY_CORE_DIR . 'includes/product-card-renderer.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-internal-name.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-product-inline-price.php';
+require_once MEDITRENDY_CORE_DIR . 'includes/admin-product-variation-stock.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/admin-product-bulk-variation-price.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/product-statuses.php';
 require_once MEDITRENDY_CORE_DIR . 'includes/site-identity.php';
